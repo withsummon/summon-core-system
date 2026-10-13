@@ -24,6 +24,7 @@ import {
   Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import type { SummonUIMessage } from "@plane/summon-contract/chat";
 import type { ISummonAssistantCitation, ISummonAssistantMessage, ISummonAutomationJob } from "@plane/types";
 import { cn, copyTextToClipboard } from "@plane/utils";
 import {
@@ -75,6 +76,8 @@ export function AssistantIdentity() {
 export function AssistantTimeline(props: {
   items: TAssistantTimelineItem[];
   pending: string;
+  /** The reply streaming in for `pending`, when the AI service answers. */
+  streamingReply?: SummonUIMessage;
   canWriteBack: boolean;
   renderAction: (item: Extract<TAssistantTimelineItem, { type: "action" }>) => ReactNode;
   renderWriteback: (writeback: AssistantWriteback) => ReactNode;
@@ -107,13 +110,33 @@ export function AssistantTimeline(props: {
           </Message>
           <Message from="assistant" aria-live="polite" aria-busy="true">
             <AssistantIdentity />
-            <p className="animate-pulse text-13 text-secondary motion-reduce:animate-none">
-              Reading the sources you can access…
-            </p>
+            <StreamingReply reply={props.streamingReply} />
           </Message>
         </>
       ) : null}
     </>
+  );
+}
+
+/** The streamed text so far, or what Summon is doing before the first words arrive. */
+function StreamingReply({ reply }: { reply?: SummonUIMessage }) {
+  const parts = reply?.parts ?? [];
+  const text = parts.flatMap((part) => (part.type === "text" ? [part.text] : [])).join("");
+  if (text)
+    return (
+      <MessageContent from="assistant">
+        <MessageResponse markdown={text} />
+      </MessageContent>
+    );
+  // The latest tool call is the one running.
+  let tool: (typeof parts)[number] | undefined;
+  for (const part of parts) if (part.type.startsWith("tool-")) tool = part;
+  return (
+    <p className="animate-pulse text-13 text-secondary motion-reduce:animate-none">
+      {tool
+        ? `Checking ${tool.type.slice("tool-".length).replaceAll("_", " ")}…`
+        : "Reading the sources you can access…"}
+    </p>
   );
 }
 

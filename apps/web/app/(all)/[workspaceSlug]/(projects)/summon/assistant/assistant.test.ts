@@ -102,3 +102,13 @@ test("Assistant requires document confirmation and exposes generated preview and
     assert.match(implementation, new RegExp(marker));
   }
 });
+
+test("Assistant streams replies through the AI service when it runs the model", () => {
+  const stream = readFileSync(new URL("./use-assistant-stream.ts", import.meta.url), "utf8");
+  for (const marker of ["useChat", "DefaultChatTransport", 'credentials: "include"', "chatPath", "data-citations"]) {
+    assert.match(stream, new RegExp(marker));
+  }
+  for (const marker of ["useAssistantStream", 'provider === "openrouter"', "streamingReply", "stream.clear"]) {
+    assert.match(implementation, new RegExp(marker));
+  }
+});

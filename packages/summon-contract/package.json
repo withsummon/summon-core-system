@@ -9,7 +9,8 @@
     ".": "./src/index.ts",
     "./chat": "./src/chat.ts",
     "./openapi.json": "./openapi.json",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./chat-route": "./src/chat-route.ts"
   },
   "scripts": {
     "generate": "./scripts/schema.sh && bun run generate:client",

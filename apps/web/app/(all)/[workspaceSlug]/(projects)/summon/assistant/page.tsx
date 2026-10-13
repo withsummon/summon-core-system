@@ -50,6 +50,7 @@ import type {
 import { AssistantTemplates } from "./assistant-templates";
 import { AssistantWritebackCard } from "./assistant-writeback-card";
 import { useAssistantOptions } from "./use-assistant-options";
+import { useAssistantStream } from "./use-assistant-stream";
 import { AssistantConversationSidebar } from "./conversation-sidebar";
 import { AssistantTimeline } from "./message-list";
 
@@ -122,6 +123,12 @@ export default function SummonAssistantPage({ params }: Route.ComponentProps) {
     }
   );
   const options = useAssistantOptions(workspaceSlug);
+  const stream = useAssistantStream(workspaceSlug);
+  // The AI service streams OpenRouter turns; Django answers other providers and tool commands in one response.
+  const { data: aiStatus } = useSWR(["summon-ai-status", workspaceSlug], () =>
+    summonService.getAIStatus(workspaceSlug)
+  );
+  const streamsReplies = aiStatus?.provider === "openrouter";
   const scopeLabel = scopeLabelFor(composer.scope, options.scopeOptions);
   const meetingProjectId = meetingProjectFor(composer.scope, options.meetings);
 
@@ -255,9 +262,19 @@ export default function SummonAssistantPage({ params }: Route.ComponentProps) {
           mcp_credential: composer.mcpCredentialId || null,
         });
       }
-      const pair = await summonService.sendAssistantMessage(workspaceSlug, conversationId, payload);
-      setLastRequest(undefined);
-      setContextTruncated(pair.context_truncated);
+      if (streamsReplies && !payload.tool) {
+        const { failure, truncated } = await stream.send(conversationId, payload);
+        // A turn that failed while answering is saved and explained in the timeline, like a blocking one.
+        if (failure?.kind === "refused") {
+          setSendError(assistantErrorMessage(failure));
+          setLastRequest(payload);
+        } else setLastRequest(undefined);
+        setContextTruncated(truncated);
+      } else {
+        const pair = await summonService.sendAssistantMessage(workspaceSlug, conversationId, payload);
+        setLastRequest(undefined);
+        setContextTruncated(pair.context_truncated);
+      }
       if (payload.tool) setComposer((current) => ({ ...current, toolMode: "chat", workItemId: "" }));
     } catch (error) {
       // A provider failure is saved as a failed answer and explained in the timeline; only offer the retry here.
@@ -266,6 +283,8 @@ export default function SummonAssistantPage({ params }: Route.ComponentProps) {
       setLastRequest(payload);
     } finally {
       await refreshActive(conversationId);
+      // Django's saved messages are loaded now; drop the streamed copy so the reply shows once.
+      stream.clear();
       setPending("");
       setSending(false);
     }
@@ -412,6 +431,7 @@ export default function SummonAssistantPage({ params }: Route.ComponentProps) {
                   <AssistantTimeline
                     items={timeline}
                     pending={pending}
+                    streamingReply={stream.reply}
                     canWriteBack={options.projects.length > 0}
                     workspaceSlug={workspaceSlug}
                     onWriteback={startWriteback}
