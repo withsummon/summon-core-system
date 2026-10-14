@@ -400,4 +400,25 @@ describe("MCP", () => {
     const response = await rpc(app, initialize, { "x-api-key": "", authorization: "Bearer plane_api_good" });
     expect(response.status).toBe(200);
   });
+
+  it("serves the 2026-07-28 protocol without a handshake", async () => {
+    const current = makeApp();
+    app = current;
+    const meta = {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {},
+      "io.modelcontextprotocol/clientInfo": { name: "test", version: "1" },
+    };
+    const call = (method: string, params: Record<string, unknown>, name?: string) =>
+      rpc(
+        current,
+        { jsonrpc: "2.0", id: 1, method, params: { ...params, _meta: meta } },
+        { "mcp-protocol-version": "2026-07-28", "mcp-method": method, ...(name ? { "mcp-name": name } : {}) }
+      );
+
+    const discovered = await rpcResult(await call("server/discover", {}));
+    expect(discovered.supportedVersions).toContain("2026-07-28");
+    const result = await rpcResult(await call("tools/call", { name: "ai_status", arguments: {} }, "ai_status"));
+    expect(result.content).toBeDefined();
+  });
 });

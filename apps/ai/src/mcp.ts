@@ -156,7 +156,12 @@ export const McpRoutes = Layer.unwrap(
           version: config.version,
           instructions: INSTRUCTIONS,
           path: MCP_PATH,
-          protocols: [McpProtocol.v2025_11_25, McpProtocol.v2025_06_18, McpProtocol.v2025_03_26],
+          protocols: [
+            McpProtocol.v2026_07_28,
+            McpProtocol.v2025_11_25,
+            McpProtocol.v2025_06_18,
+            McpProtocol.v2025_03_26,
+          ],
         })
       ),
       Layer.provide(RequireApiKey)
