@@ -23,9 +23,17 @@ from plane.summon.serializers.collaboration import (
     ResourceLinkSerializer,
     SummonPageContextSerializer,
 )
-from plane.summon.serializers.operations import MeetingSummaryRequestSerializer
-from plane.summon.serializers.shapes import ErrorCodeSerializer, MeetingWorkItemReadSerializer
+from plane.summon.serializers.operations import MeetingSummaryRequestSerializer, PageFilterSerializer
+from plane.summon.serializers.shapes import (
+    ErrorCodeSerializer,
+    MeetingWorkItemReadSerializer,
+    PageReadSerializer,
+    PageSummarySerializer,
+)
 from plane.summon.services.collaboration import link_work_item
+from plane.summon.services.commercial import accessible_pages
+from plane.summon.services.context import page_href, page_text
+from plane.summon.services.reports import visible_project_ids
 from plane.summon.services.meeting_summary import summarize_meeting
 from plane.summon.views.commercial import WorkspaceContextMixin
 
@@ -233,4 +241,73 @@ class ResourceLinkViewSet(WorkspaceContextMixin, SummonViewSet):
         user = self.request.user if self.request.user.is_authenticated else None
         serializer.save(
             updated_by=user,
+        )
+
+
+PAGE_LIST_LIMIT = 50
+PAGE_TEXT_LIMIT = 50_000
+
+
+class PageView(WorkspaceContextMixin, SummonAPIView):
+    """Plane Pages the user can read, so agents can use meeting notes and project docs, not only their names."""
+
+    permission_classes = [SummonWorkspacePermission]
+
+    def visible_pages(self):
+        workspace = self.get_workspace()
+        project_ids = set(visible_project_ids(workspace, self.request.user))
+        pages = (
+            accessible_pages(workspace, self.request.user, project_ids)
+            .filter(archived_at__isnull=True)
+            .prefetch_related("projects")
+            .distinct()
+        )
+        return workspace, project_ids, pages
+
+    def summary(self, workspace, project_ids, page):
+        return {
+            "id": page.id,
+            "name": page.name,
+            "project_ids": [project.id for project in page.projects.all() if project.id in project_ids],
+            "updated_at": page.updated_at,
+            "href": page_href(workspace, page, project_ids),
+        }
+
+
+class PageListView(PageView):
+    @extend_schema(
+        description=(
+            f"List the Plane Pages you can read, newest first (at most {PAGE_LIST_LIMIT}). "
+            "Use page_get to read one."
+        ),
+        parameters=[PageFilterSerializer],
+        responses={200: PageSummarySerializer(many=True)},
+    )
+    def get(self, request, slug):
+        filters = PageFilterSerializer(data=request.query_params)
+        filters.is_valid(raise_exception=True)
+        workspace, project_ids, pages = self.visible_pages()
+        if "project_id" in filters.validated_data:
+            pages = pages.filter(projects__id=filters.validated_data["project_id"])
+        if "search" in filters.validated_data:
+            pages = pages.filter(name__icontains=filters.validated_data["search"])
+        pages = pages.order_by("-updated_at")[:PAGE_LIST_LIMIT]
+        return Response([self.summary(workspace, project_ids, page) for page in pages])
+
+
+class PageDetailView(PageView):
+    @extend_schema(
+        description="Read one Plane Page you can see: its text, such as meeting notes or a project doc.",
+        responses={200: PageReadSerializer, 404: None},
+    )
+    def get(self, request, slug, pk):
+        workspace, project_ids, pages = self.visible_pages()
+        page = get_object_or_404(pages, pk=pk)
+        text = page_text(page)
+        return Response(
+            {
+                **self.summary(workspace, project_ids, page),
+                "content": text[:PAGE_TEXT_LIMIT],
+                "truncated": len(text) > PAGE_TEXT_LIMIT,
+            }
         )

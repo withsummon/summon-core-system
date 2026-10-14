@@ -40,6 +40,8 @@ from plane.summon.views import (
     MeetingViewSet,
     MeetingWorkItemDetailView,
     MeetingWorkItemView,
+    PageDetailView,
+    PageListView,
     OpportunityDeliveryView,
     OpportunityTransitionView,
     OpportunityViewSet,
@@ -242,6 +244,8 @@ urlpatterns = [
         MeetingWorkItemDetailView.as_view(),
         name="summon-meeting-work-item-detail",
     ),
+    path("workspaces/<str:slug>/pages/", PageListView.as_view(), name="summon-page-list"),
+    path("workspaces/<str:slug>/pages/<uuid:pk>/", PageDetailView.as_view(), name="summon-page-detail"),
     path("workspaces/<str:slug>/page-contexts/", page_context_list, name="summon-page-context-list"),
     path(
         "workspaces/<str:slug>/page-contexts/<uuid:pk>/",

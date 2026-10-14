@@ -1346,6 +1346,51 @@ export const operations = {
       required: ["meeting_id", "pk"],
     },
   },
+  page_list: {
+    method: "GET",
+    path: "/api/summon/workspaces/{slug}/pages/",
+    tool: "read",
+    description: "List the Plane Pages you can read, newest first (at most 50). Use page_get to read one.",
+    pathParams: ["slug"],
+    queryParams: ["project_id", "search"],
+    body: null,
+    inputSchema: {
+      type: "object",
+      properties: {
+        project_id: {
+          type: "string",
+          format: "uuid",
+          description: "Only pages in this project.",
+        },
+        search: {
+          type: "string",
+          minLength: 1,
+          description: "Only pages whose name contains this text.",
+        },
+      },
+      additionalProperties: false,
+    },
+  },
+  page_get: {
+    method: "GET",
+    path: "/api/summon/workspaces/{slug}/pages/{pk}/",
+    tool: "read",
+    description: "Read one Plane Page you can see: its text, such as meeting notes or a project doc.",
+    pathParams: ["pk", "slug"],
+    queryParams: [],
+    body: null,
+    inputSchema: {
+      type: "object",
+      properties: {
+        pk: {
+          type: "string",
+          format: "uuid",
+        },
+      },
+      additionalProperties: false,
+      required: ["pk"],
+    },
+  },
   page_context_list: {
     method: "GET",
     path: "/api/summon/workspaces/{slug}/page-contexts/",

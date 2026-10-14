@@ -1319,6 +1319,42 @@ export type MeetingWorkItemLinkRequestRequest = { readonly issue: string };
 export const MeetingWorkItemLinkRequestRequest = Schema.Struct({
   issue: Schema.String.annotate({ format: "uuid" }),
 }).annotate({ identifier: "MeetingWorkItemLinkRequestRequest" });
+export type PageSummary = {
+  readonly id: string;
+  readonly name: string;
+  readonly project_ids: ReadonlyArray<string>;
+  readonly updated_at: string;
+  readonly href: string;
+};
+export const PageSummary = Schema.Struct({
+  id: Schema.String.annotate({ format: "uuid" }),
+  name: Schema.String,
+  project_ids: Schema.Array(Schema.String.annotate({ format: "uuid" })).annotate({
+    description: "Projects you can see it in.",
+  }),
+  updated_at: Schema.String.annotate({ format: "date-time" }),
+  href: Schema.String.annotate({ description: "Where the page opens in the app." }),
+}).annotate({ identifier: "PageSummary" });
+export type PageRead = {
+  readonly id: string;
+  readonly name: string;
+  readonly project_ids: ReadonlyArray<string>;
+  readonly updated_at: string;
+  readonly href: string;
+  readonly content: string;
+  readonly truncated: boolean;
+};
+export const PageRead = Schema.Struct({
+  id: Schema.String.annotate({ format: "uuid" }),
+  name: Schema.String,
+  project_ids: Schema.Array(Schema.String.annotate({ format: "uuid" })).annotate({
+    description: "Projects you can see it in.",
+  }),
+  updated_at: Schema.String.annotate({ format: "date-time" }),
+  href: Schema.String.annotate({ description: "Where the page opens in the app." }),
+  content: Schema.String.annotate({ description: "The page as text (Markdown when Summon wrote it)." }),
+  truncated: Schema.Boolean.annotate({ description: "Whether `content` was cut at 50,000 characters." }),
+}).annotate({ identifier: "PageRead" });
 export type SummonPageContextRequest = {
   readonly page: string;
   readonly project?: string | null;
@@ -3539,6 +3575,17 @@ export type MeetingWorkItemCreateRequestJson = MeetingWorkItemLinkRequestRequest
 export const MeetingWorkItemCreateRequestJson = MeetingWorkItemLinkRequestRequest;
 export type MeetingWorkItemCreate201 = MeetingWorkItemRead;
 export const MeetingWorkItemCreate201 = MeetingWorkItemRead;
+export type PageListParams = { readonly project_id?: string; readonly search?: string };
+export const PageListParams = Schema.Struct({
+  project_id: Schema.optionalKey(Schema.String.annotate({ format: "uuid" })),
+  search: Schema.optionalKey(
+    Schema.String.check(Schema.isMinLength(1).annotate({ expected: "a value with a length of at least 1" }))
+  ),
+});
+export type PageList200 = ReadonlyArray<PageSummary>;
+export const PageList200 = Schema.Array(PageSummary);
+export type PageGet200 = PageRead;
+export const PageGet200 = PageRead;
 export type PageContextList200 = ReadonlyArray<SummonPageContext>;
 export const PageContextList200 = Schema.Array(SummonPageContext);
 export type PageContextCreateRequestJson = SummonPageContextRequest;
@@ -5060,6 +5107,45 @@ export const make = (
             withResponse(options?.config)(
               HttpClientResponse.matchStatus({
                 "204": () => Effect.void,
+                orElse: unexpectedStatus,
+              })
+            )
+          )
+        )
+      ),
+    pageList: (slug, options: Parameters<SummonClient["pageList"]>[1]) =>
+      __makePathRequest(
+        HttpClientRequest.get,
+        [slug],
+        () => "/api/summon/workspaces/" + __encodePathParam(slug) + "/pages/"
+      ).pipe(
+        Effect.flatMap((request) =>
+          request.pipe(
+            HttpClientRequest.setUrlParams({
+              project_id: options?.params?.["project_id"] as any,
+              search: options?.params?.["search"] as any,
+            }),
+            withResponse(options?.config)(
+              HttpClientResponse.matchStatus({
+                "2xx": decodeSuccess(PageList200),
+                orElse: unexpectedStatus,
+              })
+            )
+          )
+        )
+      ),
+    pageGet: (slug, pk, options: Parameters<SummonClient["pageGet"]>[2]) =>
+      __makePathRequest(
+        HttpClientRequest.get,
+        [slug, pk],
+        () => "/api/summon/workspaces/" + __encodePathParam(slug) + "/pages/" + __encodePathParam(pk) + "/"
+      ).pipe(
+        Effect.flatMap((request) =>
+          request.pipe(
+            withResponse(options?.config)(
+              HttpClientResponse.matchStatus({
+                "2xx": decodeSuccess(PageGet200),
+                "404": decodeVoidError("404"),
                 orElse: unexpectedStatus,
               })
             )
@@ -7085,6 +7171,48 @@ export interface SummonClient {
       pk: string,
       options: { readonly config?: Config | undefined } | undefined
     ): Effect.Effect<WithOptionalResponse<void, Config | undefined>, HttpClientError.HttpClientError | SchemaError>;
+  };
+  /**
+   * List the Plane Pages you can read, newest first (at most 50). Use page_get to read one.
+   */
+  readonly pageList: {
+    <Config extends OperationConfig | undefined = undefined>(
+      slug: string,
+      options: { readonly params?: typeof PageListParams.Encoded | undefined; readonly config: Config }
+    ): Effect.Effect<
+      WithOptionalResponse<typeof PageList200.Type, Config>,
+      HttpClientError.HttpClientError | SchemaError
+    >;
+    <Config extends OperationConfig | undefined = undefined>(
+      slug: string,
+      options:
+        | { readonly params?: typeof PageListParams.Encoded | undefined; readonly config?: Config | undefined }
+        | undefined
+    ): Effect.Effect<
+      WithOptionalResponse<typeof PageList200.Type, Config | undefined>,
+      HttpClientError.HttpClientError | SchemaError
+    >;
+  };
+  /**
+   * Read one Plane Page you can see: its text, such as meeting notes or a project doc.
+   */
+  readonly pageGet: {
+    <Config extends OperationConfig | undefined = undefined>(
+      slug: string,
+      pk: string,
+      options: { readonly config: Config }
+    ): Effect.Effect<
+      WithOptionalResponse<typeof PageGet200.Type, Config>,
+      HttpClientError.HttpClientError | SchemaError | SummonClientError<"404", undefined>
+    >;
+    <Config extends OperationConfig | undefined = undefined>(
+      slug: string,
+      pk: string,
+      options: { readonly config?: Config | undefined } | undefined
+    ): Effect.Effect<
+      WithOptionalResponse<typeof PageGet200.Type, Config | undefined>,
+      HttpClientError.HttpClientError | SchemaError | SummonClientError<"404", undefined>
+    >;
   };
   /**
    * List the page contexts in this workspace that you can see.

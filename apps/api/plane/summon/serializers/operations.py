@@ -36,6 +36,11 @@ class ReportFilterSerializer(serializers.Serializer):
         return attrs
 
 
+class PageFilterSerializer(serializers.Serializer):
+    project_id = serializers.UUIDField(required=False, help_text="Only pages in this project.")
+    search = serializers.CharField(required=False, help_text="Only pages whose name contains this text.")
+
+
 class AutomationTemplateSerializer(BaseSerializer):
     class Meta:
         model = AutomationTemplate

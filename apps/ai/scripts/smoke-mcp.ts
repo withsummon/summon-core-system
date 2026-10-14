@@ -142,6 +142,8 @@ const jobBody = job?.error ?? job;
 await call("automation_job_list");
 await call("automation_job_get", { job_id: jobBody.id });
 await call("automation_job_publish", { job_id: jobBody.id }, jobBody.status === "completed" ? undefined : 400);
+const pages = await call("page_list", { project_id: project });
+await call("page_get", { pk: pageId ?? pages[0]?.id });
 if (pageId) {
   const context = await call("page_context_create", { page: pageId, project, category: "notes" });
   await call("page_context_list");

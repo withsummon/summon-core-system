@@ -51,9 +51,18 @@ def _citation(record, label, href, kind):
     return {"id": str(record.id), "label": label, "href": href, "kind": kind}
 
 
-def _page_source(page):
+def page_text(page):
+    """A page's text: Summon's Markdown or transcript when Summon wrote it, else Plane's plain text."""
     metadata = summon_document_metadata(page)
     return metadata.get("markdown") or metadata.get("source_transcript") or page.description_stripped or ""
+
+
+def page_href(workspace, page, project_ids):
+    """The page in its first project the user can see, else the knowledge area. Prefetch `projects`."""
+    project = next((item for item in page.projects.all() if item.id in project_ids), None)
+    if project:
+        return f"/{workspace.slug}/projects/{project.id}/pages/{page.id}/"
+    return f"/{workspace.slug}/summon/knowledge/"
 
 
 def _relevance(text, terms):
@@ -94,18 +103,13 @@ def _automatic_context_entries(workspace, user, project_ids, query, excluded_pro
         .order_by("-updated_at")[:100]
     )
     for page in pages:
-        source = _page_source(page)
+        source = page_text(page)
         score = 4 * _relevance(page.name, terms) + _relevance(source, terms)
         candidates.append((score, page, source))
     candidates.sort(key=lambda item: (item[0], item[1].updated_at), reverse=True)
 
     for _, page, source in candidates[:8]:
-        page_project = next((item for item in page.projects.all() if item.id in project_id_set), None)
-        href = (
-            f"/{workspace.slug}/projects/{page_project.id}/pages/{page.id}/"
-            if page_project
-            else f"/{workspace.slug}/summon/knowledge/"
-        )
+        href = page_href(workspace, page, project_id_set)
         entries.append(
             (
                 f"[Retrieved Page]\nName: {page.name}\nContent: {source[:4000]}",
@@ -182,15 +186,10 @@ def build_context(workspace, user, selection, query="", source_entries=()):
         page = pages.get(page_id)
         if not page:
             continue
-        page_project = next((item for item in page.projects.all() if item.id in project_id_set), None)
-        href = (
-            f"/{workspace.slug}/projects/{page_project.id}/pages/{page.id}/"
-            if page_project
-            else f"/{workspace.slug}/summon/knowledge/"
-        )
+        href = page_href(workspace, page, project_id_set)
         entries.append(
             (
-                f"[Page]\nName: {page.name}\nContent: {_page_source(page)}",
+                f"[Page]\nName: {page.name}\nContent: {page_text(page)}",
                 _citation(page, page.name, href, "page"),
             )
         )

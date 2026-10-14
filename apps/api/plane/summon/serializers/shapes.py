@@ -40,6 +40,17 @@ class PageRefSerializer(serializers.Serializer):
     name = serializers.CharField(allow_blank=True)
 
 
+class PageSummarySerializer(PageRefSerializer):
+    project_ids = serializers.ListField(child=serializers.UUIDField(), help_text="Projects you can see it in.")
+    updated_at = serializers.DateTimeField()
+    href = serializers.CharField(help_text="Where the page opens in the app.")
+
+
+class PageReadSerializer(PageSummarySerializer):
+    content = serializers.CharField(allow_blank=True, help_text="The page as text (Markdown when Summon wrote it).")
+    truncated = serializers.BooleanField(help_text="Whether `content` was cut at 50,000 characters.")
+
+
 class CitationSerializer(serializers.Serializer):
     """A permission-checked source the assistant used (`services/context.py` `_citation`)."""
 

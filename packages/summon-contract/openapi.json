@@ -3296,6 +3296,115 @@
         "x-summon-tool": "write"
       }
     },
+    "/api/summon/workspaces/{slug}/pages/": {
+      "get": {
+        "operationId": "page_list",
+        "description": "List the Plane Pages you can read, newest first (at most 50). Use page_get to read one.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "project_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Only pages in this project."
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "Only pages whose name contains this text."
+          },
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "tags": ["workspaces"],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {
+            "ApiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PageSummary"
+                  }
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "x-summon-tool": "read"
+      }
+    },
+    "/api/summon/workspaces/{slug}/pages/{pk}/": {
+      "get": {
+        "operationId": "page_get",
+        "description": "Read one Plane Page you can see: its text, such as meeting notes or a project doc.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "tags": ["workspaces"],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {
+            "ApiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageRead"
+                }
+              }
+            },
+            "description": ""
+          },
+          "404": {
+            "description": "No response body"
+          }
+        },
+        "x-summon-tool": "read"
+      }
+    },
     "/api/summon/workspaces/{slug}/page-contexts/": {
       "get": {
         "operationId": "page_context_list",
@@ -7775,6 +7884,44 @@
         "required": ["stage"],
         "additionalProperties": false
       },
+      "PageRead": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "project_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Projects you can see it in."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "href": {
+            "type": "string",
+            "description": "Where the page opens in the app."
+          },
+          "content": {
+            "type": "string",
+            "description": "The page as text (Markdown when Summon wrote it)."
+          },
+          "truncated": {
+            "type": "boolean",
+            "description": "Whether `content` was cut at 50,000 characters."
+          }
+        },
+        "required": ["content", "href", "id", "name", "project_ids", "truncated", "updated_at"],
+        "additionalProperties": false
+      },
       "PageRef": {
         "type": "object",
         "properties": {
@@ -7787,6 +7934,36 @@
           }
         },
         "required": ["id", "name"],
+        "additionalProperties": false
+      },
+      "PageSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "project_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Projects you can see it in."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "href": {
+            "type": "string",
+            "description": "Where the page opens in the app."
+          }
+        },
+        "required": ["href", "id", "name", "project_ids", "updated_at"],
         "additionalProperties": false
       },
       "PatchedAssistantConversationRequest": {

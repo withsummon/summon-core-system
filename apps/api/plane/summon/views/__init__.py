@@ -24,6 +24,8 @@ from .collaboration import (
     MeetingViewSet,
     MeetingWorkItemDetailView,
     MeetingWorkItemView,
+    PageDetailView,
+    PageListView,
     ResourceLinkViewSet,
     SummonPageContextViewSet,
 )
@@ -80,6 +82,8 @@ __all__ = [
     "MeetingViewSet",
     "MeetingWorkItemDetailView",
     "MeetingWorkItemView",
+    "PageDetailView",
+    "PageListView",
     "ResourceLinkViewSet",
     "SummonPageContextViewSet",
     "AssistantQueryView",

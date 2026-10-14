@@ -132,6 +132,8 @@ def test_summon_responses_match_the_openapi_schema(seeded, create_user, session_
         ("/meetings/", "meeting_list"),
         (f"/meetings/{meeting.id}/", "meeting_get"),
         (f"/meetings/{meeting.id}/work-items/", "meeting_work_item_list"),
+        ("/pages/", "page_list"),
+        (f"/pages/{page.id}/", "page_get"),
         ("/page-contexts/", "page_context_list"),
         (f"/page-contexts/{page_context['id']}/", "page_context_get"),
         ("/resources/", "resource_list"),
