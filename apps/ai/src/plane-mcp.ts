@@ -28,6 +28,7 @@ const JsonRpcResponse = Schema.Struct({
   error: Schema.optionalKey(Schema.Struct({ code: Schema.Number, message: Schema.String })),
 });
 
+// Keep in step with the other Plane MCP client, apps/api/plane/summon/services/mcp.py `call_plane_tool`.
 const PROTOCOL_VERSION = "2025-06-18";
 
 /** Streamable HTTP answers either JSON or one SSE event; both carry a JSON-RPC response. */

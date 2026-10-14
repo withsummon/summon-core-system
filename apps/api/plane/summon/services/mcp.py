@@ -82,6 +82,7 @@ def call_plane_tool(conversation, user, tool, arguments, request=None):
         "Accept": "application/json, text/event-stream",
         "Authorization": f"Bearer {decrypt_secret(credential.secret_ciphertext)}",
         "Content-Type": "application/json",
+        # Keep in step with the other Plane MCP client, apps/ai/src/plane-mcp.ts `PROTOCOL_VERSION`.
         "Mcp-Protocol-Version": "2025-06-18",
         "X-Workspace-slug": conversation.workspace.slug,
     }
