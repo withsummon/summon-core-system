@@ -35,6 +35,26 @@ def execute_assistant_action(action, request=None, retry=False):
     )
 
 
+def run_plane_tool(conversation, user, tool, arguments, request=None):
+    """Run a Plane MCP read now, or record a write as a pending action for the user to confirm.
+
+    Returns `(result, None)` for a read and `(None, action)` for a write.
+    """
+    write = arguments.get("action") not in READ_ACTIONS.get(tool, set())
+    validate_tool(tool, arguments, write=write)
+    if not write:
+        return call_plane_tool(conversation, user, tool, arguments, request=request), None
+    action = AssistantAction.objects.create(
+        workspace=conversation.workspace,
+        conversation=conversation,
+        requester=user,
+        tool=tool,
+        arguments=sanitize_arguments(arguments),
+        preview=action_preview(tool, arguments),
+    )
+    return None, action
+
+
 def handle_tool_request(conversation, user, content, tool, arguments, request=None):
     write = arguments.get("action") not in READ_ACTIONS.get(tool, set())
     validate_tool(tool, arguments, write=write)
@@ -44,8 +64,8 @@ def handle_tool_request(conversation, user, content, tool, arguments, request=No
         role=AssistantMessage.Role.USER,
         content=content,
     )
-    if arguments.get("action") in READ_ACTIONS.get(tool, set()):
-        result = call_plane_tool(conversation, user, tool, arguments, request=request)
+    result, action = run_plane_tool(conversation, user, tool, arguments, request=request)
+    if action is None:
         assistant_message = AssistantMessage.objects.create(
             conversation=conversation,
             workspace=conversation.workspace,
@@ -53,22 +73,12 @@ def handle_tool_request(conversation, user, content, tool, arguments, request=No
             content=json.dumps(result, default=str),
             provider="plane-mcp",
         )
-        action = None
     else:
-        preview = action_preview(tool, arguments)
-        action = AssistantAction.objects.create(
-            workspace=conversation.workspace,
-            conversation=conversation,
-            requester=user,
-            tool=tool,
-            arguments=sanitize_arguments(arguments),
-            preview=preview,
-        )
         assistant_message = AssistantMessage.objects.create(
             conversation=conversation,
             workspace=conversation.workspace,
             role=AssistantMessage.Role.ASSISTANT,
-            content=preview["summary"],
+            content=action.preview["summary"],
             provider="plane-mcp-preview",
         )
     conversation.last_activity_at = timezone.now()

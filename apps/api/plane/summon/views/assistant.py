@@ -6,10 +6,12 @@ from django.db import transaction
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers
 from rest_framework import status
 from rest_framework.response import Response
 
-from plane.app.views.base import BaseAPIView, BaseViewSet
+from plane.summon.views.base import SummonAPIView, SummonViewSet
 from plane.db.models import FileAsset
 from plane.summon.models import (
     AssistantAction,
@@ -18,7 +20,7 @@ from plane.summon.models import (
     AssistantMessage,
     AutomationJob,
 )
-from plane.summon.permissions import SummonWorkspacePermission
+from plane.summon.permissions import AIServicePermission, SummonWorkspacePermission
 from plane.summon.serializers.operations import (
     AssistantActionSerializer,
     AssistantAttachmentSerializer,
@@ -26,18 +28,36 @@ from plane.summon.serializers.operations import (
     AssistantConversationSerializer,
     AssistantMessageRequestSerializer,
     AssistantMessageSerializer,
+    AssistantTurnCompleteSerializer,
+    AssistantTurnStartSerializer,
+    AssistantTurnSerializer,
+    PlaneToolCallSerializer,
+    PlaneToolResultSerializer,
 )
+from plane.summon.serializers.shapes import ErrorCodeSerializer, StatusConflictSerializer
 from plane.summon.services.assistant import send_message
-from plane.summon.services.assistant_action import execute_assistant_action, handle_tool_request
+from plane.summon.services.assistant_action import execute_assistant_action, handle_tool_request, run_plane_tool
 from plane.summon.services.assistant_attachment import create_attachment
+from plane.summon.services.assistant_turn import complete_turn, start_turn
 from plane.summon.services.assistant_document import DOCUMENT_TOOL, handle_document_message, select_document_template
 from plane.summon.services.mcp import MCPError
 from plane.summon.views.commercial import WorkspaceContextMixin
 
 
-class AssistantConversationViewSet(WorkspaceContextMixin, BaseViewSet):
+class AssistantMessageResultSerializer(serializers.Serializer):
+    """Schema only: the blocking message endpoint's reply."""
+
+    user_message = AssistantMessageSerializer()
+    assistant_message = AssistantMessageSerializer()
+    action = AssistantActionSerializer(allow_null=True, required=False)
+    context_truncated = serializers.BooleanField()
+    error_code = serializers.CharField(required=False)
+
+
+class AssistantConversationViewSet(WorkspaceContextMixin, SummonViewSet):
     model = AssistantConversation
     serializer_class = AssistantConversationSerializer
+    summon_tool = {"POST": "none", "PATCH": "none", "DELETE": "none"}  # conversations are managed in the app
     permission_classes = [SummonWorkspacePermission]
 
     def get_serializer_class(self):
@@ -73,9 +93,7 @@ class AssistantConversationViewSet(WorkspaceContextMixin, BaseViewSet):
         serializer.save(workspace=self.get_workspace(), owner=self.request.user)
 
 
-class AssistantMessageView(WorkspaceContextMixin, BaseAPIView):
-    permission_classes = [SummonWorkspacePermission]
-
+class ConversationMixin(WorkspaceContextMixin):
     def get_conversation(self):
         return get_object_or_404(
             AssistantConversation,
@@ -84,6 +102,15 @@ class AssistantMessageView(WorkspaceContextMixin, BaseAPIView):
             owner=self.request.user,
         )
 
+
+class AssistantMessageView(ConversationMixin, SummonAPIView):
+    summon_tool = {"POST": "none"}  # the blocking chat endpoint; tools never start chats
+    permission_classes = [SummonWorkspacePermission]
+
+    @extend_schema(
+        description="List the messages in one of your assistant conversations, oldest first.",
+        responses={200: AssistantMessageSerializer(many=True)},
+    )
     def get(self, request, slug, conversation_id):
         messages = (
             AssistantMessage.objects.filter(conversation=self.get_conversation())
@@ -98,6 +125,11 @@ class AssistantMessageView(WorkspaceContextMixin, BaseAPIView):
         )
         return Response(AssistantMessageSerializer(messages, many=True).data)
 
+    @extend_schema(
+        description="Send a message in one of your assistant conversations and wait for the reply.",
+        request=AssistantMessageRequestSerializer,
+        responses={201: AssistantMessageResultSerializer, 503: AssistantMessageResultSerializer},
+    )
     def post(self, request, slug, conversation_id):
         serializer = AssistantMessageRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -161,21 +193,23 @@ class AssistantMessageView(WorkspaceContextMixin, BaseAPIView):
         return Response(data, status=status.HTTP_201_CREATED)
 
 
-class AssistantAttachmentView(WorkspaceContextMixin, BaseAPIView):
+class AssistantAttachmentView(ConversationMixin, SummonAPIView):
+    summon_tool = {"POST": "none"}  # needs an uploaded asset
     permission_classes = [SummonWorkspacePermission]
 
-    def get_conversation(self):
-        return get_object_or_404(
-            AssistantConversation,
-            id=self.kwargs["conversation_id"],
-            workspace=self.get_workspace(),
-            owner=self.request.user,
-        )
-
+    @extend_schema(
+        description="List the files attached to one of your assistant conversations.",
+        responses={200: AssistantAttachmentSerializer(many=True)},
+    )
     def get(self, request, slug, conversation_id):
         attachments = AssistantAttachment.objects.filter(conversation=self.get_conversation()).order_by("created_at")
         return Response(AssistantAttachmentSerializer(attachments, many=True).data)
 
+    @extend_schema(
+        description="Attach an uploaded workspace file to one of your assistant conversations.",
+        request=inline_serializer("AssistantAttachmentCreate", {"asset_id": serializers.UUIDField()}),
+        responses={201: AssistantAttachmentSerializer},
+    )
     def post(self, request, slug, conversation_id):
         conversation = self.get_conversation()
         asset = get_object_or_404(FileAsset, id=request.data.get("asset_id"), workspace=conversation.workspace)
@@ -183,9 +217,14 @@ class AssistantAttachmentView(WorkspaceContextMixin, BaseAPIView):
         return Response(AssistantAttachmentSerializer(attachment).data, status=status.HTTP_201_CREATED)
 
 
-class AssistantAttachmentDetailView(WorkspaceContextMixin, BaseAPIView):
+class AssistantAttachmentDetailView(WorkspaceContextMixin, SummonAPIView):
+    summon_tool = "none"  # attachments are managed in the app
     permission_classes = [SummonWorkspacePermission]
 
+    @extend_schema(
+        description="Remove a file from one of your assistant conversations.",
+        responses={204: None, 409: ErrorCodeSerializer},
+    )
     def delete(self, request, slug, conversation_id, attachment_id):
         attachment = get_object_or_404(
             AssistantAttachment,
@@ -205,7 +244,8 @@ class AssistantAttachmentDetailView(WorkspaceContextMixin, BaseAPIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class AssistantActionView(WorkspaceContextMixin, BaseAPIView):
+class AssistantActionView(WorkspaceContextMixin, SummonAPIView):
+    summon_tool = "none"  # confirming a pending write is the user's decision, never a tool's
     permission_classes = [SummonWorkspacePermission]
 
     def get_action(self):
@@ -217,6 +257,11 @@ class AssistantActionView(WorkspaceContextMixin, BaseAPIView):
             workspace=self.get_workspace(),
         )
 
+    @extend_schema(
+        description="Confirm, choose an option for, retry or cancel an action the assistant proposed.",
+        request=inline_serializer("AssistantActionOperation", {"template_id": serializers.UUIDField(required=False)}),
+        responses={200: AssistantActionSerializer, 409: StatusConflictSerializer, 503: AssistantActionSerializer},
+    )
     def post(self, request, slug, conversation_id, action_id, operation):
         if operation in {"select", "cancel"}:
             with transaction.atomic():
@@ -285,3 +330,84 @@ class AssistantActionView(WorkspaceContextMixin, BaseAPIView):
                 action.error = ""
             action.save(update_fields=["status", "result", "error", "updated_at"])
         return Response(AssistantActionSerializer(action).data)
+
+
+class AssistantTurnView(ConversationMixin, SummonAPIView):
+    """Starts a streamed turn for the AI service, on behalf of the signed-in user."""
+
+    summon_tool = "none"
+    permission_classes = [SummonWorkspacePermission, AIServicePermission]
+
+    @extend_schema(request=AssistantTurnStartSerializer, responses={201: AssistantTurnSerializer})
+    def post(self, request, slug, conversation_id):
+        serializer = AssistantTurnStartSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        turn = start_turn(
+            self.get_conversation(),
+            request.user,
+            serializer.validated_data["content"],
+            serializer.validated_data["context"],
+            serializer.validated_data["attachment_ids"],
+        )
+        return Response(
+            AssistantTurnSerializer(
+                {
+                    "user_message": turn.user_message,
+                    "assistant_message": turn.assistant_message,
+                    "history": turn.history,
+                    "context": {
+                        "text": turn.context.text,
+                        "citations": turn.context.citations,
+                        "truncated": turn.context.truncated,
+                    },
+                }
+            ).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class AssistantTurnCompleteView(ConversationMixin, SummonAPIView):
+    """Settles a streamed reply once; repeating the call returns the settled message unchanged."""
+
+    summon_tool = "none"
+    permission_classes = [SummonWorkspacePermission, AIServicePermission]
+
+    @extend_schema(request=AssistantTurnCompleteSerializer, responses={200: AssistantMessageSerializer})
+    def post(self, request, slug, conversation_id, message_id):
+        serializer = AssistantTurnCompleteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            message = complete_turn(self.get_conversation(), message_id, serializer.validated_data)
+        except AssistantMessage.DoesNotExist:
+            return Response({"error_code": "not_found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(AssistantMessageSerializer(message).data)
+
+
+class PlaneToolView(ConversationMixin, SummonAPIView):
+    """Runs a Plane MCP read with the conversation's PAT, or queues a write for confirmation."""
+
+    summon_tool = "none"
+    permission_classes = [SummonWorkspacePermission, AIServicePermission]
+
+    @extend_schema(
+        request=PlaneToolCallSerializer,
+        responses={200: PlaneToolResultSerializer, 201: PlaneToolResultSerializer, 503: ErrorCodeSerializer},
+    )
+    def post(self, request, slug, conversation_id):
+        serializer = PlaneToolCallSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        conversation = self.get_conversation()
+        try:
+            result, action = run_plane_tool(
+                conversation,
+                request.user,
+                serializer.validated_data["tool"],
+                serializer.validated_data["arguments"],
+                request=request,
+            )
+        except MCPError as error:
+            return Response({"error_code": str(error)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        return Response(
+            PlaneToolResultSerializer({"result": result, "action": action}).data,
+            status=status.HTTP_201_CREATED if action else status.HTTP_200_OK,
+        )

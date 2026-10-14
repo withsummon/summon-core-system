@@ -12,6 +12,14 @@
 	reverse_proxy /live/* {$LIVE_HOST:live}:3000
 	reverse_proxy /mcp/http/api-key/* {$MCP_HOST:mcp}:8211
 
+	# Summon AI service: streamed assistant turns and the Summon MCP server. Flush every chunk.
+	reverse_proxy /ai/* {$AI_HOST:ai}:3300 {
+		flush_interval -1
+	}
+
+	# Only the AI service calls these, over the internal network.
+	respond /api/summon/internal/* 404
+
 	reverse_proxy /api/* {$API_HOST:api}:8000
 
 	reverse_proxy /auth/* {$API_HOST:api}:8000

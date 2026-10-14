@@ -1,0 +1,61 @@
+name: Summon AI service and contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - "main"
+    types:
+      - "opened"
+      - "synchronize"
+      - "ready_for_review"
+      - "reopened"
+    paths:
+      - "apps/ai/**"
+      - "packages/summon-contract/**"
+      - "apps/api/plane/summon/**"
+      - "bun.lock"
+  push:
+    branches:
+      - "main"
+    paths:
+      - "apps/ai/**"
+      - "packages/summon-contract/**"
+      - "apps/api/plane/summon/**"
+      - "bun.lock"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test AI service and contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Test
+        run: bun run turbo run test --filter=ai --filter=@plane/summon-contract
+
+  # The OpenAPI schema and the generated client must match the Django views they come from.
+  contract-drift:
+    name: Generated contract is current
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Backend environment
+        run: cp apps/api/.env.example apps/api/.env
+      - name: Regenerate and compare
+        run: bun run --filter=@plane/summon-contract check:generated

@@ -318,6 +318,41 @@ def test_page_context_references_plane_records_without_copying_content(workspace
 
 
 @pytest.mark.django_db
+def test_pages_are_readable_only_where_plane_would_show_them(workspace):
+    actor, api = authenticated_user(workspace)
+    other, _ = authenticated_user(workspace)
+    project = project_with_member(workspace, actor)
+    hidden_project = Project.objects.create(workspace=workspace, name="Hidden", identifier="HID")
+
+    def page(name, owner, access=Page.PUBLIC_ACCESS, in_project=None):
+        created = Page.objects.create(
+            workspace=workspace, owned_by=owner, name=name, access=access, description_html=f"<p>{name} body</p>"
+        )
+        if in_project:
+            ProjectPage.objects.create(workspace=workspace, project=in_project, page=created)
+        return created
+
+    notes = page("Kickoff notes", other, in_project=project)
+    page("Other project notes", other, in_project=hidden_project)
+    private = page("Private draft", other, access=Page.PRIVATE_ACCESS, in_project=project)
+    base = f"/api/summon/workspaces/{workspace.slug}/pages/"
+
+    listed = api.get(base)
+    assert listed.status_code == status.HTTP_200_OK
+    assert [item["name"] for item in listed.data] == ["Kickoff notes"]
+    assert listed.data[0]["project_ids"] == [project.id]
+    assert listed.data[0]["href"] == f"/{workspace.slug}/projects/{project.id}/pages/{notes.id}/"
+    assert api.get(base, {"search": "nothing"}).data == []
+    assert api.get(base, {"project_id": "not-a-uuid"}).status_code == status.HTTP_400_BAD_REQUEST
+
+    read = api.get(f"{base}{notes.id}/")
+    assert read.status_code == status.HTTP_200_OK
+    assert read.data["content"] == "Kickoff notes body"
+    assert read.data["truncated"] is False
+    assert api.get(f"{base}{private.id}/").status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.mark.django_db
 def test_resources_accept_external_http_urls_only_and_never_files(workspace):
     actor, api = authenticated_user(workspace)
     credential = Credential.objects.create(

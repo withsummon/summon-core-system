@@ -964,26 +964,18 @@ def test_mcp_read_uses_user_pat_workspace_header_and_audits_use(
     calls = []
 
     class FakeResponse:
-        def __init__(self, payload=None, status_code=200, headers=None):
-            self.payload = payload or {}
-            self.status_code = status_code
-            self.headers = {"content-type": "application/json", **(headers or {})}
-            self.text = ""
+        status_code = 200
+        headers = {"content-type": "application/json"}
+
+        def __init__(self, payload):
+            self.payload = payload
 
         def json(self):
             return self.payload
 
-        def raise_for_status(self):
-            if self.status_code >= 400:
-                raise requests.HTTPError()
-
     def fake_post(url, headers, json, timeout):
         calls.append((headers.copy(), json))
-        if json["method"] == "initialize":
-            return FakeResponse({"jsonrpc": "2.0", "id": 1, "result": {}}, headers={"Mcp-Session-Id": "s-1"})
-        if json["method"] == "notifications/initialized":
-            return FakeResponse(status_code=202)
-        return FakeResponse({"jsonrpc": "2.0", "id": 2, "result": {"projects": [{"id": "project-1"}]}})
+        return FakeResponse({"jsonrpc": "2.0", "id": 1, "result": {"projects": [{"id": "project-1"}]}})
 
     monkeypatch.setattr("plane.summon.services.mcp.requests.post", fake_post)
     url = f"/api/summon/workspaces/{workspace.slug}/assistant/conversations/{conversation.id}/messages/"
@@ -995,10 +987,11 @@ def test_mcp_read_uses_user_pat_workspace_header_and_audits_use(
 
     assert response.status_code == status.HTTP_201_CREATED
     assert response.data["action"] is None
-    assert len(calls) == 3
-    assert all(call[0]["Authorization"] == "Bearer pat-test-only" for call in calls)
-    assert all(call[0]["X-Workspace-slug"] == workspace.slug for call in calls)
-    assert calls[-1][1]["params"] == {"name": "project", "arguments": {"action": "list"}}
+    assert len(calls) == 1
+    assert calls[0][0]["Authorization"] == "Bearer pat-test-only"
+    assert calls[0][0]["X-Workspace-slug"] == workspace.slug
+    assert calls[0][1]["method"] == "tools/call"
+    assert calls[0][1]["params"] == {"name": "project", "arguments": {"action": "list"}}
     assert CredentialAccessLog.objects.filter(credential=credential, member=create_user, action="use").count() == 1
 
 

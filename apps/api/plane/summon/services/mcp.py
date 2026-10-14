@@ -14,7 +14,7 @@ from plane.summon.services.credential import audit, can_use, decrypt_secret
 
 READ_ACTIONS = {
     "project": {"retrieve", "list"},
-    "workitem": {"count", "retrieve", "list", "search"},
+    "workitem": {"retrieve", "list", "search"},
     "cycle": {"retrieve", "list"},
     "module": {"retrieve", "list"},
     "state": {"retrieve", "list"},
@@ -77,47 +77,20 @@ def _json(response):
 
 def call_plane_tool(conversation, user, tool, arguments, request=None):
     credential = _credential(conversation, user)
+    # Plane MCP's API-key route is stateless: one tools/call, with no initialize handshake or session.
     headers = {
         "Accept": "application/json, text/event-stream",
         "Authorization": f"Bearer {decrypt_secret(credential.secret_ciphertext)}",
         "Content-Type": "application/json",
+        # Keep in step with the other Plane MCP client, apps/ai/src/plane-mcp.ts `PROTOCOL_VERSION`.
+        "Mcp-Protocol-Version": "2025-06-18",
         "X-Workspace-slug": conversation.workspace.slug,
     }
     try:
-        initialize = requests.post(
-            settings.SUMMON_MCP_URL,
-            headers=headers,
-            json={
-                "jsonrpc": "2.0",
-                "id": 1,
-                "method": "initialize",
-                "params": {
-                    "protocolVersion": "2025-03-26",
-                    "capabilities": {},
-                    "clientInfo": {"name": "summon-assistant", "version": "1"},
-                },
-            },
-            timeout=15,
-        )
-        _json(initialize)
-        session_id = initialize.headers.get("Mcp-Session-Id")
-        if session_id:
-            headers["Mcp-Session-Id"] = session_id
-        requests.post(
-            settings.SUMMON_MCP_URL,
-            headers=headers,
-            json={"jsonrpc": "2.0", "method": "notifications/initialized"},
-            timeout=15,
-        ).raise_for_status()
         response = requests.post(
             settings.SUMMON_MCP_URL,
             headers=headers,
-            json={
-                "jsonrpc": "2.0",
-                "id": 2,
-                "method": "tools/call",
-                "params": {"name": tool, "arguments": arguments},
-            },
+            json={"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": tool, "arguments": arguments}},
             timeout=30,
         )
         payload = _json(response)

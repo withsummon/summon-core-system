@@ -22,6 +22,7 @@ type AIFormValues = Record<TInstanceAIConfigurationKeys, string>;
 const PROVIDERS: Record<TInstanceLLMProvider, string> = {
   openai: "OpenAI",
   openai_compatible: "OpenAI-compatible",
+  openrouter: "OpenRouter",
   anthropic: "Anthropic",
   codex: "Codex (ChatGPT account)",
   gemini: "Gemini",

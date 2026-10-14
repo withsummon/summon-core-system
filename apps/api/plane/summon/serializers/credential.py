@@ -10,8 +10,18 @@ from plane.summon.models import Credential, CredentialAccessLog, CredentialGrant
 from plane.summon.services.credential import MASKED_SECRET, audit, encrypt_secret
 
 
+class MaskedSecretField(serializers.CharField):
+    """Takes the secret on create; reads always return the mask (revealing is its own audited action)."""
+
+    def get_attribute(self, instance):
+        return MASKED_SECRET
+
+    def to_representation(self, value):
+        return MASKED_SECRET
+
+
 class CredentialSerializer(BaseSerializer):
-    secret = serializers.CharField(write_only=True, trim_whitespace=False)
+    secret = MaskedSecretField(trim_whitespace=False)
 
     class Meta:
         model = Credential
@@ -62,11 +72,6 @@ class CredentialSerializer(BaseSerializer):
         )
         audit(credential, self.context["request"].user, "create", self.context["request"])
         return credential
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        data["secret"] = MASKED_SECRET
-        return data
 
 
 class CredentialGrantSerializer(BaseSerializer):

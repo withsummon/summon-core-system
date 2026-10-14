@@ -5,11 +5,12 @@
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers
 from rest_framework import status
 from rest_framework.response import Response
 
-from plane.app.views.base import BaseAPIView, BaseViewSet
+from plane.summon.views.base import SESSION_ONLY_AUTHENTICATION, SummonAPIView, SummonViewSet
 from plane.db.models import WorkspaceMember
 from plane.summon.models import Credential, CredentialAccessLog, CredentialGrant
 from plane.summon.permissions import SummonWorkspacePermission
@@ -48,7 +49,10 @@ def accessible_credentials(workspace, user):
     )
 
 
-class CredentialViewSet(WorkspaceContextMixin, BaseViewSet):
+class CredentialViewSet(WorkspaceContextMixin, SummonViewSet):
+    # Secrets never leave through API keys (MCP clients, scripts) or AI tools; only the signed-in browser.
+    authentication_classes = SESSION_ONLY_AUTHENTICATION
+    summon_tool = "none"
     model = Credential
     serializer_class = CredentialSerializer
     permission_classes = [SummonWorkspacePermission]
@@ -77,7 +81,9 @@ class CredentialViewSet(WorkspaceContextMixin, BaseViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class CredentialActionView(WorkspaceContextMixin, BaseAPIView):
+class CredentialActionView(WorkspaceContextMixin, SummonAPIView):
+    authentication_classes = SESSION_ONLY_AUTHENTICATION
+    summon_tool = "none"
     permission_classes = [SummonWorkspacePermission]
 
     def get_credential(self):
@@ -88,6 +94,10 @@ class CredentialActionView(WorkspaceContextMixin, BaseAPIView):
 
 
 class CredentialRevealView(CredentialActionView):
+    @extend_schema(
+        request=CredentialRevealSerializer,
+        responses={200: inline_serializer("CredentialSecret", {"secret": serializers.CharField()}), 403: None},
+    )
     def post(self, request, slug, credential_id):
         credential = self.get_credential()
         if not can_reveal(credential, request.user):
@@ -107,6 +117,7 @@ class CredentialRevealView(CredentialActionView):
 
 
 class CredentialRotateView(CredentialActionView):
+    @extend_schema(request=CredentialRotateSerializer, responses={200: CredentialSerializer, 403: None})
     def post(self, request, slug, credential_id):
         credential = self.get_credential()
         if not can_manage(credential, request.user):
@@ -125,12 +136,14 @@ class CredentialRotateView(CredentialActionView):
 
 
 class CredentialGrantView(CredentialActionView):
+    @extend_schema(responses={200: CredentialGrantSerializer(many=True), 403: None})
     def get(self, request, slug, credential_id):
         credential = self.get_credential()
         if not can_manage(credential, request.user):
             return Response(status=status.HTTP_403_FORBIDDEN)
         return Response(CredentialGrantSerializer(credential.grants.all(), many=True).data)
 
+    @extend_schema(request=CredentialGrantSerializer, responses={201: CredentialGrantSerializer, 403: None})
     def post(self, request, slug, credential_id):
         credential = self.get_credential()
         if not can_manage(credential, request.user):
@@ -159,6 +172,7 @@ class CredentialGrantView(CredentialActionView):
 
 
 class CredentialGrantDetailView(CredentialActionView):
+    @extend_schema(responses={204: None, 403: None})
     def delete(self, request, slug, credential_id, pk):
         credential = self.get_credential()
         if not can_manage(credential, request.user):
@@ -171,6 +185,7 @@ class CredentialGrantDetailView(CredentialActionView):
 
 
 class CredentialAuditView(CredentialActionView):
+    @extend_schema(responses={200: CredentialAccessLogSerializer(many=True), 403: None})
     def get(self, request, slug, credential_id):
         credential = self.get_credential()
         if not can_manage(credential, request.user):

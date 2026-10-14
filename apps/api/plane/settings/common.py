@@ -32,6 +32,8 @@ _logger = logging.getLogger("plane")
 SECRET_KEY = os.environ.get("SECRET_KEY") or get_random_secret_key()
 SUMMON_CREDENTIAL_KEY = os.environ.get("SUMMON_CREDENTIAL_KEY")
 SUMMON_MCP_URL = os.environ.get("SUMMON_MCP_URL", "http://mcp:8211/mcp/http/api-key/mcp")
+# Shared secret between Django and the AI service (apps/ai) for its internal endpoints. Empty disables them.
+SUMMON_AI_INTERNAL_TOKEN = os.environ.get("SUMMON_AI_INTERNAL_TOKEN", "")
 
 
 def validate_summon_credential_key():

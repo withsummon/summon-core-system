@@ -4,12 +4,14 @@
 
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers
 from rest_framework import status
 from rest_framework.permissions import SAFE_METHODS
 from rest_framework.response import Response
 
 from plane.app.services.llm import LLMError
-from plane.app.views.base import BaseAPIView, BaseViewSet
+from plane.summon.views.base import SummonAPIView, SummonViewSet
 from plane.db.models import Issue, Page, ProjectMember
 from plane.summon.models import Meeting, MeetingWorkItem, ResourceLink, SummonPageContext
 from plane.summon.permissions import SummonWorkspacePermission
@@ -21,8 +23,17 @@ from plane.summon.serializers.collaboration import (
     ResourceLinkSerializer,
     SummonPageContextSerializer,
 )
-from plane.summon.serializers.operations import MeetingSummaryRequestSerializer
+from plane.summon.serializers.operations import MeetingSummaryRequestSerializer, PageFilterSerializer
+from plane.summon.serializers.shapes import (
+    ErrorCodeSerializer,
+    MeetingWorkItemReadSerializer,
+    PageReadSerializer,
+    PageSummarySerializer,
+)
 from plane.summon.services.collaboration import link_work_item
+from plane.summon.services.commercial import accessible_pages
+from plane.summon.services.context import page_href, page_text
+from plane.summon.services.reports import visible_project_ids
 from plane.summon.services.meeting_summary import summarize_meeting
 from plane.summon.views.commercial import WorkspaceContextMixin
 
@@ -48,7 +59,7 @@ def accessible_page_ids(request, slug, write=False):
     )
 
 
-class MeetingViewSet(WorkspaceContextMixin, BaseViewSet):
+class MeetingViewSet(WorkspaceContextMixin, SummonViewSet):
     model = Meeting
     serializer_class = MeetingSerializer
     permission_classes = [SummonWorkspacePermission]
@@ -66,7 +77,7 @@ class MeetingViewSet(WorkspaceContextMixin, BaseViewSet):
         )
 
 
-class MeetingWorkItemView(WorkspaceContextMixin, BaseAPIView):
+class MeetingWorkItemView(WorkspaceContextMixin, SummonAPIView):
     permission_classes = [SummonWorkspacePermission]
 
     def get_meeting(self):
@@ -79,6 +90,10 @@ class MeetingWorkItemView(WorkspaceContextMixin, BaseAPIView):
             id=self.kwargs["meeting_id"],
         )
 
+    @extend_schema(
+        description="List the Plane work items linked to a meeting.",
+        responses={200: MeetingWorkItemReadSerializer(many=True)},
+    )
     def get(self, request, slug, meeting_id):
         items = MeetingWorkItem.objects.filter(
             meeting=self.get_meeting(),
@@ -87,6 +102,11 @@ class MeetingWorkItemView(WorkspaceContextMixin, BaseAPIView):
         ).select_related("issue__state", "issue__project")
         return Response(MeetingWorkItemSerializer(items, many=True).data)
 
+    @extend_schema(
+        description="Link a Plane work item to a meeting.",
+        request=inline_serializer("MeetingWorkItemLinkRequest", {"issue": serializers.UUIDField()}),
+        responses={201: MeetingWorkItemReadSerializer},
+    )
     def post(self, request, slug, meeting_id):
         meeting = self.get_meeting()
         issue = get_object_or_404(
@@ -99,7 +119,16 @@ class MeetingWorkItemView(WorkspaceContextMixin, BaseAPIView):
         return Response(MeetingWorkItemSerializer(item).data, status=status.HTTP_201_CREATED)
 
 
-class MeetingSummaryView(WorkspaceContextMixin, BaseAPIView):
+class MeetingSummaryFailureSerializer(MeetingSerializer):
+    """Schema only: the meeting as saved, plus the provider error code."""
+
+    error_code = serializers.CharField()
+
+    class Meta(MeetingSerializer.Meta):
+        fields = [*MeetingSerializer.Meta.fields, "error_code"]
+
+
+class MeetingSummaryView(WorkspaceContextMixin, SummonAPIView):
     permission_classes = [SummonWorkspacePermission]
 
     def get_meeting(self):
@@ -114,6 +143,12 @@ class MeetingSummaryView(WorkspaceContextMixin, BaseAPIView):
             id=self.kwargs["meeting_id"],
         )
 
+    @extend_schema(
+        summary="Summarize meeting",
+        description="Generate minutes for a meeting from its transcript or notes. Slow: runs the AI model.",
+        request=MeetingSummaryRequestSerializer,
+        responses={200: MeetingSerializer, 400: ErrorCodeSerializer, 503: MeetingSummaryFailureSerializer},
+    )
     def post(self, request, slug, meeting_id):
         serializer = MeetingSummaryRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -142,13 +177,16 @@ class MeetingSummaryView(WorkspaceContextMixin, BaseAPIView):
 
 
 class MeetingWorkItemDetailView(MeetingWorkItemView):
+    http_method_names = ["delete", "options"]  # list and link live on MeetingWorkItemView
+
+    @extend_schema(description="Unlink a work item from a meeting.", responses={204: None})
     def delete(self, request, slug, meeting_id, pk):
         item = get_object_or_404(MeetingWorkItem, id=pk, meeting=self.get_meeting())
         item.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class SummonPageContextViewSet(WorkspaceContextMixin, BaseViewSet):
+class SummonPageContextViewSet(WorkspaceContextMixin, SummonViewSet):
     model = SummonPageContext
     serializer_class = SummonPageContextSerializer
     permission_classes = [SummonWorkspacePermission]
@@ -172,7 +210,7 @@ class SummonPageContextViewSet(WorkspaceContextMixin, BaseViewSet):
         serializer.save(workspace=self.get_workspace())
 
 
-class ResourceLinkViewSet(WorkspaceContextMixin, BaseViewSet):
+class ResourceLinkViewSet(WorkspaceContextMixin, SummonViewSet):
     model = ResourceLink
     serializer_class = ResourceLinkSerializer
     permission_classes = [SummonWorkspacePermission]
@@ -204,4 +242,72 @@ class ResourceLinkViewSet(WorkspaceContextMixin, BaseViewSet):
         user = self.request.user if self.request.user.is_authenticated else None
         serializer.save(
             updated_by=user,
+        )
+
+
+PAGE_LIST_LIMIT = 50
+PAGE_TEXT_LIMIT = 50_000
+
+
+class PageView(WorkspaceContextMixin, SummonAPIView):
+    """Plane Pages the user can read, so agents can use meeting notes and project docs, not only their names."""
+
+    permission_classes = [SummonWorkspacePermission]
+
+    def visible_pages(self):
+        workspace = self.get_workspace()
+        project_ids = set(visible_project_ids(workspace, self.request.user))
+        pages = (
+            accessible_pages(workspace, self.request.user, project_ids)
+            .filter(archived_at__isnull=True)
+            .prefetch_related("projects")
+            .distinct()
+        )
+        return workspace, project_ids, pages
+
+    def summary(self, workspace, project_ids, page):
+        return {
+            "id": page.id,
+            "name": page.name,
+            "project_ids": [project.id for project in page.projects.all() if project.id in project_ids],
+            "updated_at": page.updated_at,
+            "href": page_href(workspace, page, project_ids),
+        }
+
+
+class PageListView(PageView):
+    @extend_schema(
+        description=(
+            f"List the Plane Pages you can read, newest first (at most {PAGE_LIST_LIMIT}). Use page_get to read one."
+        ),
+        parameters=[PageFilterSerializer],
+        responses={200: PageSummarySerializer(many=True)},
+    )
+    def get(self, request, slug):
+        filters = PageFilterSerializer(data=request.query_params)
+        filters.is_valid(raise_exception=True)
+        workspace, project_ids, pages = self.visible_pages()
+        if "project_id" in filters.validated_data:
+            pages = pages.filter(projects__id=filters.validated_data["project_id"])
+        if "search" in filters.validated_data:
+            pages = pages.filter(name__icontains=filters.validated_data["search"])
+        pages = pages.order_by("-updated_at")[:PAGE_LIST_LIMIT]
+        return Response([self.summary(workspace, project_ids, page) for page in pages])
+
+
+class PageDetailView(PageView):
+    @extend_schema(
+        description="Read one Plane Page you can see: its text, such as meeting notes or a project doc.",
+        responses={200: PageReadSerializer, 404: None},
+    )
+    def get(self, request, slug, pk):
+        workspace, project_ids, pages = self.visible_pages()
+        page = get_object_or_404(pages, pk=pk)
+        text = page_text(page)
+        return Response(
+            {
+                **self.summary(workspace, project_ids, page),
+                "content": text[:PAGE_TEXT_LIMIT],
+                "truncated": len(text) > PAGE_TEXT_LIMIT,
+            }
         )

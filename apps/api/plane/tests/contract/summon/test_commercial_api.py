@@ -362,3 +362,19 @@ def test_partial_update_revalidates_existing_references(workspace):
     )
     assert opportunity_response.status_code == status.HTTP_400_BAD_REQUEST
     assert "client" in opportunity_response.data
+
+
+# Requests autocommit in production, so the failed insert must not poison the next request.
+@pytest.mark.django_db(transaction=True)
+def test_a_duplicate_name_answers_409_naming_the_conflict(workspace):
+    _, api = authenticated_user(workspace, 20)
+    url = f"/api/summon/workspaces/{workspace.slug}/clients/"
+    assert api.post(url, {"name": "Acme"}, format="json").status_code == status.HTTP_201_CREATED
+
+    duplicate = api.post(url, {"name": "Acme"}, format="json")
+    assert duplicate.status_code == status.HTTP_409_CONFLICT
+    assert duplicate.data == {
+        "error_code": "already_exists",
+        "detail": "Already exists (client name). Update the existing one.",
+    }
+    assert api.get(url).status_code == status.HTTP_200_OK
