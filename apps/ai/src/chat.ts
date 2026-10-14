@@ -9,7 +9,13 @@
  *    The call is idempotent, so it is retried on transport errors.
  */
 import type { SummonClient } from "@plane/summon-contract";
-import { ChatRequest, type ChatErrorCode, type SummonUIMessage } from "@plane/summon-contract/chat";
+import {
+  CHAT_ROUTE,
+  ChatRequest,
+  type ChatErrorCode,
+  type ChatRefusalCode,
+  type SummonUIMessage,
+} from "@plane/summon-contract/chat";
 import {
   APICallError,
   createUIMessageStream,
@@ -22,7 +28,7 @@ import {
   type ToolSet,
 } from "ai";
 import { Effect, Schedule, Schema } from "effect";
-import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
+import { HttpClient, HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import { Auth } from "./auth";
 import { Django } from "./django";
 import { Models } from "./model";
@@ -90,13 +96,14 @@ const openRouterCost = (steps: ReadonlyArray<StepResult<ToolSet>>) =>
     return sum + (usage?.cost ?? 0);
   }, 0);
 
-const json = (status: number, body: Record<string, unknown>) => HttpServerResponse.jsonUnsafe(body, { status });
-const SUMMON_UNAVAILABLE = json(502, { error_code: "summon_unavailable" });
-const DJANGO_REFUSALS: Partial<Record<number, string>> = { 403: "forbidden", 404: "not_found" };
+const refuse = (status: number, error_code: ChatRefusalCode) =>
+  HttpServerResponse.jsonUnsafe({ error_code }, { status });
+const SUMMON_UNAVAILABLE = refuse(502, "summon_unavailable");
+const DJANGO_REFUSALS: Partial<Record<number, ChatRefusalCode>> = { 403: "forbidden", 404: "not_found" };
 
 export const ChatRoute = HttpRouter.add(
   "POST",
-  "/ai/workspaces/:slug/assistant/conversations/:conversationId/chat",
+  CHAT_ROUTE,
   Effect.gen(function* () {
     const startedAt = performance.now();
     const request = yield* HttpServerRequest.HttpServerRequest;
@@ -110,9 +117,7 @@ export const ChatRoute = HttpRouter.add(
     const chatModel = yield* (yield* Models).chat;
 
     const client = django.client(caller, { aiService: true });
-    const turn = yield* client.assistantTurnStart(slug, conversationId, {
-      payload: { content: body.text, context: body.context ?? {}, attachment_ids: body.attachment_ids ?? [] },
-    });
+    const turn = yield* client.assistantTurnStart(slug, conversationId, { payload: body });
     const turnMs = performance.now() - startedAt - authMs;
     const messageId = turn.assistant_message.id;
 
@@ -120,9 +125,13 @@ export const ChatRoute = HttpRouter.add(
     const run = <A>(effect: Effect.Effect<A>, signal?: AbortSignal) =>
       Effect.runPromiseWith(services)(effect, signal ? { signal } : undefined);
 
+    // Only transport failures and 408/429/5xx are retried; a 4xx or off-contract reply won't change.
+    const completeClient = django.client(caller, {
+      aiService: true,
+      transform: HttpClient.retryTransient({ schedule: Schedule.exponential("200 millis"), times: 4 }),
+    });
     const complete = (payload: SummonClient.AssistantTurnCompleteRequest) =>
-      client.assistantTurnComplete(slug, conversationId, messageId, { payload }).pipe(
-        Effect.retry({ schedule: Schedule.exponential("200 millis"), times: 4 }),
+      completeClient.assistantTurnComplete(slug, conversationId, messageId, { payload }).pipe(
         Effect.tapError((error) => Effect.logError("assistant.turn.complete_failed", error)),
         Effect.ignore
       );
@@ -268,16 +277,16 @@ export const ChatRoute = HttpRouter.add(
     return HttpServerResponse.fromWeb(createUIMessageStreamResponse({ stream, keepAliveMs: KEEP_ALIVE_MS }));
   }).pipe(
     Effect.catchTags({
-      Unauthenticated: () => Effect.succeed(json(401, { error_code: "unauthenticated" })),
-      ForbiddenOrigin: () => Effect.succeed(json(403, { error_code: "forbidden_origin" })),
-      ModelUnavailable: (error) => Effect.succeed(json(503, { error_code: error.errorCode })),
-      InvalidRequest: () => Effect.succeed(json(400, { error_code: "invalid_request" })),
+      Unauthenticated: () => Effect.succeed(refuse(401, "unauthenticated")),
+      ForbiddenOrigin: () => Effect.succeed(refuse(403, "forbidden_origin")),
+      ModelUnavailable: (error) => Effect.succeed(refuse(503, error.errorCode)),
+      InvalidRequest: () => Effect.succeed(refuse(400, "invalid_request")),
       HttpClientError: (error) => {
         const status = error.response?.status ?? 502;
         // Django's own refusal of the turn (missing conversation, no access, invalid input) passes through.
         return Effect.succeed(
           status >= 400 && status < 500
-            ? json(status, { error_code: DJANGO_REFUSALS[status] ?? "invalid_request" })
+            ? refuse(status, DJANGO_REFUSALS[status] ?? "invalid_request")
             : SUMMON_UNAVAILABLE
         );
       },

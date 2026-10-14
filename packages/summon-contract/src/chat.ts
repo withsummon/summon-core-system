@@ -10,20 +10,19 @@
  */
 import type { UIMessage } from "ai";
 import { Schema } from "effect";
-import { AssistantContextRequest, type AssistantAction, type Citation } from "./client.gen";
+import { type AssistantAction, AssistantTurnStartRequest, type Citation } from "./client.gen";
 
-/** `POST /ai/workspaces/{slug}/assistant/conversations/{conversationId}/chat` */
-export const ChatRequest = Schema.Struct({
-  /** Id the client gave the user message; echoed back so the optimistic message is replaced, not duplicated. */
-  id: Schema.String,
-  text: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(20000)),
-  context: Schema.optionalKey(AssistantContextRequest),
-  attachment_ids: Schema.optionalKey(Schema.Array(Schema.String).check(Schema.isMaxLength(5))),
-});
-export type ChatRequest = typeof ChatRequest.Type;
+/** The chat route in `HttpRouter` path syntax; {@link chatPath} fills it. */
+export const CHAT_ROUTE = "/ai/workspaces/:slug/assistant/conversations/:conversationId/chat";
 
 export const chatPath = (workspaceSlug: string, conversationId: string) =>
-  `/ai/workspaces/${encodeURIComponent(workspaceSlug)}/assistant/conversations/${encodeURIComponent(conversationId)}/chat`;
+  CHAT_ROUTE.replace(":slug", () => encodeURIComponent(workspaceSlug)).replace(":conversationId", () =>
+    encodeURIComponent(conversationId)
+  );
+
+/** `POST` {@link CHAT_ROUTE}: the new user message, exactly what the AI service passes to Django's `assistantTurnStart`. */
+export const ChatRequest = AssistantTurnStartRequest;
+export type ChatRequest = AssistantTurnStartRequest;
 
 /** Sent on `start` and `finish`; the ids are Django `AssistantMessage` ids. */
 export const ChatMetadata = Schema.Struct({
@@ -45,10 +44,10 @@ export type SummonDataParts = {
 export type SummonUIMessage = UIMessage<ChatMetadata, SummonDataParts>;
 
 /**
- * Error codes the stream's `error` part carries. The `llm_*` codes are Django's `LLMErrorCode`
- * (`apps/api/plane/app/services/llm.py`), so the UI keeps one copy table for both paths.
+ * Django's `LLMErrorCode` (`apps/api/plane/app/services/llm.py`). `@plane/types` `TInstanceLLMErrorCode`
+ * is the same list; `tests/error-codes.test.ts` fails typecheck if they drift.
  */
-export const ChatErrorCode = Schema.Literals([
+export const LLMErrorCode = Schema.Literals([
   "llm_not_configured",
   "llm_authentication_failed",
   "llm_rate_limited",
@@ -56,9 +55,26 @@ export const ChatErrorCode = Schema.Literals([
   "llm_provider_unavailable",
   "llm_invalid_response",
   "llm_context_too_large",
+]);
+export type LLMErrorCode = typeof LLMErrorCode.Type;
+
+/** Error codes the stream's `error` part carries: Django's `llm_*` codes, so the UI keeps one copy table for both paths. */
+export const ChatErrorCode = Schema.Literals([
+  ...LLMErrorCode.literals,
   /** Django returned a provider the AI service can't drive yet. */
   "llm_provider_unsupported",
   /** Django could not be reached, or refused the turn. */
   "summon_unavailable",
 ]);
 export type ChatErrorCode = typeof ChatErrorCode.Type;
+
+/** `error_code` of the JSON body the chat route answers with when it refuses a request before streaming. */
+export const ChatRefusalCode = Schema.Literals([
+  ...ChatErrorCode.literals,
+  "unauthenticated",
+  "forbidden_origin",
+  "invalid_request",
+  "forbidden",
+  "not_found",
+]);
+export type ChatRefusalCode = typeof ChatRefusalCode.Type;

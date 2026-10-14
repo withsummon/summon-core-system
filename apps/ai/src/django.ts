@@ -32,9 +32,16 @@ export type CurrentUser = typeof CurrentUser.Type;
 export interface DjangoShape {
   /**
    * Typed Summon client for `caller`. `aiService` adds the internal token the turn protocol requires
-   * (`AIServicePermission`); only the chat route uses it, never MCP.
+   * (`AIServicePermission`); only the chat route uses it, never MCP. `transform` wraps the HTTP client
+   * (e.g. `HttpClient.retryTransient`).
    */
-  readonly client: (caller: Caller, options?: { readonly aiService?: boolean }) => SummonClient.SummonClient;
+  readonly client: (
+    caller: Caller,
+    options?: {
+      readonly aiService?: boolean;
+      readonly transform?: (client: HttpClient.HttpClient) => HttpClient.HttpClient;
+    }
+  ) => SummonClient.SummonClient;
   /** Token-only client for `internal/*` endpoints (no user). */
   readonly internal: SummonClient.SummonClient;
   /** Calls a tool operation from the generated manifest with model- or MCP-supplied input. */
@@ -101,13 +108,13 @@ export class Django extends Context.Service<Django, DjangoShape>()("@plane/ai/Dj
       const withHeaders = (headers: Record<string, string>) =>
         http.pipe(HttpClient.mapRequest(HttpClientRequest.setHeaders(headers)));
 
-      const client: DjangoShape["client"] = (caller, options) =>
-        SummonClient.make(
-          withHeaders({
-            ...authHeaders(caller),
-            ...(options?.aiService ? { [AI_TOKEN_HEADER]: Redacted.value(config.internalToken) } : {}),
-          })
-        );
+      const client: DjangoShape["client"] = (caller, options) => {
+        const summon = withHeaders({
+          ...authHeaders(caller),
+          ...(options?.aiService ? { [AI_TOKEN_HEADER]: Redacted.value(config.internalToken) } : {}),
+        });
+        return SummonClient.make(options?.transform ? options.transform(summon) : summon);
+      };
 
       const call: DjangoShape["call"] = (caller, workspaceSlug, operation, input) => {
         const missing = missingPathParams(operation, input);

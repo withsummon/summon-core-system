@@ -2,6 +2,7 @@ import { APICallError } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
 import { afterEach, describe, expect, it } from "vitest";
 import { operations } from "@plane/summon-contract";
+import { chatPath } from "@plane/summon-contract/chat";
 import { INSTRUCTIONS } from "../src/chat";
 import {
   AI_TOKEN,
@@ -17,7 +18,7 @@ import {
   WEB_ORIGIN,
 } from "./harness";
 
-const CHAT_PATH = `/ai/workspaces/${SLUG}/assistant/conversations/${CONVERSATION_ID}/chat`;
+const CHAT_PATH = chatPath(SLUG, CONVERSATION_ID);
 
 let app: TestApp | undefined;
 afterEach(async () => {
@@ -28,7 +29,7 @@ afterEach(async () => {
 const chat = (
   current: TestApp,
   headers: Record<string, string> = {},
-  body: unknown = { id: CONVERSATION_ID, text: "What is at risk?" }
+  body: unknown = { content: "What is at risk?" }
 ) =>
   current.fetch(CHAT_PATH, {
     method: "POST",
@@ -121,7 +122,7 @@ describe("chat", () => {
 
   it("rejects an invalid body", async () => {
     app = makeApp();
-    expect((await chat(app, {}, { id: CONVERSATION_ID, text: "" })).status).toBe(400);
+    expect((await chat(app, {}, { content: "" })).status).toBe(400);
   });
 
   it("passes Django's refusal of the turn through", async () => {
@@ -172,7 +173,7 @@ describe("chat", () => {
     const start = app.seen.find((request) => request.path.endsWith("/turns/"));
     expect(start?.headers["x-summon-ai-token"]).toBe(AI_TOKEN);
     expect(start?.headers.cookie).toBe("sessionid=valid");
-    expect(start?.body).toEqual({ content: "What is at risk?", context: {}, attachment_ids: [] });
+    expect(start?.body).toEqual({ content: "What is at risk?" });
 
     const complete = completeCall(app);
     expect(complete?.headers["x-summon-ai-token"]).toBe(AI_TOKEN);
@@ -185,6 +186,28 @@ describe("chat", () => {
       output_tokens: 9,
       usage: { cached_input_tokens: 100, steps: 1 },
     });
+  });
+
+  it("retries complete/ only while Django's failure is transient", async () => {
+    const completeCalls = async (failure: number) => {
+      let failed = false;
+      app = makeApp({
+        django: (request) => {
+          if (request.path.endsWith("/complete/") && !failed) {
+            failed = true;
+            return { status: failure, body: { detail: "failed" } };
+          }
+          return defaultDjango(request);
+        },
+      });
+      await readUIStream(await chat(app));
+      const count = app.seen.filter((request) => request.path.endsWith("/complete/")).length;
+      await app.dispose();
+      app = undefined;
+      return count;
+    };
+    expect(await completeCalls(503)).toBe(2);
+    expect(await completeCalls(400)).toBe(1);
   });
 
   it("puts the per-turn context in the last user message, after a stable system prompt", async () => {

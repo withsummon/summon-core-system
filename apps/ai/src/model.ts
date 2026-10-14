@@ -5,11 +5,14 @@
  */
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import type { LanguageModel } from "ai";
-import { Cache, Context, Duration, Effect, Exit, Layer, Schema } from "effect";
+import { ChatErrorCode } from "@plane/summon-contract/chat";
+import { Context, Duration, Effect, Exit, Layer, Schema } from "effect";
 import { Django } from "./django";
 
+const isChatErrorCode = Schema.is(ChatErrorCode);
+
 export class ModelUnavailable extends Schema.TaggedError<ModelUnavailable>()("ModelUnavailable", {
-  errorCode: Schema.Literals(["llm_not_configured", "llm_provider_unsupported", "summon_unavailable"]),
+  errorCode: ChatErrorCode,
   cause: Schema.optionalKey(Schema.Defect()),
 }) {}
 
@@ -46,18 +49,19 @@ export class Models extends Context.Service<Models, { readonly chat: Effect.Effe
           });
         }),
         // Django answers 503 with an `llm_*` code when the instance has no usable provider.
-        Effect.catchTag("InternalAiConfig503", () =>
-          Effect.fail(new ModelUnavailable({ errorCode: "llm_not_configured" }))
+        Effect.catchTag("InternalAiConfig503", (error) =>
+          Effect.fail(
+            new ModelUnavailable({
+              errorCode: isChatErrorCode(error.cause.error_code) ? error.cause.error_code : "summon_unavailable",
+            })
+          )
         ),
         Effect.catchTag(["HttpClientError", "SchemaError"], (error) =>
           Effect.fail(new ModelUnavailable({ errorCode: "summon_unavailable", cause: error }))
         )
       );
-      const cache = yield* Cache.makeWith((_: "chat") => load, {
-        capacity: 1,
-        timeToLive: (exit) => (Exit.isSuccess(exit) ? CONFIG_TTL : Duration.zero),
-      });
-      return Models.of({ chat: Cache.get(cache, "chat") });
+      const chat = yield* Effect.cachedWithTTL(load, (exit) => (Exit.isSuccess(exit) ? CONFIG_TTL : Duration.zero));
+      return Models.of({ chat });
     })
   );
 }
