@@ -7,6 +7,8 @@
 export const API_BASE_URL = process.env.VITE_API_BASE_URL || "";
 export const API_BASE_PATH = process.env.VITE_API_BASE_PATH || "";
 export const API_URL = encodeURI(`${API_BASE_URL}${API_BASE_PATH}`);
+// Summon AI service (streamed assistant turns); same origin as the API behind the proxy
+export const AI_BASE_URL = process.env.VITE_AI_BASE_URL ?? API_BASE_URL;
 // God Mode Admin App Base Url
 export const ADMIN_BASE_URL = process.env.VITE_ADMIN_BASE_URL || "";
 export const ADMIN_BASE_PATH = process.env.VITE_ADMIN_BASE_PATH || "";

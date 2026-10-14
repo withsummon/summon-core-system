@@ -12,15 +12,7 @@ import type { UIMessage } from "ai";
 import { Schema } from "effect";
 import { type AssistantAction, AssistantTurnStartRequest, type Citation } from "./client.gen";
 
-/** The chat route in `HttpRouter` path syntax; {@link chatPath} fills it. */
-export const CHAT_ROUTE = "/ai/workspaces/:slug/assistant/conversations/:conversationId/chat";
-
-export const chatPath = (workspaceSlug: string, conversationId: string) =>
-  CHAT_ROUTE.replace(":slug", () => encodeURIComponent(workspaceSlug)).replace(":conversationId", () =>
-    encodeURIComponent(conversationId)
-  );
-
-/** `POST` {@link CHAT_ROUTE}: the new user message, exactly what the AI service passes to Django's `assistantTurnStart`. */
+/** `POST` `CHAT_ROUTE` (`./chat-route`): the new user message, exactly what the AI service passes to Django's `assistantTurnStart`. */
 export const ChatRequest = AssistantTurnStartRequest;
 export type ChatRequest = AssistantTurnStartRequest;
 

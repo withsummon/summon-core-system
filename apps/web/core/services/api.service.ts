@@ -9,6 +9,19 @@ import type { AxiosInstance, AxiosRequestConfig } from "axios";
 import { create } from "axios";
 import { normalizeAPIRequestURL } from "@plane/services";
 
+/** Sends an unauthenticated user to sign-in, returning them to the current page afterwards. */
+export function redirectToSignIn() {
+  const currentPath = window.location.pathname;
+  // The entry page ("/") runs its own current-user request on mount;
+  // when the session is expired that request 401s too, and redirecting
+  // "/" to "/?next_path=/" reloads the page in an endless loop instead of
+  // letting the sign-in screen render. Only bounce away from private
+  // routes.
+  if (currentPath !== "/") {
+    window.location.replace(`/${currentPath ? `?next_path=${encodeURIComponent(currentPath)}` : ``}`);
+  }
+}
+
 export abstract class APIService {
   protected baseURL: string;
   private axiosInstance: AxiosInstance;
@@ -40,17 +53,7 @@ export abstract class APIService {
     this.axiosInstance.interceptors.response.use(
       (response) => response,
       (error) => {
-        if (error.response && error.response.status === 401) {
-          const currentPath = window.location.pathname;
-          // The entry page ("/") runs its own current-user request on mount;
-          // when the session is expired that request 401s too, and redirecting
-          // "/" to "/?next_path=/" reloads the page in an endless loop instead of
-          // letting the sign-in screen render. Only bounce away from private
-          // routes.
-          if (currentPath !== "/") {
-            window.location.replace(`/${currentPath ? `?next_path=${encodeURIComponent(currentPath)}` : ``}`);
-          }
-        }
+        if (error.response && error.response.status === 401) redirectToSignIn();
         return Promise.reject(error);
       }
     );

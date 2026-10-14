@@ -8,6 +8,7 @@ import type { HTMLAttributes, ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { IconButton } from "@plane/propel/icon-button";
+import type { ChatRefusalCode } from "@plane/summon-contract/chat";
 import type { TInstanceLLMErrorCode } from "@plane/types";
 import { PageHead } from "@/components/core/page-title";
 
@@ -250,12 +251,21 @@ const SUMMON_LLM_ERROR_MESSAGES = {
   llm_provider_unavailable: "The provider is unavailable. Wait briefly, then retry.",
   llm_invalid_response: "The provider returned an invalid response. Retry or ask an administrator to check the model.",
   llm_context_too_large: "The selected context is too large. Remove one or more sources, then retry.",
+  // The AI service (streamed Assistant turns) adds these to Django's codes.
+  llm_provider_unsupported: "The configured provider cannot stream replies. Ask an instance administrator to check it.",
+  summon_unavailable: "Summon is unavailable right now. Wait briefly, then retry.",
+  unauthenticated: "Your session expired. Sign in again, then retry.",
+  forbidden_origin:
+    "This site cannot reach the AI service. Ask an instance administrator to check its allowed origins.",
+  invalid_request: "The message could not be sent. Check its length and attachments, then retry.",
+  forbidden: "You no longer have access to this conversation.",
+  not_found: "This conversation no longer exists. Start a new chat.",
   transcript_required: "Supply an accessible text transcript before generating a summary.",
   project_required: "Select a project you can access before generating or publishing a page.",
   project_access_revoked: "Project access changed. Reopen the record and select a project you can access.",
   unsupported_document_type:
     "This legacy preview cannot create files. Generate a new preview with one of the current document templates.",
-} satisfies Record<TInstanceLLMErrorCode, string> & Record<string, string>;
+} satisfies Record<TInstanceLLMErrorCode | ChatRefusalCode, string> & Record<string, string>;
 
 export function summonLLMErrorMessage(error: unknown) {
   let code: unknown;

@@ -2,7 +2,7 @@ import { APICallError } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { operations } from "@plane/summon-contract";
-import { chatPath } from "@plane/summon-contract/chat";
+import { chatPath } from "@plane/summon-contract/chat-route";
 import { INSTRUCTIONS } from "../src/chat";
 import { parseRpcBody } from "../src/plane-mcp";
 import {

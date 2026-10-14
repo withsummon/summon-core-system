@@ -22,7 +22,7 @@ export type TSummonCredentialAccessAction =
 
 export interface ISummonAIStatus {
   configured: boolean;
-  provider: "openai" | "openai_compatible" | "anthropic" | "codex" | "gemini" | null;
+  provider: "openai" | "openai_compatible" | "anthropic" | "codex" | "gemini" | "openrouter" | null;
   model: string | null;
 }
 

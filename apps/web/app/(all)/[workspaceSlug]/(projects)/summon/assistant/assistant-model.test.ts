@@ -24,6 +24,7 @@ const {
   groupConversations,
   scopeContext,
   scopeFromConversation,
+  streamFailure,
   titleFromAnswer,
   toolPayload,
   toolProblem,
@@ -185,4 +186,14 @@ test("write-backs and requests file into the scope's project, or the meeting's p
   assert.equal(projectForScope({ kind: "meeting", id: "m1" }, "p9"), "p9");
   assert.equal(projectForScope({ kind: "client", id: "c1" }, "p9"), undefined);
   assert.equal(meetingProjectFor({ kind: "project", id: "p1" }, meetings), undefined);
+});
+
+test("a refused stream request keeps its JSON error code; a failed turn's error part is the bare code", () => {
+  assert.deepEqual(streamFailure(new Error('{"error_code":"unauthenticated"}')), {
+    kind: "refused",
+    error_code: "unauthenticated",
+  });
+  assert.deepEqual(streamFailure(new Error("llm_rate_limited")), { kind: "answered", error_code: "llm_rate_limited" });
+  // JSON without a code is not a refusal body.
+  assert.deepEqual(streamFailure(new Error("{}")), { kind: "answered", error_code: "{}" });
 });

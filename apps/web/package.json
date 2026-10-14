@@ -17,6 +17,7 @@
     "fix:format": "oxfmt ."
   },
   "dependencies": {
+    "@ai-sdk/react": "catalog:",
     "@atlaskit/pragmatic-drag-and-drop": "catalog:",
     "@atlaskit/pragmatic-drag-and-drop-auto-scroll": "catalog:",
     "@atlaskit/pragmatic-drag-and-drop-hitbox": "catalog:",
@@ -32,12 +33,14 @@
     "@plane/propel": "workspace:*",
     "@plane/services": "workspace:*",
     "@plane/shared-state": "workspace:*",
+    "@plane/summon-contract": "workspace:*",
     "@plane/types": "workspace:*",
     "@plane/ui": "workspace:*",
     "@plane/utils": "workspace:*",
     "@react-pdf/renderer": "catalog:",
     "@react-router/node": "catalog:",
     "@tanstack/react-table": "catalog:",
+    "ai": "catalog:",
     "axios": "catalog:",
     "clsx": "catalog:",
     "cmdk": "catalog:",

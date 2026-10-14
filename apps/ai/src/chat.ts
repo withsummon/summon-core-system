@@ -10,12 +10,12 @@
  */
 import type { SummonClient } from "@plane/summon-contract";
 import {
-  CHAT_ROUTE,
   ChatRequest,
   type ChatErrorCode,
   type ChatRefusalCode,
   type SummonUIMessage,
 } from "@plane/summon-contract/chat";
+import { CHAT_ROUTE } from "@plane/summon-contract/chat-route";
 import {
   APICallError,
   createUIMessageStream,
