@@ -1,0 +1,37 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.withsummon/summon",
+  "title": "Summon",
+  "description": "Summon CRM and delivery records, plus the workspace's Plane projects and work items.",
+  "repository": {
+    "url": "https://github.com/withsummon/summon-core-system",
+    "source": "github",
+    "subfolder": "apps/ai"
+  },
+  "version": "1.4.2",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://{host}/ai/mcp",
+      "variables": {
+        "host": {
+          "description": "Your Summon host, e.g. summon.example.com",
+          "isRequired": true
+        }
+      },
+      "headers": [
+        {
+          "name": "Authorization",
+          "description": "Bearer followed by your Plane API key",
+          "isRequired": true,
+          "isSecret": true
+        },
+        {
+          "name": "X-Workspace-Slug",
+          "description": "The Summon workspace the key belongs to",
+          "isRequired": true
+        }
+      ]
+    }
+  ]
+}
