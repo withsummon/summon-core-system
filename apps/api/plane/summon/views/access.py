@@ -189,13 +189,13 @@ class AccessMeView(SummonAPIView):
 
     @extend_schema(
         summary="My workspace access",
-        description="Your role in this workspace and what Summon lets you do.", responses={200: AccessMeSerializer}
+        description="Your role in this workspace and what Summon lets you do.",
+        responses={200: AccessMeSerializer},
     )
     def get(self, request, slug):
         role = active_membership(request.user, slug).role
-        return Response(
-            AccessMeSerializer({"role": role, "role_label": ROLE_LABELS[role], "capabilities": capabilities_for(role)}).data
-        )
+        access = {"role": role, "role_label": ROLE_LABELS[role], "capabilities": capabilities_for(role)}
+        return Response(AccessMeSerializer(access).data)
 
 
 class WorkspaceUsersView(WorkspaceContextMixin, SummonAPIView):

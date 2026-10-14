@@ -278,8 +278,7 @@ class PageView(WorkspaceContextMixin, SummonAPIView):
 class PageListView(PageView):
     @extend_schema(
         description=(
-            f"List the Plane Pages you can read, newest first (at most {PAGE_LIST_LIMIT}). "
-            "Use page_get to read one."
+            f"List the Plane Pages you can read, newest first (at most {PAGE_LIST_LIMIT}). Use page_get to read one."
         ),
         parameters=[PageFilterSerializer],
         responses={200: PageSummarySerializer(many=True)},
