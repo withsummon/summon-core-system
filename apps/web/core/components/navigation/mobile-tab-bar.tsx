@@ -16,7 +16,7 @@ import { SelectableIcon } from "@plane/propel/icons";
 import { cn } from "@plane/utils";
 import { SummonThemeToggle } from "@/components/summon/theme-toggle";
 import { getSidebarNavigationItemIcon } from "@/components/workspace/sidebar/helper";
-import { useUserPermissions, useUserProfile } from "@/hooks/store/user";
+import { useUserPermissions } from "@/hooks/store/user";
 import type { TMobileNavGroup, TMobileNavLink } from "./mobile-tab-bar-items";
 import { getMobileNavigation } from "./mobile-tab-bar-items";
 
@@ -130,7 +130,6 @@ const MoreSheet = observer(function MoreSheet(props: {
   groups: TMobileNavGroup[];
 }) {
   const { t } = useTranslation();
-  const { updateUserTheme } = useUserProfile();
 
   return (
     <Drawer side="bottom" open={props.open} onOpenChange={props.onOpenChange}>
@@ -151,7 +150,7 @@ const MoreSheet = observer(function MoreSheet(props: {
           ))}
           <div className="flex min-h-12 items-center justify-between rounded-xl border border-subtle bg-layer-1 px-3">
             <span className="text-14 text-primary">{t("summon.appearance")}</span>
-            <SummonThemeToggle onChange={(theme) => updateUserTheme({ theme })} />
+            <SummonThemeToggle />
           </div>
         </div>
       </DrawerContent>
