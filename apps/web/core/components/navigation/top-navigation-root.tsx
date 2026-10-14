@@ -20,7 +20,6 @@ import useSWR from "swr";
 import { useWorkspaceNotifications } from "@/hooks/store/notifications";
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { usePowerK } from "@/hooks/store/use-power-k";
-import { useUserProfile } from "@/hooks/store/user";
 import { AppSidebarToggleButton } from "@/components/sidebar/sidebar-toggle-button";
 
 export const TopNavigationRoot = observer(function TopNavigationRoot() {
@@ -31,7 +30,6 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
   // store hooks
   const { unreadNotificationsCount, getUnreadNotificationsCount } = useWorkspaceNotifications();
   const { sidebarCollapsed } = useAppTheme();
-  const { updateUserTheme } = useUserProfile();
   const { togglePowerKModal } = usePowerK();
   const { preferences } = useAppRailPreferences();
 
@@ -55,7 +53,7 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
         "px-2": !showLabel,
       })}
     >
-      <div className={cn("mr-1", !sidebarCollapsed && "md:hidden")}>
+      <div className={cn("mr-1 max-md:hidden", !sidebarCollapsed && "md:hidden")}>
         <AppSidebarToggleButton />
       </div>
       {/* Workspace Menu */}
@@ -92,8 +90,11 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
             )}
           </span>
         </Link>
-        <HelpMenuRoot />
-        <SummonThemeToggle onChange={(theme) => updateUserTheme({ theme })} />
+        {/* On a phone, Help drops and the theme switch moves into the tab bar's More sheet */}
+        <div className="hidden items-center gap-1 md:flex">
+          <HelpMenuRoot />
+          <SummonThemeToggle />
+        </div>
         <div className="flex size-8 items-center justify-center rounded-md hover:bg-layer-1-hover">
           <UserMenuRoot />
         </div>

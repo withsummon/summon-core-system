@@ -63,7 +63,7 @@ export function SwitchAccountModal(props: Props) {
         if (!open) handleClose();
       }}
     >
-      <Dialog.Panel className="sm:max-w-[40rem]">
+      <Dialog.Panel className="md:max-w-[40rem]">
         <div className="p-6 pb-1">
           <div className="flex gap-x-4">
             <div className="flex items-start">

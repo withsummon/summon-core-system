@@ -67,11 +67,7 @@ export const InviteDialog = observer(function InviteDialog(props: {
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && close()}>
-      <Dialog.Panel
-        width={EDialogWidth.MD}
-        initialFocus={emailRef}
-        className="w-[calc(100vw-2rem)] overflow-hidden rounded-xl"
-      >
+      <Dialog.Panel width={EDialogWidth.MD} initialFocus={emailRef} className="overflow-hidden">
         <form onSubmit={submit}>
           <header className="flex items-start justify-between gap-3 px-5 pt-5">
             <div>

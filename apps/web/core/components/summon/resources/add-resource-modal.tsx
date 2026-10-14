@@ -55,7 +55,7 @@ export function AddResourceModal({ isOpen, onClose, onSave, projects }: IAddReso
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <Dialog.Panel width={EDialogWidth.LG} className="flex max-h-[90vh] w-[calc(100vw-2rem)] flex-col overflow-hidden">
+      <Dialog.Panel width={EDialogWidth.LG} className="flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-subtle px-6 py-4">
           <div className="flex items-center gap-2.5">

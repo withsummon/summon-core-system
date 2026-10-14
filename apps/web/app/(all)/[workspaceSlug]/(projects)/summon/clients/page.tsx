@@ -93,7 +93,7 @@ export default function SummonClientsPage({ params }: Route.ComponentProps) {
             emptyMessage={data.length ? "Try another search." : "Add the companies you work with."}
           />
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {clients.map((client) => (
               <Link
                 key={client.id}

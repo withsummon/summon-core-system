@@ -55,6 +55,16 @@ const tabItems: TSectionTab<(typeof tabs)[number]>[] = [
   { value: "Notes", label: "Notes", icon: NoteIcon },
 ];
 
+/** Column labels: the desktop header and the phone row label read from the same entry. */
+const CREDENTIAL_COLUMNS = {
+  name: "Credential Name",
+  type: "Type",
+  project: "Project",
+  environment: "Environment",
+  lastUsed: "Last Used",
+  status: "Status",
+} as const;
+
 const textMetadata = (credential: ISummonCredential, key: string) => {
   const value = credential.metadata[key];
   return typeof value === "string" && value.trim() ? value : "Not set";
@@ -244,15 +254,15 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[680px] text-left text-xs">
+              <table className="table-stack w-full text-left text-xs md:min-w-[680px]">
                 <thead className="border-y border-subtle bg-layer-1/60 text-12 text-tertiary">
                   <tr>
-                    <th className="px-4 py-3">Credential Name</th>
-                    <th className="px-3 py-3">Type</th>
-                    <th className="px-3 py-3">Project</th>
-                    <th className="px-3 py-3">Environment</th>
-                    <th className="px-3 py-3">Last Used</th>
-                    <th className="px-3 py-3">Status</th>
+                    <th className="px-4 py-3">{CREDENTIAL_COLUMNS.name}</th>
+                    <th className="px-3 py-3">{CREDENTIAL_COLUMNS.type}</th>
+                    <th className="px-3 py-3">{CREDENTIAL_COLUMNS.project}</th>
+                    <th className="px-3 py-3">{CREDENTIAL_COLUMNS.environment}</th>
+                    <th className="px-3 py-3">{CREDENTIAL_COLUMNS.lastUsed}</th>
+                    <th className="px-3 py-3">{CREDENTIAL_COLUMNS.status}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-subtle">
@@ -283,17 +293,19 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
                           </span>
                         </button>
                       </td>
-                      <td className="px-3 py-3">
+                      <td data-label={CREDENTIAL_COLUMNS.type} className="px-3 py-3">
                         <Badge>{credential.provider.replaceAll("_", " ")}</Badge>
                       </td>
-                      <td className="px-3 py-3 text-secondary">
+                      <td data-label={CREDENTIAL_COLUMNS.project} className="px-3 py-3 text-secondary">
                         {credential.project ? projectNames.get(credential.project) || "Linked project" : "—"}
                       </td>
-                      <td className="px-3 py-3">
+                      <td data-label={CREDENTIAL_COLUMNS.environment} className="px-3 py-3">
                         <Badge tone="green">{textMetadata(credential, "environment")}</Badge>
                       </td>
-                      <td className="px-3 py-3 text-secondary">{formatRelative(credential.updated_at)}</td>
-                      <td className="px-3 py-3">
+                      <td data-label={CREDENTIAL_COLUMNS.lastUsed} className="px-3 py-3 text-secondary">
+                        {formatRelative(credential.updated_at)}
+                      </td>
+                      <td data-label={CREDENTIAL_COLUMNS.status} className="px-3 py-3">
                         <Status value={credential.status} />
                       </td>
                     </tr>
@@ -596,10 +608,7 @@ function CredentialForm(props: {
   const metadata = props.credential?.metadata ?? {};
   return (
     <Dialog open onOpenChange={(open) => !open && props.onClose()}>
-      <Dialog.Panel
-        width={EDialogWidth.XXL}
-        className="vertical-scrollbar max-h-[90vh] w-[calc(100vw-2rem)] overflow-y-auto p-5"
-      >
+      <Dialog.Panel width={EDialogWidth.XXL} className="p-5">
         <div className="flex items-center justify-between">
           <Dialog.Title className="text-18 font-semibold text-primary">
             {props.credential ? "Update Credential" : "Add Credential"}

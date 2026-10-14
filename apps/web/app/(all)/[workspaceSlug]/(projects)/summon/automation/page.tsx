@@ -135,6 +135,17 @@ const orderedTemplates = (templates: ISummonAutomationTemplate[]) =>
     );
   });
 
+/** Column labels: the desktop header and the phone row label read from the same entry. */
+const JOB_COLUMNS = {
+  document: "Document",
+  type: "Type",
+  context: "Context",
+  engine: "Engine",
+  created: "Created At",
+  status: "Status",
+  actions: "Actions",
+} as const;
+
 export default function SummonAutomationPage({ params }: Route.ComponentProps) {
   const { workspaceSlug } = params;
   const router = useRouter();
@@ -396,16 +407,16 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
             {filteredJobs.length > 0 && (
               <>
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[820px] text-left">
+                  <table className="table-stack w-full text-left md:min-w-[820px]">
                     <thead className="border-b border-subtle bg-layer-1/40 text-12 font-semibold text-tertiary">
                       <tr>
-                        <th className="px-4 py-3">Document</th>
-                        <th className="px-3 py-3">Type</th>
-                        <th className="px-3 py-3">Context</th>
-                        <th className="px-3 py-3">Engine</th>
-                        <th className="px-3 py-3">Created At</th>
-                        <th className="px-3 py-3">Status</th>
-                        <th className="px-4 py-3 text-right">Actions</th>
+                        <th className="px-4 py-3">{JOB_COLUMNS.document}</th>
+                        <th className="px-3 py-3">{JOB_COLUMNS.type}</th>
+                        <th className="px-3 py-3">{JOB_COLUMNS.context}</th>
+                        <th className="px-3 py-3">{JOB_COLUMNS.engine}</th>
+                        <th className="px-3 py-3">{JOB_COLUMNS.created}</th>
+                        <th className="px-3 py-3">{JOB_COLUMNS.status}</th>
+                        <th className="px-4 py-3 text-right">{JOB_COLUMNS.actions}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-subtle">
@@ -430,19 +441,27 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                                 </div>
                               </div>
                             </td>
-                            <td className="px-3 py-3">
+                            <td data-label={JOB_COLUMNS.type} className="px-3 py-3">
                               <span className="rounded-md bg-accent-subtle px-2 py-1 text-12 font-medium text-accent-primary">
                                 {templateLabel(job.type)}
                               </span>
                             </td>
-                            <td className="max-w-48 truncate px-3 py-3 text-12 text-secondary">
+                            <td
+                              data-label={JOB_COLUMNS.context}
+                              className="truncate px-3 py-3 text-12 text-secondary md:max-w-48"
+                            >
                               {job.project ? (projectNames.get(job.project) ?? job.project) : "No project"}
                             </td>
-                            <td className="px-3 py-3 text-12 text-secondary">{job.provider || "Pending"}</td>
-                            <td className="px-3 py-3 text-12 whitespace-nowrap text-secondary">
+                            <td data-label={JOB_COLUMNS.engine} className="px-3 py-3 text-12 text-secondary">
+                              {job.provider || "Pending"}
+                            </td>
+                            <td
+                              data-label={JOB_COLUMNS.created}
+                              className="px-3 py-3 text-12 whitespace-nowrap text-secondary"
+                            >
                               {formatDate(job.created_at)}
                             </td>
-                            <td className="px-3 py-3">
+                            <td data-label={JOB_COLUMNS.status} className="px-3 py-3">
                               <span
                                 className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-12 font-medium ${status.className}`}
                               >
@@ -454,7 +473,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                                 {status.label}
                               </span>
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-3 max-md:justify-end max-md:pt-2">
                               <div className="flex justify-end gap-1.5">
                                 <Link
                                   href={automationJobPath(workspaceSlug, job.id)}

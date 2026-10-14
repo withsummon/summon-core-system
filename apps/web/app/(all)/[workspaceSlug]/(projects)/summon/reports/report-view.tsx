@@ -261,7 +261,7 @@ export function ReportView(props: TReportViewProps) {
             {showTab("investment") ? (
               <SummonPanel flush title="Investment Disbursement Progress">
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[680px] text-left text-12">
+                  <table className="table-stack w-full text-left text-12 md:min-w-[680px]">
                     <thead className="border-y border-subtle bg-layer-1/40 text-secondary">
                       <tr>
                         {["Project", "Client", "Total Investment", "Disbursed", "Progress", "Next Disbursement"].map(

@@ -6,21 +6,22 @@
 
 import { forwardRef, memo, useMemo } from "react";
 import { Dialog as BaseDialog } from "@base-ui/react";
+import { BOTTOM_SHEET_CLASSNAME, SHEET_TRANSITION_CLASSNAME } from "../drawer/drawer";
 import { cn } from "../utils/classname";
 
 // enums
 
 export enum EDialogWidth {
-  SM = "sm:max-w-sm",
-  MD = "sm:max-w-md",
-  LG = "sm:max-w-lg",
-  XL = "sm:max-w-xl",
-  XXL = "sm:max-w-2xl",
-  XXXL = "sm:max-w-3xl",
-  XXXXL = "sm:max-w-4xl",
-  VXL = "sm:max-w-5xl",
-  VIXL = "sm:max-w-6xl",
-  VIIXL = "sm:max-w-7xl",
+  SM = "md:max-w-sm",
+  MD = "md:max-w-md",
+  LG = "md:max-w-lg",
+  XL = "md:max-w-xl",
+  XXL = "md:max-w-2xl",
+  XXXL = "md:max-w-3xl",
+  XXXXL = "md:max-w-4xl",
+  VXL = "md:max-w-5xl",
+  VIXL = "md:max-w-6xl",
+  VIIXL = "md:max-w-7xl",
 }
 
 // Types
@@ -44,14 +45,23 @@ export interface DialogTitleProps extends React.ComponentProps<typeof BaseDialog
 const OVERLAY_CLASSNAME = cn(
   "fixed inset-0 z-90 bg-backdrop data-[ending-style]:animate-dialog-backdrop-out data-[open]:animate-dialog-backdrop-in motion-reduce:animate-none"
 );
-const BASE_CLASSNAME =
-  "relative text-left bg-surface-1 rounded-xl shadow-overlay-200 w-[calc(100%-2rem)] max-h-[calc(100dvh-4rem)] overflow-y-auto z-100 border border-subtle data-[open]:animate-dialog-in data-[ending-style]:animate-dialog-out motion-reduce:animate-none";
+/*
+ * A phone gets the drawer's bottom sheet: same surface, same spring in and ease out. From `md` up (where the
+ * tab bar gives way to the sidebar) it is the centered card.
+ */
+const BASE_CLASSNAME = cn(
+  "relative z-100 overflow-y-auto border-subtle bg-surface-1 text-left shadow-overlay-200",
+  BOTTOM_SHEET_CLASSNAME,
+  SHEET_TRANSITION_CLASSNAME,
+  "motion-reduce:transition-none max-md:data-[ending-style]:translate-y-full max-md:data-[starting-style]:translate-y-full",
+  "motion-reduce:animate-none md:max-h-[calc(100dvh-4rem)] md:w-[calc(100%-2rem)] md:rounded-xl md:border md:pb-0 md:data-[ending-style]:animate-dialog-out md:data-[open]:animate-dialog-in"
+);
 
 // Utility functions
 const getPositionClassNames = (position: DialogPosition) =>
-  cn("fixed isolate z-100", {
-    "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2": position === "center",
-    "top-8 left-1/2 -translate-x-1/2": position === "top",
+  cn("fixed inset-x-0 bottom-0 isolate z-100 md:inset-x-auto md:bottom-auto", {
+    "md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2": position === "center",
+    "md:top-8 md:left-1/2 md:-translate-x-1/2": position === "top",
   });
 
 const DialogPortal = memo(function DialogPortal({
