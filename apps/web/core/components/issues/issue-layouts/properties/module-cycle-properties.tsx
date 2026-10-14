@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import type { SyntheticEvent } from "react";
 import { useCallback, useMemo } from "react";
 import { xor } from "lodash-es";
 import { observer } from "mobx-react";
@@ -18,6 +17,7 @@ import { useIssues } from "@/hooks/store/use-issues";
 import { useProject } from "@/hooks/store/use-project";
 import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
 // local imports
+import { PropertySlot } from "./property-slot";
 import { WithDisplayPropertiesHOC } from "./with-display-properties-HOC";
 
 type Props = {
@@ -86,19 +86,12 @@ export const IssueModuleCycleProperties = observer(function IssueModuleCycleProp
     [issue, issueOperations]
   );
 
-  // oxlint-disable-next-line unicorn/consistent-function-scoping
-  const handleEventPropagation = (e: SyntheticEvent<HTMLElement>) => {
-    e.stopPropagation();
-    e.preventDefault();
-  };
-
   return (
     <>
       {/* modules */}
       {projectDetails?.module_view && (
         <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="modules">
-          {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-          <div className="h-5" onFocus={handleEventPropagation} onClick={handleEventPropagation}>
+          <PropertySlot>
             <ModuleDropdown
               buttonContainerClassName="truncate max-w-40"
               projectId={issue.project_id ?? undefined}
@@ -111,15 +104,14 @@ export const IssueModuleCycleProperties = observer(function IssueModuleCycleProp
               showCount
               showTooltip
             />
-          </div>
+          </PropertySlot>
         </WithDisplayPropertiesHOC>
       )}
 
       {/* cycles */}
       {projectDetails?.cycle_view && (
         <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="cycle">
-          {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-          <div className="h-5" onFocus={handleEventPropagation} onClick={handleEventPropagation}>
+          <PropertySlot>
             <CycleDropdown
               buttonContainerClassName="truncate max-w-40"
               projectId={issue.project_id ?? undefined}
@@ -130,7 +122,7 @@ export const IssueModuleCycleProperties = observer(function IssueModuleCycleProp
               renderByDefault={isMobile}
               showTooltip
             />
-          </div>
+          </PropertySlot>
         </WithDisplayPropertiesHOC>
       )}
     </>

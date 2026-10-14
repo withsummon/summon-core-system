@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import type { SyntheticEvent } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // i18n
@@ -26,7 +25,8 @@ import { IssueCountProperties } from "./count-properties";
 import { IssueDateProperties } from "./date-properties";
 import { IssuePropertyLabels } from "./labels";
 import { IssueModuleCycleProperties } from "./module-cycle-properties";
-import { emptySlotClassName, propertySlotClassName } from "./property-slot";
+import { emptySlotClassName } from "./empty-slot";
+import { PropertySlot } from "./property-slot";
 import { WithDisplayPropertiesHOC } from "./with-display-properties-HOC";
 
 export interface IIssueProperties {
@@ -81,19 +81,12 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
       return label ? [label] : [];
     }) || [];
 
-  // oxlint-disable-next-line unicorn/consistent-function-scoping
-  const handleEventPropagation = (e: SyntheticEvent<HTMLElement>) => {
-    e.stopPropagation();
-    e.preventDefault();
-  };
-
   return (
     <div className={className}>
       {/* basic properties */}
       {/* state */}
       <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="state">
-        {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-        <div className="h-5" onFocus={handleEventPropagation} onClick={handleEventPropagation}>
+        <PropertySlot>
           <StateDropdown
             buttonContainerClassName="truncate max-w-40"
             value={issue.state_id}
@@ -104,17 +97,12 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
             renderByDefault={isMobile}
             showTooltip
           />
-        </div>
+        </PropertySlot>
       </WithDisplayPropertiesHOC>
 
       {/* priority */}
       <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="priority">
-        {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-        <div
-          className={propertySlotClassName(activeLayout, !issue?.priority || issue.priority === "none")}
-          onFocus={handleEventPropagation}
-          onClick={handleEventPropagation}
-        >
+        <PropertySlot layout={activeLayout} isEmpty={!issue?.priority || issue.priority === "none"}>
           <PriorityDropdown
             value={issue?.priority}
             onChange={handlePriority}
@@ -125,7 +113,7 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
             renderByDefault={isMobile}
             showTooltip
           />
-        </div>
+        </PropertySlot>
       </WithDisplayPropertiesHOC>
 
       <IssueDateProperties
@@ -139,12 +127,7 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
 
       {/* assignee */}
       <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="assignee">
-        {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-        <div
-          className={propertySlotClassName(activeLayout, !issue.assignee_ids?.length)}
-          onFocus={handleEventPropagation}
-          onClick={handleEventPropagation}
-        >
+        <PropertySlot layout={activeLayout} isEmpty={!issue.assignee_ids?.length}>
           <MemberDropdown
             projectId={issue?.project_id}
             value={issue?.assignee_ids}
@@ -159,7 +142,7 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
             tooltipContent=""
             renderByDefault={isMobile}
           />
-        </div>
+        </PropertySlot>
       </WithDisplayPropertiesHOC>
 
       {!isEpic && (
@@ -174,8 +157,7 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
       {/* estimates */}
       {projectId && areEstimateEnabledByProjectId(projectId?.toString()) && (
         <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="estimate">
-          {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-          <div className="h-5" onFocus={handleEventPropagation} onClick={handleEventPropagation}>
+          <PropertySlot>
             <EstimateDropdown
               value={issue.estimate_point ?? undefined}
               onChange={handleEstimate}
@@ -185,7 +167,7 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
               renderByDefault={isMobile}
               showTooltip
             />
-          </div>
+          </PropertySlot>
         </WithDisplayPropertiesHOC>
       )}
 

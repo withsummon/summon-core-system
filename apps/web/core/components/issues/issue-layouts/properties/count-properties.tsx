@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import type { SyntheticEvent } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { Paperclip } from "lucide-react";
@@ -17,6 +16,7 @@ import { cn, generateWorkItemLink } from "@plane/utils";
 import { useProject } from "@/hooks/store/use-project";
 import { useAppRouter } from "@/hooks/use-app-router";
 // local imports
+import { PropertySlot } from "./property-slot";
 import { WithDisplayPropertiesHOC } from "./with-display-properties-HOC";
 
 const COUNT_TILE_CLASSNAME =
@@ -52,12 +52,6 @@ export const IssueCountProperties = observer(function IssueCountProperties(props
     router.push(`${workItemLink}#sub-issues`);
   };
 
-  // oxlint-disable-next-line unicorn/consistent-function-scoping
-  const handleEventPropagation = (e: SyntheticEvent<HTMLElement>) => {
-    e.stopPropagation();
-    e.preventDefault();
-  };
-
   return (
     <>
       {/* sub-issues */}
@@ -76,9 +70,13 @@ export const IssueCountProperties = observer(function IssueCountProperties(props
             <button
               type="button"
               aria-label={`${subIssueCount} ${t("common.sub_work_items")}`}
-              onFocus={handleEventPropagation}
+              onFocus={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+              }}
               onClick={(e) => {
-                handleEventPropagation(e);
+                e.stopPropagation();
+                e.preventDefault();
                 if (subIssueCount) redirectToIssueDetail();
               }}
               className={cn(COUNT_TILE_CLASSNAME, {
@@ -104,11 +102,10 @@ export const IssueCountProperties = observer(function IssueCountProperties(props
           isMobile={isMobile}
           renderByDefault={false}
         >
-          {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-          <div className={COUNT_TILE_CLASSNAME} onFocus={handleEventPropagation} onClick={handleEventPropagation}>
+          <PropertySlot className={COUNT_TILE_CLASSNAME}>
             <Paperclip className="h-3 w-3 flex-shrink-0" strokeWidth={2} />
             <div className="text-caption-sm-regular">{issue.attachment_count}</div>
-          </div>
+          </PropertySlot>
         </Tooltip>
       </WithDisplayPropertiesHOC>
 
@@ -124,11 +121,10 @@ export const IssueCountProperties = observer(function IssueCountProperties(props
           isMobile={isMobile}
           renderByDefault={false}
         >
-          {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-          <div className={COUNT_TILE_CLASSNAME} onFocus={handleEventPropagation} onClick={handleEventPropagation}>
+          <PropertySlot className={COUNT_TILE_CLASSNAME}>
             <LinkIcon className="h-3 w-3 flex-shrink-0" strokeWidth={2} />
             <div className="text-caption-sm-regular">{issue.link_count}</div>
-          </div>
+          </PropertySlot>
         </Tooltip>
       </WithDisplayPropertiesHOC>
     </>

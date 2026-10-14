@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import type { SyntheticEvent } from "react";
 import { observer } from "mobx-react";
 import { useTranslation } from "@plane/i18n";
 import { DueDatePropertyIcon, StartDatePropertyIcon } from "@plane/propel/icons";
@@ -16,7 +15,7 @@ import { DateRangeDropdown } from "@/components/dropdowns/date-range";
 // hooks
 import { useProjectState } from "@/hooks/store/use-project-state";
 // local imports
-import { propertySlotClassName } from "./property-slot";
+import { PropertySlot } from "./property-slot";
 import { WithDisplayPropertiesHOC } from "./with-display-properties-HOC";
 
 type Props = {
@@ -55,12 +54,6 @@ export const IssueDateProperties = observer(function IssueDateProperties(props: 
   const minDate = getDate(issue.start_date);
   const maxDate = getDate(issue.target_date);
 
-  // oxlint-disable-next-line unicorn/consistent-function-scoping
-  const handleEventPropagation = (e: SyntheticEvent<HTMLElement>) => {
-    e.stopPropagation();
-    e.preventDefault();
-  };
-
   return (
     <>
       {/* merged dates */}
@@ -69,12 +62,7 @@ export const IssueDateProperties = observer(function IssueDateProperties(props: 
         displayPropertyKey={["start_date", "due_date"]}
         shouldRenderProperty={() => isDateRangeEnabled}
       >
-        {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-        <div
-          className={propertySlotClassName(activeLayout, !issue.start_date && !issue.target_date)}
-          onFocus={handleEventPropagation}
-          onClick={handleEventPropagation}
-        >
+        <PropertySlot layout={activeLayout} isEmpty={!issue.start_date && !issue.target_date}>
           <DateRangeDropdown
             value={{
               from: minDate || undefined,
@@ -98,7 +86,7 @@ export const IssueDateProperties = observer(function IssueDateProperties(props: 
             renderPlaceholder={false}
             customTooltipHeading="Date Range"
           />
-        </div>
+        </PropertySlot>
       </WithDisplayPropertiesHOC>
 
       {/* start date */}
@@ -107,12 +95,7 @@ export const IssueDateProperties = observer(function IssueDateProperties(props: 
         displayPropertyKey="start_date"
         shouldRenderProperty={() => !isDateRangeEnabled}
       >
-        {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-        <div
-          className={propertySlotClassName(activeLayout, !issue.start_date)}
-          onFocus={handleEventPropagation}
-          onClick={handleEventPropagation}
-        >
+        <PropertySlot layout={activeLayout} isEmpty={!issue.start_date}>
           <DateDropdown
             value={issue.start_date ?? null}
             onChange={handleStartDate}
@@ -126,7 +109,7 @@ export const IssueDateProperties = observer(function IssueDateProperties(props: 
             showTooltip
             labelClassName="text-caption-sm-regular"
           />
-        </div>
+        </PropertySlot>
       </WithDisplayPropertiesHOC>
 
       {/* target/due date */}
@@ -135,12 +118,7 @@ export const IssueDateProperties = observer(function IssueDateProperties(props: 
         displayPropertyKey="due_date"
         shouldRenderProperty={() => !isDateRangeEnabled}
       >
-        {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-        <div
-          className={propertySlotClassName(activeLayout, !issue.target_date)}
-          onFocus={handleEventPropagation}
-          onClick={handleEventPropagation}
-        >
+        <PropertySlot layout={activeLayout} isEmpty={!issue.target_date}>
           <DateDropdown
             value={issue?.target_date ?? null}
             onChange={handleTargetDate}
@@ -156,7 +134,7 @@ export const IssueDateProperties = observer(function IssueDateProperties(props: 
             showTooltip
             labelClassName="text-caption-sm-regular"
           />
-        </div>
+        </PropertySlot>
       </WithDisplayPropertiesHOC>
     </>
   );
