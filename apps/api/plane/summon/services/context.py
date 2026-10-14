@@ -71,7 +71,8 @@ def _project_work_entries(workspace, project, limit=15):
     open_issues = issues.exclude(state__group__in=["completed", "cancelled"]).select_related("state")
     overdue = issue_progress(issues)["overdue"]
     summary = ", ".join(f"{group}: {total}" for group, total in sorted(groups.items()) if group) or "none"
-    entries = [(f"[Project work items]\nProject: {project.name}\nBy state: {summary}\nOverdue open items: {overdue}", None)]
+    header = f"[Project work items]\nProject: {project.name}\nBy state: {summary}\nOverdue open items: {overdue}"
+    entries = [(header, None)]
     ordered = sorted(
         open_issues.order_by("-updated_at")[:100],
         key=lambda issue: (not (issue.target_date and issue.target_date < today), issue.target_date or today),
