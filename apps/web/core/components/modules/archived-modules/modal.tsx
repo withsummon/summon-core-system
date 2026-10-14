@@ -7,8 +7,7 @@
 import { useState } from "react";
 // ui
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-// components
-import { ArchiveConfirmModal } from "@/components/common/modal/archive-confirm-modal";
+import { AlertModalCore, EModalWidth } from "@plane/ui";
 // hooks
 import { useModule } from "@/hooks/store/use-module";
 import { useAppRouter } from "@/hooks/use-app-router";
@@ -62,13 +61,16 @@ export function ArchiveModuleModal(props: Props) {
   };
 
   return (
-    <ArchiveConfirmModal
-      entityType="module"
-      entityName={moduleName}
+    <AlertModalCore
+      variant="primary"
       isOpen={isOpen}
-      isArchiving={isArchiving}
-      onClose={onClose}
-      onArchive={handleArchiveModule}
+      handleClose={onClose}
+      handleSubmit={handleArchiveModule}
+      isSubmitting={isArchiving}
+      width={EModalWidth.LG}
+      title={`Archive module ${moduleName ?? ""}`}
+      content="Are you sure you want to archive the module? All your archives can be restored later."
+      primaryButtonText={{ loading: "Archiving", default: "Archive" }}
     />
   );
 }

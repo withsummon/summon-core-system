@@ -7,8 +7,7 @@
 import { useState } from "react";
 // ui
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-// components
-import { ArchiveConfirmModal } from "@/components/common/modal/archive-confirm-modal";
+import { AlertModalCore, EModalWidth } from "@plane/ui";
 // hooks
 import { useCycle } from "@/hooks/store/use-cycle";
 import { useAppRouter } from "@/hooks/use-app-router";
@@ -62,13 +61,16 @@ export function ArchiveCycleModal(props: Props) {
   };
 
   return (
-    <ArchiveConfirmModal
-      entityType="cycle"
-      entityName={cycleName}
+    <AlertModalCore
+      variant="primary"
       isOpen={isOpen}
-      isArchiving={isArchiving}
-      onClose={onClose}
-      onArchive={handleArchiveCycle}
+      handleClose={onClose}
+      handleSubmit={handleArchiveCycle}
+      isSubmitting={isArchiving}
+      width={EModalWidth.LG}
+      title={`Archive cycle ${cycleName ?? ""}`}
+      content="Are you sure you want to archive the cycle? All your archives can be restored later."
+      primaryButtonText={{ loading: "Archiving", default: "Archive" }}
     />
   );
 }
