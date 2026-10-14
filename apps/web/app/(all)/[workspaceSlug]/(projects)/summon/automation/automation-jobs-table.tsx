@@ -53,9 +53,15 @@ function AutomationJobRow(props: { job: ISummonAutomationJob; workspaceSlug: str
           {templateLabel(job.type)}
         </span>
       </td>
-      <td data-label={JOB_COLUMNS.context} className="max-w-48 truncate px-3 py-3 text-12 text-secondary">{props.projectName}</td>
-      <td data-label={JOB_COLUMNS.engine} className="px-3 py-3 text-12 text-secondary">{job.provider || "Pending"}</td>
-      <td data-label={JOB_COLUMNS.created} className="px-3 py-3 text-12 whitespace-nowrap text-secondary">{formatSummonDate(job.created_at, "")}</td>
+      <td data-label={JOB_COLUMNS.context} className="max-w-48 truncate px-3 py-3 text-12 text-secondary">
+        {props.projectName}
+      </td>
+      <td data-label={JOB_COLUMNS.engine} className="px-3 py-3 text-12 text-secondary">
+        {job.provider || "Pending"}
+      </td>
+      <td data-label={JOB_COLUMNS.created} className="px-3 py-3 text-12 whitespace-nowrap text-secondary">
+        {formatSummonDate(job.created_at, "")}
+      </td>
       <td data-label={JOB_COLUMNS.status} className="px-3 py-3">
         <span
           className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-12 font-medium ${status.className}`}

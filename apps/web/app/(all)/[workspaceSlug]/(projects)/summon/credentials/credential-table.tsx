@@ -116,7 +116,9 @@ export function CredentialTable(props: {
                       {capitalizeFirstLetter(textMetadata(credential, "environment"))}
                     </Badge>
                   </td>
-                  <td data-label={CREDENTIAL_COLUMNS.lastUsed} className="px-3 py-3 text-secondary">{formatSummonDate(credential.updated_at, "Never")}</td>
+                  <td data-label={CREDENTIAL_COLUMNS.lastUsed} className="px-3 py-3 text-secondary">
+                    {formatSummonDate(credential.updated_at, "Never")}
+                  </td>
                   <td data-label={CREDENTIAL_COLUMNS.status} className="px-3 py-3">
                     <StatusBadge status={credential.status} />
                   </td>

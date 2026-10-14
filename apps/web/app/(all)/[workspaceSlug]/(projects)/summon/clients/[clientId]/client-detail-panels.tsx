@@ -100,9 +100,15 @@ export function ClientOpportunitiesPanel(props: {
                   <td data-label={DEAL_COLUMNS.stage} className="px-4 py-3">
                     <StatusBadge status={opportunity.stage} />
                   </td>
-                  <td data-label={DEAL_COLUMNS.owner} className="px-4 py-3 text-primary">{opportunityOwner?.display_name || "Not assigned"}</td>
-                  <td data-label={DEAL_COLUMNS.value} className="px-4 py-3 text-primary tabular-nums">{money(opportunity.value) || "—"}</td>
-                  <td data-label={DEAL_COLUMNS.closeDate} className="px-4 py-3 text-primary">{formatSummonDate(opportunity.expected_close_date)}</td>
+                  <td data-label={DEAL_COLUMNS.owner} className="px-4 py-3 text-primary">
+                    {opportunityOwner?.display_name || "Not assigned"}
+                  </td>
+                  <td data-label={DEAL_COLUMNS.value} className="px-4 py-3 text-primary tabular-nums">
+                    {money(opportunity.value) || "—"}
+                  </td>
+                  <td data-label={DEAL_COLUMNS.closeDate} className="px-4 py-3 text-primary">
+                    {formatSummonDate(opportunity.expected_close_date)}
+                  </td>
                   <td data-label={DEAL_COLUMNS.progress} className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-accent-primary">{opportunity.probability}%</span>

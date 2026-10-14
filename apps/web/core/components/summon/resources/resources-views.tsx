@@ -95,13 +95,19 @@ export function ResourcesTable({ resources, projectsList, onCopyUrl, onDelete }:
                       </span>
                     </a>
                   </td>
-                  <td data-label={RESOURCE_COLUMNS.project} className="truncate px-3.5 py-2.5 text-secondary md:max-w-36">
+                  <td
+                    data-label={RESOURCE_COLUMNS.project}
+                    className="truncate px-3.5 py-2.5 text-secondary md:max-w-36"
+                  >
                     {projectName}
                   </td>
                   <td data-label={RESOURCE_COLUMNS.type} className="px-3.5 py-2.5">
                     <ResourceBadge category={item.category} />
                   </td>
-                  <td data-label={RESOURCE_COLUMNS.lastUpdated} className="px-3.5 py-2.5 whitespace-nowrap text-secondary">
+                  <td
+                    data-label={RESOURCE_COLUMNS.lastUpdated}
+                    className="px-3.5 py-2.5 whitespace-nowrap text-secondary"
+                  >
                     {updatedLabels.get(item.id)}
                   </td>
                   <td data-label={RESOURCE_COLUMNS.updatedBy} className="px-3.5 py-2.5">
