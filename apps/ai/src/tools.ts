@@ -12,17 +12,62 @@ import type { Caller, DjangoShape, OperationResult } from "./django";
 /** Tool output is capped so one large list can't fill the context window (full data stays in Summon). */
 export const MAX_TOOL_OUTPUT_CHARS = 50_000;
 
+/** List tools answer one page at a time, so a large workspace can't flood the context window. */
+export const LIST_PAGE_SIZE = 50;
+const MAX_LIST_PAGE_SIZE = 200;
+
 export type ToolOutput =
   | { readonly ok: true; readonly data: unknown }
   | { readonly ok: true; readonly truncated: true; readonly preview: string }
   | { readonly ok: false; readonly status: number; readonly error: unknown };
 
-export const toToolOutput = (result: OperationResult): ToolOutput => {
-  if (result.status >= 400) return { ok: false, status: result.status, error: result.body };
-  const text = JSON.stringify(result.body ?? null);
+/** The input schema a tool advertises: list tools also take `limit` and `offset`. */
+export const toolInputSchema = (operation: SummonOperation): SummonOperation["inputSchema"] => {
+  if (!operation.list) return operation.inputSchema;
+  const properties = operation.inputSchema.properties as Readonly<Record<string, unknown>>;
+  return {
+    ...operation.inputSchema,
+    properties: {
+      ...properties,
+      limit: {
+        type: "integer",
+        minimum: 1,
+        maximum: MAX_LIST_PAGE_SIZE,
+        description: `How many to return (default ${LIST_PAGE_SIZE}).`,
+      },
+      offset: { type: "integer", minimum: 0, description: "How many to skip: the previous page's `next_offset`." },
+    },
+  };
+};
+
+/**
+ * Django's answer as a tool result. A list comes back as one page with `total` and `next_offset`. An error
+ * body that isn't DRF's JSON (an HTML error page) is replaced by a code, so the model never reads raw pages.
+ */
+export const toToolOutput = (
+  result: OperationResult,
+  operation?: SummonOperation,
+  input: Readonly<Record<string, unknown>> = {}
+): ToolOutput => {
+  if (result.status >= 400) {
+    const error =
+      typeof result.body === "object" && result.body !== null
+        ? result.body
+        : { error_code: result.status >= 500 ? "summon_error" : "invalid_request" };
+    return { ok: false, status: result.status, error };
+  }
+  const data = operation?.list && Array.isArray(result.body) ? page(result.body, input) : result.body;
+  const text = JSON.stringify(data ?? null);
   return text.length > MAX_TOOL_OUTPUT_CHARS
     ? { ok: true, truncated: true, preview: text.slice(0, MAX_TOOL_OUTPUT_CHARS) }
-    : { ok: true, data: result.body };
+    : { ok: true, data };
+};
+
+const page = (items: ReadonlyArray<unknown>, input: Readonly<Record<string, unknown>>) => {
+  const limit = Math.min(Math.max(Number(input.limit) || LIST_PAGE_SIZE, 1), MAX_LIST_PAGE_SIZE);
+  const offset = Math.max(Number(input.offset) || 0, 0);
+  const end = offset + limit;
+  return { results: items.slice(offset, end), total: items.length, next_offset: end < items.length ? end : null };
 };
 
 const unavailable: ToolOutput = { ok: false, status: 503, error: { error_code: "summon_unavailable" } };
@@ -48,11 +93,11 @@ export const assistantTools = (deps: ToolDeps): ToolSet => {
   for (const [name, operation] of readOperations) {
     tools[name] = tool({
       description: operation.description,
-      inputSchema: jsonSchema<Record<string, unknown>>(operation.inputSchema as JSONSchema7),
+      inputSchema: jsonSchema<Record<string, unknown>>(toolInputSchema(operation) as JSONSchema7),
       execute: (input, { abortSignal }) =>
         deps.run(
           deps.django.call(deps.caller, deps.workspaceSlug, operation, input).pipe(
-            Effect.map(toToolOutput),
+            Effect.map((result) => toToolOutput(result, operation, input)),
             Effect.catchTag("DjangoUnavailable", () => Effect.succeed(unavailable))
           ),
           abortSignal

@@ -86,7 +86,7 @@ await Promise.all(
 );
 await call("project_profile_post", { project_id: project }, 409);
 await call("project_profile_patch", { project_id: project, health: "on_track" });
-const conversation = (await call("assistant_conversation_list"))[0];
+const conversation = (await call("assistant_conversation_list")).results[0];
 if (conversation) {
   await call("assistant_conversation_get", { pk: conversation.id });
   await call("assistant_message_list", { conversation_id: conversation.id });
@@ -156,7 +156,7 @@ if (pageId) {
 const item = await call("plane_workitem", { action: "create", project_id: project, name: `Smoke ${tag}` });
 await call("meeting_work_item_create", { meeting_id: meeting.id, issue: item.id });
 const links = await call("meeting_work_item_list", { meeting_id: meeting.id });
-await call("meeting_work_item_delete", { meeting_id: meeting.id, pk: links[0]?.id });
+await call("meeting_work_item_delete", { meeting_id: meeting.id, pk: links.results[0]?.id });
 await call("meeting_delete", { pk: meeting.id });
 await call("plane_workitem", { action: "list", project_id: project });
 await call("plane_workitem", { action: "search", query: "Smoke" });

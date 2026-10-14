@@ -23,6 +23,37 @@ export interface PlaneTool {
 export const planeTools: ReadonlyArray<PlaneTool> = snapshot.tools as ReadonlyArray<PlaneTool>;
 export const PLANE_MCP_IMAGE = snapshot.server;
 
+type ActionProperty = { readonly enum?: ReadonlyArray<string> };
+
+/** The values of a Plane tool's `action` input; each Plane tool bundles several operations. */
+export const planeActions = (tool: PlaneTool): ReadonlyArray<string> =>
+  (tool.inputSchema.properties as Readonly<Record<string, ActionProperty>> | undefined)?.action?.enum ?? [];
+
+/** Plane actions that only read, by Plane's naming (`list_workitems`, `retrieve_role`, `download_url`, …). */
+export const isReadAction = (action: string): boolean =>
+  /^(list|retrieve|search|read|me$|download_url$|worklog_summary$)/.test(action);
+
+/** The tool without some of its actions: gone from the `action` enum and from the description's action list. */
+export const withoutActions = <T extends PlaneTool>(tool: T, actions: ReadonlyArray<string>): T => {
+  if (actions.length === 0) return tool;
+  const properties = tool.inputSchema.properties as Readonly<Record<string, ActionProperty>>;
+  const description = tool.description
+    ?.split("\n")
+    .filter((line) => !actions.some((name) => line.startsWith(`  ${name} (`)))
+    .join("\n");
+  return {
+    ...tool,
+    ...(description === undefined ? {} : { description }),
+    inputSchema: {
+      ...tool.inputSchema,
+      properties: {
+        ...properties,
+        action: { ...properties.action, enum: planeActions(tool).filter((name) => !actions.includes(name)) },
+      },
+    },
+  };
+};
+
 const JsonRpcResponse = Schema.Struct({
   result: Schema.optionalKey(Schema.Json),
   error: Schema.optionalKey(Schema.Struct({ code: Schema.Number, message: Schema.String })),

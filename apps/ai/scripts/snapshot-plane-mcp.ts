@@ -11,7 +11,7 @@
  *     bun scripts/snapshot-plane-mcp.ts makeplane/plane-mcp-server:v0.3.1
  */
 import path from "node:path";
-import { parseRpcBody } from "../src/plane-mcp";
+import { parseRpcBody, type PlaneTool, withoutActions } from "../src/plane-mcp";
 
 const [image] = process.argv.slice(2);
 const url = process.env.PLANE_MCP_URL;
@@ -47,30 +47,23 @@ const UNSUPPORTED_ACTIONS: Readonly<Record<string, ReadonlyArray<string>>> = {
 };
 const UNSUPPORTED_INPUTS = ["pql"];
 
-interface Tool {
-  name: string;
-  description?: string;
-  inputSchema: { properties?: Record<string, { enum?: Array<string> }>; required?: Array<string> };
-}
-
 /** One tool without what this Plane can't serve: unsupported actions (enum and description lines) and inputs. */
-const supported = (tool: Tool): Tool => {
+const supported = (tool: PlaneTool): PlaneTool => {
   const actions = UNSUPPORTED_ACTIONS[tool.name] ?? [];
-  const removed = [...actions, ...UNSUPPORTED_INPUTS.filter((name) => name in (tool.inputSchema.properties ?? {}))];
-  const properties = { ...tool.inputSchema.properties };
-  for (const name of UNSUPPORTED_INPUTS) delete properties[name];
-  if (properties.action?.enum) {
-    properties.action = {
-      ...properties.action,
-      enum: properties.action.enum.filter((name) => !actions.includes(name)),
-    };
-  }
-  const lines = tool.description?.split("\n").filter((line) => !actions.some((name) => line.startsWith(`  ${name} (`)));
-  if (lines && removed.length) lines.push("", `Not available on this Plane: ${removed.join(", ")}.`);
+  const trimmed = withoutActions(tool, actions);
+  const properties = trimmed.inputSchema.properties as Readonly<Record<string, unknown>>;
+  const inputs = UNSUPPORTED_INPUTS.filter((name) => name in properties);
+  const removed = [...actions, ...inputs];
+  if (removed.length === 0) return trimmed;
   return {
-    ...tool,
-    ...(lines ? { description: lines.join("\n") } : {}),
-    inputSchema: { ...tool.inputSchema, properties },
+    ...trimmed,
+    ...(trimmed.description
+      ? { description: `${trimmed.description}\n\nNot available on this Plane: ${removed.join(", ")}.` }
+      : {}),
+    inputSchema: {
+      ...trimmed.inputSchema,
+      properties: Object.fromEntries(Object.entries(properties).filter(([name]) => !inputs.includes(name))),
+    },
   };
 };
 
@@ -103,7 +96,7 @@ await rpc({
 });
 await rpc({ method: "notifications/initialized" });
 
-const tools: Array<Tool> = [];
+const tools: Array<PlaneTool> = [];
 let cursor: string | undefined;
 do {
   // Each page's cursor comes from the previous one.

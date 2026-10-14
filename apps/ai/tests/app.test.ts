@@ -1,9 +1,10 @@
 import { APICallError } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { operations } from "@plane/summon-contract";
 import { chatPath } from "@plane/summon-contract/chat";
 import { INSTRUCTIONS } from "../src/chat";
+import { parseRpcBody } from "../src/plane-mcp";
 import {
   AI_TOKEN,
   ASSISTANT_MESSAGE_ID,
@@ -40,17 +41,9 @@ const chat = (
 /** The `complete/` call, which the route makes before it closes the stream. */
 const completeCall = (current: TestApp) => current.seen.find((request) => request.path.endsWith("/complete/"));
 
-/** The JSON-RPC result of an MCP response (plain JSON or one SSE event). */
-const rpcResult = async (response: Response) => {
-  const text = await response.text();
-  const json = text.trim().startsWith("{")
-    ? text
-    : text
-        .split("\n")
-        .find((line) => line.startsWith("data:"))!
-        .slice(5);
-  return (JSON.parse(json) as { result: Record<string, unknown> }).result;
-};
+/** The JSON-RPC result of an MCP response, past any notifications the stream sends first. */
+const rpcResult = async (response: Response) =>
+  (parseRpcBody(await response.text()) as { result: Record<string, unknown> }).result;
 
 describe("health", () => {
   it("reports the build", async () => {
@@ -298,20 +291,33 @@ describe("MCP", () => {
     app = makeApp({
       django: (request) =>
         request.path === `/api/summon/workspaces/${SLUG}/clients/`
-          ? { status: 200, body: [{ id: "c1", name: "Acme" }] }
+          ? { status: 200, body: ["Acme", "Globex", "Initech"].map((name, index) => ({ id: `c${index}`, name })) }
           : defaultDjango(request),
     });
     const headers = await session(app);
     const called = await rpcResult(
       await rpc(
         app,
-        { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "client_list", arguments: {} } },
+        { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "client_list", arguments: { limit: 2 } } },
         headers
       )
     );
 
+    // A list answers one page.
     expect(called.isError).toBe(false);
-    expect(called.content).toEqual([{ type: "text", text: JSON.stringify([{ id: "c1", name: "Acme" }]) }]);
+    expect(called.content).toEqual([
+      {
+        type: "text",
+        text: JSON.stringify({
+          results: [
+            { id: "c0", name: "Acme" },
+            { id: "c1", name: "Globex" },
+          ],
+          total: 3,
+          next_offset: 2,
+        }),
+      },
+    ]);
     const call = app.seen.find((request) => request.path === `/api/summon/workspaces/${SLUG}/clients/`);
     expect(call?.headers["x-api-key"]).toBe("plane_api_good");
     expect(call?.headers["x-summon-ai-token"]).toBeUndefined();
@@ -401,24 +407,104 @@ describe("MCP", () => {
     expect(response.status).toBe(200);
   });
 
-  it("serves the 2026-07-28 protocol without a handshake", async () => {
-    const current = makeApp();
-    app = current;
-    const meta = {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": {},
-      "io.modelcontextprotocol/clientInfo": { name: "test", version: "1" },
-    };
-    const call = (method: string, params: Record<string, unknown>, name?: string) =>
-      rpc(
-        current,
-        { jsonrpc: "2.0", id: 1, method, params: { ...params, _meta: meta } },
-        { "mcp-protocol-version": "2026-07-28", "mcp-method": method, ...(name ? { "mcp-name": name } : {}) }
-      );
+  /** A 2026-07-28 request: no handshake, version and capabilities travel with each request. */
+  const stateless = (current: TestApp, method: string, params: Record<string, unknown>, path = "/ai/mcp") =>
+    current
+      .fetch(path, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json, text/event-stream",
+          "x-api-key": "plane_api_good",
+          "x-workspace-slug": SLUG,
+          "mcp-protocol-version": "2026-07-28",
+          "mcp-method": method,
+          ...(typeof params.name === "string" ? { "mcp-name": params.name } : {}),
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method,
+          params: {
+            ...params,
+            _meta: {
+              "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+              "io.modelcontextprotocol/clientCapabilities": {},
+              "io.modelcontextprotocol/clientInfo": { name: "test", version: "1" },
+            },
+          },
+        }),
+      })
+      .then(rpcResult);
 
-    const discovered = await rpcResult(await call("server/discover", {}));
+  it("serves the 2026-07-28 protocol without a handshake", async () => {
+    app = makeApp();
+    const discovered = await stateless(app, "server/discover", {});
     expect(discovered.supportedVersions).toContain("2026-07-28");
-    const result = await rpcResult(await call("tools/call", { name: "ai_status", arguments: {} }, "ai_status"));
+    const result = await stateless(app, "tools/call", { name: "ai_status", arguments: {} });
     expect(result.content).toBeDefined();
+  });
+
+  type ListedTool = {
+    name: string;
+    title?: string;
+    annotations?: { readOnlyHint?: boolean };
+    inputSchema: { properties?: { action?: { enum?: Array<string> } } };
+  };
+
+  it("serves one toolset, or only reads, on their own endpoints", async () => {
+    const plane = vi.fn(() => ({ status: 500 }));
+    app = makeApp({ django: (request) => (request.path === "/mcp" ? plane() : defaultDjango(request)) });
+    const list = async (path: string) =>
+      ((await stateless(app!, "tools/list", {}, path)).tools as Array<ListedTool>).map((tool) => tool);
+
+    const readOnly = await list("/ai/mcp/readonly");
+    expect(readOnly.every((tool) => tool.annotations?.readOnlyHint)).toBe(true);
+    expect(readOnly.map((tool) => tool.name)).toContain("client_list");
+    expect(readOnly.map((tool) => tool.name)).not.toContain("client_create");
+    expect(readOnly.find((tool) => tool.name === "plane_label")?.inputSchema.properties?.action?.enum).toEqual([
+      "list",
+      "retrieve",
+    ]);
+    // A write action is refused here even if a client sends it anyway.
+    const refused = await stateless(
+      app,
+      "tools/call",
+      { name: "plane_label", arguments: { action: "delete", project_id: "p", label_id: "l" } },
+      "/ai/mcp/readonly"
+    );
+    expect(refused.isError).toBe(true);
+    expect(plane).not.toHaveBeenCalled();
+
+    const commercial = (await list("/ai/mcp/x/commercial")).map((tool) => tool.name);
+    expect(commercial).toContain("client_create");
+    expect(commercial.some((name) => name.startsWith("meeting_") || name.startsWith("plane_"))).toBe(false);
+    expect((await list("/ai/mcp/x/plane/readonly")).every((tool) => tool.name.startsWith("plane_"))).toBe(true);
+    expect((await list("/ai/mcp")).find((tool) => tool.name === "client_list")?.title).toBe("List clients");
+  });
+
+  it("reports a Plane failure by its status, without Plane's text", async () => {
+    app = makeApp({
+      django: (request) =>
+        request.path === "/mcp"
+          ? {
+              status: 200,
+              body: {
+                jsonrpc: "2.0",
+                id: 1,
+                // Plane MCP reports some failures as plain text without `isError`.
+                result: { content: [{ type: "text", text: "Error calling tool 'project': HTTP 404 <raw body>" }] },
+              },
+            }
+          : defaultDjango(request),
+    });
+    const result = await stateless(app, "tools/call", { name: "plane_project", arguments: { action: "retrieve" } });
+    expect(result.isError).toBe(true);
+    expect(result.content).toEqual([
+      {
+        type: "text",
+        text: JSON.stringify({ ok: false, status: 404, message: "Not found, or not available on this Plane." }),
+      },
+    ]);
   });
 });
