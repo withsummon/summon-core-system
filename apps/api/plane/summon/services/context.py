@@ -11,6 +11,7 @@ from django.utils import timezone
 from plane.db.models import Issue, Project
 from plane.summon.models import Client, Meeting
 from plane.summon.services.commercial import accessible_pages
+from plane.summon.services.overview import issue_progress
 from plane.summon.services.page_document import summon_document_metadata
 from plane.summon.services.reports import visible_project_ids
 
@@ -68,7 +69,7 @@ def _project_work_entries(workspace, project, limit=15):
     groups = {row["state__group"]: row["total"] for row in issues.values("state__group").annotate(total=Count("id"))}
     today = timezone.now().date()
     open_issues = issues.exclude(state__group__in=["completed", "cancelled"]).select_related("state")
-    overdue = open_issues.filter(target_date__lt=today).count()
+    overdue = issue_progress(issues)["overdue"]
     summary = ", ".join(f"{group}: {total}" for group, total in sorted(groups.items()) if group) or "none"
     entries = [(f"[Project work items]\nProject: {project.name}\nBy state: {summary}\nOverdue open items: {overdue}", None)]
     ordered = sorted(
