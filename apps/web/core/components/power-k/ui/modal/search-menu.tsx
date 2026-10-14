@@ -4,11 +4,10 @@
  * See the LICENSE file for details.
  */
 
-import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
+import useSWR from "swr";
 // plane imports
 import { WORKSPACE_DEFAULT_SEARCH_RESULT } from "@plane/constants";
-import type { IWorkspaceSearchResults } from "@plane/types";
 import { cn } from "@plane/utils";
 // hooks
 import { usePowerK } from "@/hooks/store/use-power-k";
@@ -16,10 +15,15 @@ import useDebounce from "@/hooks/use-debounce";
 import { WorkspaceService } from "@/services/workspace.service";
 // local imports
 import type { TPowerKContext, TPowerKPageType } from "../../core/types";
+import { narrowSearchResults } from "./narrow-search-results";
+import type { TSearchResponse } from "./narrow-search-results";
 import { PowerKModalNoSearchResultsCommand } from "./no-results-command";
 import { PowerKModalSearchResults } from "./search-results";
 // services init
 const workspaceService = new WorkspaceService();
+
+// Just long enough to skip requests mid-word; the server answers in tens of milliseconds.
+const SEARCH_DEBOUNCE_MS = 100;
 
 type Props = {
   activePage: TPowerKPageType | null;
@@ -32,46 +36,31 @@ type Props = {
 
 export function PowerKModalSearchMenu(props: Props) {
   const { activePage, context, isWorkspaceLevel, searchTerm, updateSearchTerm, handleSearchMenuClose } = props;
-  // states
-  const [resultsCount, setResultsCount] = useState(0);
-  const [isSearching, setIsSearching] = useState(false);
-  const [results, setResults] = useState<IWorkspaceSearchResults>(WORKSPACE_DEFAULT_SEARCH_RESULT);
-  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+  const term = searchTerm.trim();
+  const debouncedTerm = useDebounce(term, SEARCH_DEBOUNCE_MS);
   // navigation
   const { workspaceSlug, projectId } = useParams();
   // store hooks
   const { togglePowerKModal } = usePowerK();
+  // Keyed by term, so a late response can never overwrite a newer one and revisited terms are instant.
+  const { data, isValidating } = useSWR(
+    !activePage && workspaceSlug && debouncedTerm
+      ? ["power-k-search", workspaceSlug.toString(), projectId?.toString(), isWorkspaceLevel, debouncedTerm]
+      : null,
+    async ([, slug, project, workspaceLevel, search]): Promise<TSearchResponse> => ({
+      term: search,
+      results: await workspaceService.searchWorkspace(slug, {
+        ...(project ? { project_id: project } : {}),
+        search,
+        workspace_search: !project ? true : workspaceLevel,
+      }),
+    }),
+    { keepPreviousData: true, revalidateOnFocus: false, revalidateIfStale: false, shouldRetryOnError: false }
+  );
 
-  useEffect(() => {
-    if (activePage || !workspaceSlug) return;
-    setIsSearching(true);
-
-    if (debouncedSearchTerm) {
-      workspaceService
-        .searchWorkspace(workspaceSlug.toString(), {
-          ...(projectId ? { project_id: projectId.toString() } : {}),
-          search: debouncedSearchTerm,
-          workspace_search: !projectId ? true : isWorkspaceLevel,
-        })
-        // oxlint-disable-next-line no-shadow oxlint-disable-next-line promise/always-return
-        .then((results) => {
-          setResults(results);
-          const count = Object.keys(results.results).reduce(
-            (accumulator, key) => results.results[key as keyof typeof results.results]?.length + accumulator,
-            0
-          );
-          setResultsCount(count);
-        })
-        .catch(() => {
-          setResults(WORKSPACE_DEFAULT_SEARCH_RESULT);
-          setResultsCount(0);
-        })
-        .finally(() => setIsSearching(false));
-    } else {
-      setResults(WORKSPACE_DEFAULT_SEARCH_RESULT);
-      setIsSearching(false);
-    }
-  }, [debouncedSearchTerm, isWorkspaceLevel, projectId, workspaceSlug, activePage]);
+  const results = data && term ? narrowSearchResults(data, term) : WORKSPACE_DEFAULT_SEARCH_RESULT;
+  const resultsCount = Object.values(results.results).reduce((count, section) => count + section.length, 0);
+  const isSettled = !isValidating && data?.term === term;
 
   if (activePage) return null;
 
@@ -86,7 +75,7 @@ export function PowerKModalSearchMenu(props: Props) {
         <div className="mt-4 flex items-center justify-between gap-2 px-4">
           <h5
             className={cn("text-11 text-primary", {
-              "animate-pulse": isSearching,
+              "animate-pulse": !isSettled,
             })}
           >
             Search results for{" "}
@@ -101,7 +90,7 @@ export function PowerKModalSearchMenu(props: Props) {
       )}
 
       {/* Show empty state only when not loading and no results */}
-      {!isSearching && resultsCount === 0 && searchTerm.trim() !== "" && debouncedSearchTerm.trim() !== "" && (
+      {isSettled && resultsCount === 0 && (
         <PowerKModalNoSearchResultsCommand
           context={context}
           searchTerm={searchTerm}

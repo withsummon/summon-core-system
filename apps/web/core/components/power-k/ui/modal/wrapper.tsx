@@ -15,6 +15,7 @@ import type { TPowerKCommandConfig, TPowerKContext } from "../../core/types";
 import type { TPowerKCommandsListProps } from "./commands-list";
 import { PowerKModalFooter } from "./footer";
 import { PowerKModalHeader } from "./header";
+import { POWER_K_SEARCH_RESULT_VALUE_PREFIX } from "./search-results";
 
 type Props = {
   commandsListComponent: React.FC<TPowerKCommandsListProps>;
@@ -86,6 +87,24 @@ export const ProjectsAppPowerKModalWrapper = observer(function ProjectsAppPowerK
         return;
       }
 
+      // Tab / Shift+Tab in the search field step through the list like ArrowDown / ArrowUp. Re-dispatching the
+      // arrow key lets cmdk's own navigation (looping, disabled items, scroll into view) handle the move.
+      if (
+        e.key === "Tab" &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !e.nativeEvent.isComposing &&
+        e.target instanceof HTMLElement &&
+        e.target.matches("[cmdk-input]")
+      ) {
+        e.preventDefault();
+        e.target.dispatchEvent(
+          new KeyboardEvent("keydown", { key: e.shiftKey ? "ArrowUp" : "ArrowDown", bubbles: true, cancelable: true })
+        );
+        return;
+      }
+
       // Backspace clears context or goes back from page
       if (e.key === "Backspace" && !searchTerm) {
         e.preventDefault();
@@ -123,10 +142,15 @@ export const ProjectsAppPowerKModalWrapper = observer(function ProjectsAppPowerK
         if (!open) onClose();
       }}
     >
-      <Dialog.Panel aria-label="Search commands" className="flex flex-col divide-y divide-subtle-1">
+      {/* Top-anchored so the search field stays put while the results below it grow and shrink. */}
+      <Dialog.Panel
+        aria-label="Search commands"
+        position="top"
+        className="flex flex-col divide-y divide-subtle-1 md:top-[15vh]"
+      >
         <Command
           filter={(i18nValue: string, search: string) => {
-            if (i18nValue === "no-results") return 1;
+            if (i18nValue === "no-results" || i18nValue.startsWith(POWER_K_SEARCH_RESULT_VALUE_PREFIX)) return 1;
             if (i18nValue.toLowerCase().includes(search.toLowerCase())) return 1;
             return 0;
           }}
@@ -140,7 +164,9 @@ export const ProjectsAppPowerKModalWrapper = observer(function ProjectsAppPowerK
             onSearchChange={setSearchTerm}
             searchTerm={searchTerm}
           />
-          <Command.List className="vertical-scrollbar scrollbar-sm max-h-96 overflow-scroll outline-none">
+          {/* cmdk measures its sizer into --cmdk-list-height, so the list eases to each new height. flow-root
+              keeps child margins inside the sizer; otherwise the measurement comes up short and clips the last row. */}
+          <Command.List className="vertical-scrollbar scrollbar-sm h-[min(var(--cmdk-list-height),24rem)] overflow-x-hidden overflow-y-auto transition-[height] duration-200 ease-spring-sheet outline-none motion-reduce:transition-none [&>[cmdk-list-sizer]]:flow-root">
             <CommandsListComponent
               activePage={activePage}
               context={context}

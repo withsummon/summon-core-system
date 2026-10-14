@@ -6,19 +6,20 @@
 import re
 
 # Django imports
-from django.db import models
+from django.db import connections, models, router
 from django.db.models import (
     Q,
-    OuterRef,
-    Subquery,
     Value,
     UUIDField,
     CharField,
+    BooleanField,
+    ExpressionWrapper,
     When,
     Case,
 )
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.contrib.postgres.fields import ArrayField
+from django.contrib.postgres.search import TrigramWordSimilarity
 from django.db.models.functions import Cast, Coalesce, Concat
 from django.utils import timezone
 
@@ -37,145 +38,143 @@ from plane.db.models import (
     Module,
     Page,
     IssueView,
+    IntakeIssue,
     ProjectMember,
     ProjectPage,
     WorkspaceMember,
 )
+from plane.db.models.intake import IntakeIssueStatus
 
 
 class GlobalSearchEndpoint(BaseAPIView):
     """Endpoint to search across multiple fields in the workspace and
-    also show related workspace if found
+    also show related workspace if found.
+
+    Every word of the query must match a name by case-insensitive substring (``~*``) or trigram
+    word similarity (``%>``), both served by the ``gin_trgm_ops`` indexes. Results rank exact
+    phrase matches first, then by ``word_similarity``, so typos and partial words still match.
     """
 
+    ISSUE_LIMIT = 25
+    ENTITY_LIMIT = 10
+    MIN_FUZZY_LENGTH = 3
+    # pg_trgm's 0.6 default misses a single dropped letter in a typical word (``pemulhan``: 0.58).
+    WORD_SIMILARITY_THRESHOLD = 0.55
+
+    def member_project_ids(self, slug):
+        return ProjectMember.objects.filter(
+            member=self.request.user,
+            is_active=True,
+            project__archived_at__isnull=True,
+            workspace__slug=slug,
+        ).values("project_id")
+
+    def ranked(self, queryset, query, fields, limit, pinned=None):
+        """Name matches ordered best first, after any rows matched by ``pinned`` (identifiers,
+        ``AURA-4`` references).
+
+        ``pinned`` runs as its own query: OR-ing it into the name predicate stops Postgres from
+        answering the name match from the trigram index alone.
+        """
+        if not query:
+            return queryset.order_by("-created_at").values(*fields)[:limit]
+        if len(query) < self.MIN_FUZZY_LENGTH and query.isdigit() and pinned is not None:
+            # A short bare number is a sequence reference; scanning names for it rarely matches.
+            matches = queryset.none()
+        elif len(query) < self.MIN_FUZZY_LENGTH:
+            # Too short for trigrams: ranking would score nearly every row, so match word starts by recency.
+            matches = queryset.filter(name__iregex=rf"\m{re.escape(query)}").order_by("-created_at")
+        else:
+            # Every word must match, so each word's index lookup narrows the candidates to rank.
+            matches = queryset.filter(*(self.word_match(word) for word in query.split()))
+            matches = matches.annotate(
+                phrase=ExpressionWrapper(Q(name__iregex=re.escape(query)), output_field=BooleanField()),
+                rank=TrigramWordSimilarity(query, "name"),
+            ).order_by("-phrase", "-rank", "-created_at")
+        matches = list(matches.values(*fields)[:limit])
+        if pinned is None:
+            return matches
+        pinned_rows = list(queryset.filter(pinned).order_by("-created_at").values(*fields)[:limit])
+        pinned_ids = {row["id"] for row in pinned_rows}
+        return (pinned_rows + [row for row in matches if row["id"] not in pinned_ids])[:limit]
+
+    def word_match(self, word):
+        if len(word) < self.MIN_FUZZY_LENGTH:
+            return Q(name__iregex=rf"\m{re.escape(word)}")
+        # ``icontains`` compiles to UPPER(name) LIKE, which the trigram index cannot serve; ``~*`` can.
+        return Q(name__iregex=re.escape(word)) | Q(name__trigram_word_similar=word)
+
+    def scoped(self, queryset, slug, project_id, workspace_search):
+        queryset = queryset.filter(project_id__in=self.member_project_ids(slug))
+        if workspace_search == "false" and project_id:
+            queryset = queryset.filter(project_id=project_id)
+        return queryset
+
+    def issue_reference_match(self, query, slug):
+        """Match work item references such as ``AURA-4`` or a bare sequence number."""
+        reference = re.fullmatch(r"([A-Za-z][A-Za-z0-9]*)-(\d+)", query)
+        if reference:
+            return Q(
+                project_id__in=Project.objects.filter(workspace__slug=slug, identifier__iexact=reference[1]).values(
+                    "id"
+                ),
+                sequence_id=reference[2],
+            )
+        # Match whole integers only (exclude decimal numbers)
+        sequence_ids = re.findall(r"\b\d+\b", query)
+        return Q(sequence_id__in=sequence_ids) if sequence_ids else None
+
     def filter_workspaces(self, query, _slug, _project_id, _workspace_search):
-        fields = ["name"]
-        q = Q()
-        if query:
-            for field in fields:
-                q |= Q(**{f"{field}__icontains": query})
-        return (
-            Workspace.objects.filter(q, workspace_member__member=self.request.user)
-            .order_by("-created_at")
-            .distinct()
-            .values("name", "id", "slug")
+        return self.ranked(
+            Workspace.objects.filter(
+                id__in=WorkspaceMember.objects.filter(member=self.request.user, is_active=True).values("workspace_id")
+            ),
+            query,
+            ["name", "id", "slug"],
+            self.ENTITY_LIMIT,
         )
 
     def filter_projects(self, query, slug, _project_id, _workspace_search):
-        fields = ["name", "identifier"]
-        q = Q()
-        if query:
-            for field in fields:
-                q |= Q(**{f"{field}__icontains": query})
-        return (
-            Project.objects.filter(
-                q,
-                project_projectmember__member=self.request.user,
-                project_projectmember__is_active=True,
-                archived_at__isnull=True,
-                workspace__slug=slug,
-            )
-            .order_by("-created_at")
-            .distinct()
-            .values("name", "id", "identifier", "workspace__slug")
+        return self.ranked(
+            Project.objects.filter(id__in=self.member_project_ids(slug)),
+            query,
+            ["name", "id", "identifier", "workspace__slug"],
+            self.ENTITY_LIMIT,
+            pinned=Q(identifier__istartswith=query) if query else None,
         )
 
     def filter_issues(self, query, slug, project_id, workspace_search):
-        fields = ["name", "sequence_id", "project__identifier"]
-        q = Q()
-        if query:
-            for field in fields:
-                if field == "sequence_id":
-                    # Match whole integers only (exclude decimal numbers)
-                    sequences = re.findall(r"\b\d+\b", query)
-                    for sequence_id in sequences:
-                        q |= Q(**{"sequence_id": sequence_id})
-                else:
-                    q |= Q(**{f"{field}__icontains": query})
-
-        issues = Issue.issue_objects.filter(
-            q,
-            project__project_projectmember__member=self.request.user,
-            project__project_projectmember__is_active=True,
-            project__archived_at__isnull=True,
-            workspace__slug=slug,
+        return self.ranked(
+            self.scoped(Issue.issue_objects.all(), slug, project_id, workspace_search),
+            query,
+            ["name", "id", "sequence_id", "project__identifier", "project_id", "workspace__slug"],
+            self.ISSUE_LIMIT,
+            pinned=self.issue_reference_match(query, slug) if query else None,
         )
-
-        if workspace_search == "false" and project_id:
-            issues = issues.filter(project_id=project_id)
-
-        return issues.distinct().values(
-            "name",
-            "id",
-            "sequence_id",
-            "project__identifier",
-            "project_id",
-            "workspace__slug",
-        )[:100]
 
     def filter_cycles(self, query, slug, project_id, workspace_search):
-        fields = ["name"]
-        q = Q()
-        if query:
-            for field in fields:
-                q |= Q(**{f"{field}__icontains": query})
-
-        cycles = Cycle.objects.filter(
-            q,
-            project__project_projectmember__member=self.request.user,
-            project__project_projectmember__is_active=True,
-            project__archived_at__isnull=True,
-            workspace__slug=slug,
-        )
-
-        if workspace_search == "false" and project_id:
-            cycles = cycles.filter(project_id=project_id)
-
-        return (
-            cycles.order_by("-created_at")
-            .distinct()
-            .values("name", "id", "project_id", "project__identifier", "workspace__slug")
+        return self.ranked(
+            self.scoped(Cycle.objects.all(), slug, project_id, workspace_search),
+            query,
+            ["name", "id", "project_id", "project__identifier", "workspace__slug"],
+            self.ENTITY_LIMIT,
         )
 
     def filter_modules(self, query, slug, project_id, workspace_search):
-        fields = ["name"]
-        q = Q()
-        if query:
-            for field in fields:
-                q |= Q(**{f"{field}__icontains": query})
-
-        modules = Module.objects.filter(
-            q,
-            project__project_projectmember__member=self.request.user,
-            project__project_projectmember__is_active=True,
-            project__archived_at__isnull=True,
-            workspace__slug=slug,
-        )
-
-        if workspace_search == "false" and project_id:
-            modules = modules.filter(project_id=project_id)
-
-        return (
-            modules.order_by("-created_at")
-            .distinct()
-            .values("name", "id", "project_id", "project__identifier", "workspace__slug")
+        return self.ranked(
+            self.scoped(Module.objects.all(), slug, project_id, workspace_search),
+            query,
+            ["name", "id", "project_id", "project__identifier", "workspace__slug"],
+            self.ENTITY_LIMIT,
         )
 
     def filter_pages(self, query, slug, project_id, workspace_search):
-        fields = ["name"]
-        q = Q()
-        if query:
-            for field in fields:
-                q |= Q(**{f"{field}__icontains": query})
+        page_projects = ProjectPage.objects.filter(project_id__in=self.member_project_ids(slug))
+        if workspace_search == "false" and project_id:
+            page_projects = page_projects.filter(project_id=project_id)
 
         pages = (
-            Page.objects.filter(
-                q,
-                projects__project_projectmember__member=self.request.user,
-                projects__project_projectmember__is_active=True,
-                projects__archived_at__isnull=True,
-                workspace__slug=slug,
-            )
+            Page.objects.filter(id__in=page_projects.values("page_id"))
             .annotate(
                 project_ids=Coalesce(
                     ArrayAgg("projects__id", distinct=True, filter=~Q(projects__id=True)),
@@ -193,83 +192,37 @@ class GlobalSearchEndpoint(BaseAPIView):
                 )
             )
         )
-
-        if workspace_search == "false" and project_id:
-            project_subquery = ProjectPage.objects.filter(page_id=OuterRef("id"), project_id=project_id).values_list(
-                "project_id", flat=True
-            )[:1]
-
-            pages = pages.annotate(project_id=Subquery(project_subquery)).filter(project_id=project_id)
-
-        return (
-            pages.order_by("-created_at")
-            .distinct()
-            .values("name", "id", "project_ids", "project_identifiers", "workspace__slug")
+        return self.ranked(
+            pages,
+            query,
+            ["name", "id", "project_ids", "project_identifiers", "workspace__slug"],
+            self.ENTITY_LIMIT,
         )
 
     def filter_views(self, query, slug, project_id, workspace_search):
-        fields = ["name"]
-        q = Q()
-        if query:
-            for field in fields:
-                q |= Q(**{f"{field}__icontains": query})
-
-        issue_views = IssueView.objects.filter(
-            q,
-            project__project_projectmember__member=self.request.user,
-            project__project_projectmember__is_active=True,
-            project__archived_at__isnull=True,
-            workspace__slug=slug,
-        )
-
-        if workspace_search == "false" and project_id:
-            issue_views = issue_views.filter(project_id=project_id)
-
-        return (
-            issue_views.order_by("-created_at")
-            .distinct()
-            .values("name", "id", "project_id", "project__identifier", "workspace__slug")
+        return self.ranked(
+            self.scoped(IssueView.objects.all(), slug, project_id, workspace_search),
+            query,
+            ["name", "id", "project_id", "project__identifier", "workspace__slug"],
+            self.ENTITY_LIMIT,
         )
 
     def filter_intakes(self, query, slug, project_id, workspace_search):
-        fields = ["name", "sequence_id", "project__identifier"]
-        q = Q()
-        if query:
-            for field in fields:
-                if field == "sequence_id":
-                    # Match whole integers only (exclude decimal numbers)
-                    sequences = re.findall(r"\b\d+\b", query)
-                    for sequence_id in sequences:
-                        q |= Q(**{"sequence_id": sequence_id})
-                else:
-                    q |= Q(**{f"{field}__icontains": query})
-
-        issues = Issue.objects.filter(
-            q,
-            project__project_projectmember__member=self.request.user,
-            project__project_projectmember__is_active=True,
-            project__archived_at__isnull=True,
-            workspace__slug=slug,
-        ).filter(models.Q(issue_intake__status=0) | models.Q(issue_intake__status=-2))
-
-        if workspace_search == "false" and project_id:
-            issues = issues.filter(project_id=project_id)
-
-        return (
-            issues.order_by("-created_at")
-            .distinct()
-            .values(
-                "name",
-                "id",
-                "sequence_id",
-                "project__identifier",
-                "project_id",
-                "workspace__slug",
-            )[:100]
+        intake_issues = Issue.objects.filter(
+            id__in=IntakeIssue.objects.filter(status__in=[IntakeIssueStatus.PENDING, IntakeIssueStatus.SNOOZED]).values(
+                "issue_id"
+            )
+        )
+        return self.ranked(
+            self.scoped(intake_issues, slug, project_id, workspace_search),
+            query,
+            ["name", "id", "sequence_id", "project__identifier", "project_id", "workspace__slug"],
+            self.ISSUE_LIMIT,
+            pinned=self.issue_reference_match(query, slug) if query else None,
         )
 
     def get(self, request, slug):
-        query = request.query_params.get("search", False)
+        query = request.query_params.get("search", "").strip()
         entities_param = request.query_params.get("entities")
         workspace_search = request.query_params.get("workspace_search", "false")
         project_id = request.query_params.get("project_id", False)
@@ -291,6 +244,10 @@ class GlobalSearchEndpoint(BaseAPIView):
             requested_entities = [e for e in requested_entities if e in MODELS_MAPPER]
         else:
             requested_entities = list(MODELS_MAPPER.keys())
+
+        # ``%>`` reads its cutoff from this session setting, so set it on the connection that serves reads.
+        with connections[router.db_for_read(Issue)].cursor() as cursor:
+            cursor.execute("SET pg_trgm.word_similarity_threshold = %s", [self.WORD_SIMILARITY_THRESHOLD])
 
         results = {}
 

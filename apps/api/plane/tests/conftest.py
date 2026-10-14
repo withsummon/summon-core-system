@@ -2,12 +2,32 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+import psycopg
 import pytest
 from rest_framework.test import APIClient
 from pytest_django.fixtures import django_db_setup
 
 from plane.db.models import User, Workspace, WorkspaceMember
 from plane.db.models.api import APIToken
+
+
+@pytest.fixture(scope="session")
+def django_db_modify_db_settings():
+    """``--nomigrations`` builds tables straight from the models, so the ``pg_trgm`` extension that
+    migration 0123 creates must already exist for the trigram indexes. The test database is cloned
+    from ``template1``, so install it there before the database is created."""
+    from django.conf import settings
+
+    database = settings.DATABASES["default"]
+    with psycopg.connect(
+        dbname="template1",
+        user=database["USER"],
+        password=database["PASSWORD"],
+        host=database["HOST"],
+        port=database["PORT"] or 5432,
+        autocommit=True,
+    ) as connection:
+        connection.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
 
 
 @pytest.fixture(scope="session")

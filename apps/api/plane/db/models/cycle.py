@@ -7,6 +7,7 @@ import pytz
 
 # Django imports
 from django.conf import settings
+from django.contrib.postgres.indexes import GinIndex
 from django.db import models
 
 # Module imports
@@ -83,6 +84,7 @@ class Cycle(ProjectBaseModel):
         verbose_name = "Cycle"
         verbose_name_plural = "Cycles"
         db_table = "cycles"
+        indexes = [GinIndex(fields=["name"], name="cycle_name_trgm_idx", opclasses=["gin_trgm_ops"])]
         ordering = ("-created_at",)
 
     def save(self, *args, **kwargs):
