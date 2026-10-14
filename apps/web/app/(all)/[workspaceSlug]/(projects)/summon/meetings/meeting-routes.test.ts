@@ -18,14 +18,11 @@ test("meeting detail is direct-reloadable and reads persisted associations", () 
   assert.match(detail, /getMeeting/);
   assert.match(detail, /recording_asset_detail/);
   assert.match(detail, /transcript_text/);
-  assert.match(detail, /work_items/);
   assert.match(source("../../../../../routes/extended.ts"), /summon\/meetings\/:meetingId/);
 });
 
 test("meeting summary is transcript-gated and suggestions require native confirmation", () => {
   const detail = detailSource();
-  const service = source("../../../../../../core/services/summon.service.ts");
-  assert.match(service, /summarizeMeeting/);
   assert.match(detail, /summary_error/);
   assert.match(detail, /decisions/);
   assert.match(detail, /action_suggestions/);

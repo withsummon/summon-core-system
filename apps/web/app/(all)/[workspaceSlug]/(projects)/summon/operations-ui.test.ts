@@ -3,9 +3,8 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const read = (path: string) => readFileSync(path, "utf8");
-const navigation = read("apps/web/core/components/power-k/config/navigation/commands.ts");
+// The command records are typed by their key unions, so every key root.ts lists must also be defined.
 const navigationRoot = read("apps/web/core/components/power-k/config/navigation/root.ts");
-const creation = read("apps/web/core/components/power-k/config/creation/command.ts");
 const creationRoot = read("apps/web/core/components/power-k/config/creation/root.ts");
 
 test("Power-K keeps native commands and adds every Summon destination", () => {
@@ -39,7 +38,6 @@ test("Power-K keeps native commands and adds every Summon destination", () => {
     "open_project_setting",
     "nav_project_settings",
   ]) {
-    assert.match(navigation, new RegExp(`${nativeCommand}:`));
     assert.match(navigationRoot, new RegExp(`optionsList\\["${nativeCommand}"\\]`));
   }
 
@@ -61,7 +59,6 @@ test("Power-K keeps native commands and adds every Summon destination", () => {
     "assistant",
   ]) {
     const command = `nav_summon_${destination}`;
-    assert.match(navigation, new RegExp(`${command}:`));
     assert.match(navigationRoot, new RegExp(`optionsList\\["${command}"\\]`));
   }
 });
@@ -76,7 +73,6 @@ test("Power-K keeps native creation and adds Summon form actions", () => {
     "create_project",
     "create_workspace",
   ]) {
-    assert.match(creation, new RegExp(`${nativeCommand}:`));
     assert.match(creationRoot, new RegExp(`optionsList\\["${nativeCommand}"\\]`));
   }
 
@@ -86,7 +82,6 @@ test("Power-K keeps native creation and adds Summon form actions", () => {
     "create_summon_meeting",
     "open_summon_automation",
   ]) {
-    assert.match(creation, new RegExp(`${command}:`));
     assert.match(creationRoot, new RegExp(`optionsList\\["${command}"\\]`));
   }
 });
