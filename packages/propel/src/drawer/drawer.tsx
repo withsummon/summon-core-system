@@ -71,9 +71,13 @@ export function Drawer({
   ...props
 }: DrawerPrimitive.Root.Props & { side?: TDrawerSide | "auto" }) {
   const side = useDrawerSide(sideProp);
+  const root = <DrawerPrimitive.Root swipeDirection={swipeDirectionProp ?? swipeDirection[side]} {...props} />;
+  // Only a sheet that can rise from the bottom pushes the page back. A fixed-edge drawer reports to a provider of
+  // its own that no `DrawerIndent` watches. Keyed on the prop, not the resolved side, so a resize never remounts it.
+  const canIndent = sideProp === "bottom" || sideProp === "auto";
   return (
     <DrawerSideContext.Provider value={side}>
-      <DrawerPrimitive.Root swipeDirection={swipeDirectionProp ?? swipeDirection[side]} {...props} />
+      {canIndent ? root : <DrawerPrimitive.Provider>{root}</DrawerPrimitive.Provider>}
     </DrawerSideContext.Provider>
   );
 }
@@ -147,7 +151,7 @@ function SheetGrabber() {
   );
 }
 
-/** Scopes the indent effect: drawers opened under one provider push back the `DrawerIndent` beside them. */
+/** Scopes the indent effect: bottom sheets opened under one provider push back the `DrawerIndent` beside them. */
 export const DrawerProvider = DrawerPrimitive.Provider;
 
 /**
