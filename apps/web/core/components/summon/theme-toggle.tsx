@@ -1,9 +1,13 @@
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { useUser, useUserProfile } from "@/hooks/store/user";
 
-export function SummonThemeToggle({ onChange }: { onChange?: (theme: "light" | "dark") => unknown }) {
+/** Switches the theme; a signed-in user's choice is also saved to their profile. */
+export function SummonThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
+  const user = useUser();
+  const { updateUserTheme } = useUserProfile();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
@@ -18,7 +22,7 @@ export function SummonThemeToggle({ onChange }: { onChange?: (theme: "light" | "
       title={`Switch to ${nextTheme} mode`}
       onClick={() => {
         setTheme(nextTheme);
-        void onChange?.(nextTheme);
+        if (user.isAuthenticated) void updateUserTheme({ theme: nextTheme });
       }}
       className="grid size-9 shrink-0 place-items-center rounded-xl border border-subtle bg-surface-1 text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
     >

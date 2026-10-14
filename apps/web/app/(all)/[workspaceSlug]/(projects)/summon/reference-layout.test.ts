@@ -32,13 +32,15 @@ test("Project overview exposes the reference workspace hierarchy", () => {
 });
 
 test("Knowledge dashboard is backed by accessible Plane Pages and shows no sourceless analytics", () => {
-  const knowledge = source("./knowledge/page.tsx");
+  const knowledge = `${source("./knowledge/page.tsx")}\n${source("./knowledge/knowledge-model.ts")}`;
 
   assert.match(knowledge, /listAccessiblePlanePages/);
   assert.match(knowledge, /listPageContexts/);
-  assert.match(knowledge, /Browse by Context/);
-  assert.doesNotMatch(knowledge, /Total Views|Popular Knowledge/);
+  assert.match(knowledge, /SummonMetricStrip/);
+  assert.doesNotMatch(knowledge, /Total Views|Popular Knowledge|Browse by Context/);
   assert.doesNotMatch(knowledge, /updated_at\?\.getTime/);
   assert.match(knowledge, /Date\.parse\(String\(.*updated_at/);
   assert.doesNotMatch(knowledge, /mock-data/);
+  // Opportunities are commercial records: fetched and offered only with commercial.view.
+  assert.match(knowledge, /can\("commercial\.view"\)/);
 });

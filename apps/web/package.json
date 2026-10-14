@@ -68,6 +68,7 @@
     "smooth-scroll-into-view-if-needed": "catalog:",
     "swr": "catalog:",
     "use-font-face-observer": "catalog:",
+    "use-stick-to-bottom": "catalog:",
     "uuid": "catalog:"
   },
   "devDependencies": {

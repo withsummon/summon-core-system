@@ -26,7 +26,7 @@ export function ConfirmDiscardModal(props: Props) {
         if (!open) handleClose();
       }}
     >
-      <Dialog.Panel className="overflow-hidden rounded-lg bg-surface-1 text-left shadow-raised-200 sm:w-[30rem]">
+      <Dialog.Panel className="overflow-hidden rounded-lg bg-surface-1 text-left shadow-raised-200 md:w-[30rem]">
         <div className="px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
           <div className="sm:flex sm:items-start">
             <div className="mt-3 text-center sm:mt-0 sm:text-left">

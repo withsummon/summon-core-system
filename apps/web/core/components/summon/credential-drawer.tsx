@@ -143,8 +143,8 @@ export function CredentialDrawer(props: {
   };
 
   return (
-    <Drawer open={open} onOpenChange={(nextOpen) => !nextOpen && close()}>
-      <DrawerContent backdrop className="vertical-scrollbar h-dvh overflow-y-auto p-5">
+    <Drawer side="auto" open={open} onOpenChange={(nextOpen) => !nextOpen && close()}>
+      <DrawerContent backdrop className="vertical-scrollbar overflow-y-auto p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
             <DrawerTitle className="text-18 font-semibold text-primary">{credential.name}</DrawerTitle>

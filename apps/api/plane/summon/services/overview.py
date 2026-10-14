@@ -11,7 +11,8 @@ from plane.summon.models import Client, Meeting, Opportunity, ResourceLink, Summ
 from plane.summon.services.reports import visible_project_ids
 
 
-def _progress(issues):
+def issue_progress(issues):
+    """Totals for a work-item queryset; overdue means past target date and not completed or cancelled."""
     counts = issues.aggregate(
         total=Count("id"),
         completed=Count("id", filter=Q(state__group="completed")),
@@ -291,7 +292,7 @@ def project_overview(workspace, user, project_id):
             "description": project.description,
         },
         "profile": _profile_snapshot(profile, has_capability(user, workspace.slug, "commercial.view")),
-        "progress": _progress(issues),
+        "progress": issue_progress(issues),
         "milestones": _milestones(project, workspace.slug),
         "issues": [_issue_snapshot(issue) for issue in issues.order_by("-created_at")[:20]],
         "pages": [

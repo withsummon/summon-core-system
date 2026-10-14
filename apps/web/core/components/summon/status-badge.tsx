@@ -52,6 +52,9 @@ const STATUS_PRESENTATION: Record<string, TStatusPresentation> = {
   active: { icon: PlayCircleIcon, variant: "brand" },
   on_hold: { icon: PauseCircleIcon, variant: "warning" },
   scheduled: { icon: CalendarBlankIcon, variant: "brand" },
+  pending: { icon: ClockIcon, variant: "warning" },
+  confirmed: { icon: CircleHalfIcon, variant: "brand" },
+  failed: { icon: WarningCircleIcon, variant: "danger" },
 };
 
 /**

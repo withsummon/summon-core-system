@@ -15,7 +15,18 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from plane.app.services.llm import LLMError, LLMResponse
-from plane.db.models import FileAsset, Page, Project, ProjectMember, ProjectPage, User, Workspace, WorkspaceMember
+from plane.db.models import (
+    FileAsset,
+    Issue,
+    Page,
+    Project,
+    ProjectMember,
+    ProjectPage,
+    State,
+    User,
+    Workspace,
+    WorkspaceMember,
+)
 from plane.summon.models import (
     AssistantAction,
     AssistantAttachment,
@@ -27,6 +38,7 @@ from plane.summon.models import (
     Credential,
     CredentialAccessLog,
     Meeting,
+    SummonProjectProfile,
 )
 from plane.summon.services.credential import encrypt_secret
 from plane.summon.services.context import build_context
@@ -1162,6 +1174,63 @@ def test_context_uses_meeting_transcript_and_generated_page_markdown(workspace, 
     assert "Audio decision: launch the verified pilot." in context.text
     assert "Document scope: OCR rollout." in context.text
     assert {citation["kind"] for citation in context.citations} == {"meeting", "page"}
+
+
+@pytest.mark.django_db
+def test_selected_project_context_carries_live_work_items_and_meeting_summary(workspace, create_user):
+    project = visible_project(workspace, create_user, "LIVE")
+    todo = State.objects.create(workspace=workspace, project=project, name="Todo", group="unstarted", default=True)
+    done = State.objects.create(workspace=workspace, project=project, name="Done", group="completed")
+    yesterday = timezone.now().date() - timezone.timedelta(days=1)
+    late = Issue.objects.create(
+        workspace=workspace, project=project, state=todo, name="Ship the pilot", target_date=yesterday
+    )
+    Issue.objects.create(workspace=workspace, project=project, state=todo, name="Write the handbook")
+    Issue.objects.create(workspace=workspace, project=project, state=done, name="Closed kickoff")
+    hidden = Project.objects.create(workspace=workspace, name="Hidden", identifier="HLIVE")
+    Issue.objects.create(workspace=workspace, project=hidden, name="Hidden work")
+    summary_page = Page.objects.create(
+        workspace=workspace,
+        owned_by=create_user,
+        name="Sync MoM",
+        view_props={"summon_document": {"markdown": "## Decisions\n- Launch on Friday"}},
+    )
+    meeting = Meeting.objects.create(
+        workspace=workspace,
+        project=project,
+        organizer=create_user,
+        title="Weekly sync",
+        starts_at=timezone.now(),
+        summary_page=summary_page,
+    )
+
+    context = build_context(workspace, create_user, {"project_id": project.id, "meeting_id": meeting.id})
+
+    assert "unstarted: 2" in context.text and "completed: 1" in context.text
+    assert "Overdue open items: 1" in context.text
+    assert context.text.index("Ship the pilot") < context.text.index("Write the handbook")
+    assert "Closed kickoff" not in context.text
+    assert "Hidden work" not in context.text
+    assert "Launch on Friday" in context.text
+    issue_citations = [citation for citation in context.citations if citation["kind"] == "issue"]
+    assert issue_citations[0] == {
+        "id": str(late.id),
+        "label": f"LIVE-{late.sequence_id} Ship the pilot",
+        "href": f"/{workspace.slug}/browse/LIVE-{late.sequence_id}/",
+        "kind": "issue",
+    }
+    assert len(issue_citations) == 2
+
+    hidden_context = build_context(workspace, create_user, {"project_id": hidden.id})
+    assert "Hidden work" not in hidden_context.text
+
+    client = Client.objects.create(workspace=workspace, name="Acme")
+    SummonProjectProfile.objects.create(workspace=workspace, project=project, client=client)
+    SummonProjectProfile.objects.create(workspace=workspace, project=hidden, client=client)
+    client_context = build_context(workspace, create_user, {"client_id": client.id})
+    assert "Ship the pilot" in client_context.text
+    assert "Hidden work" not in client_context.text
+    assert {"client", "project", "issue"} <= {citation["kind"] for citation in client_context.citations}
 
 
 @pytest.mark.django_db

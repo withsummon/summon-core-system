@@ -5,342 +5,471 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  CompassIcon,
-  FileTextIcon,
-  LightbulbIcon,
-  NoteIcon,
-  QuestionIcon,
-  SquaresFourIcon,
-} from "@phosphor-icons/react";
+import { useRouter } from "next/navigation";
+import { NoteIcon, SquaresFourIcon } from "@phosphor-icons/react";
 import useSWR from "swr";
 import {
-  BookOpen,
+  ArrowUpRight,
   BriefcaseBusiness,
-  Building2,
-  ChevronRight,
+  Check,
+  ChevronDown,
   FileText,
   FolderKanban,
+  Layers,
   Link2,
-  Send,
+  MessageSquareText,
+  Plus,
   Sparkles,
   Upload,
   Users,
 } from "lucide-react";
-import { EmptyStateCompact } from "@plane/propel/empty-state";
-import type { CompactAssetType } from "@plane/propel/empty-state";
-import { PageHead } from "@/components/core/page-title";
+import { EPageAccess } from "@plane/constants";
+import { Button, getButtonStyling } from "@plane/propel/button";
+import { MenuPrimitive as Menu } from "@plane/propel/menu";
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { cn } from "@plane/utils";
 import {
-  SummonCard,
-  SummonPageHeader,
-  SummonPanel,
+  OPTION_POPUP_CLASSNAME,
+  OptionItem,
+  OptionMenuScope,
+  OptionPopup,
+  OptionSubmenu,
+} from "@/components/summon/option-menu";
+import { SummonRequestState } from "@/components/summon/request-state";
+import {
+  SummonMetric,
+  SummonMetricStrip,
+  SummonPagination,
+  SummonScreen,
   SummonSectionHeader,
   SummonTableShell,
-  summonPageClassName,
-  ViewPanel,
+  summonErrorMessage,
+  summonSurfaceClassName,
 } from "@/components/summon/screen";
-import { SummonRequestState } from "@/components/summon/request-state";
+import { SummonSearchField } from "@/components/summon/search-field";
 import { SectionTabs } from "@/components/summon/section-tabs";
 import type { TSectionTab } from "@/components/summon/section-tabs";
-import { useHashTab } from "@/components/summon/use-hash-tab";
+import { useSummonAccess } from "@/components/summon/use-summon-access";
 import { useMember } from "@/hooks/store/use-member";
+import { useProject } from "@/hooks/store/use-project";
+import { ProjectPageService } from "@/services/page";
 import { listAccessiblePlanePages } from "@/services/summon-plane.service";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
-import { SummonSearchField } from "@/components/summon/search-field";
+import {
+  ALL_CATEGORIES,
+  PAGE_SIZE,
+  askHref,
+  categoryLabel,
+  contextOptionsFor,
+  filterKnowledge,
+  knowledgeCategories,
+  knowledgeEntries,
+  knowledgeStats,
+  pageHref,
+  starterQuestions,
+  uniqueOptions,
+  updatedTime,
+} from "./knowledge-model";
+import type { TKnowledgeContextFilter, TKnowledgeContextOptions, TKnowledgeEntry } from "./knowledge-model";
 
-const KNOWLEDGE_TABS: TSectionTab<string>[] = [
-  { value: "all", label: "All", icon: SquaresFourIcon },
-  { value: "notes", label: "Notes", icon: NoteIcon },
-  { value: "documents", label: "Documents", icon: FileTextIcon },
-  { value: "guides", label: "Guides", icon: CompassIcon },
-  { value: "faqs", label: "FAQs", icon: QuestionIcon },
-  { value: "lessons-learned", label: "Lessons Learned", icon: LightbulbIcon },
-];
+const pageService = new ProjectPageService();
+const RECENT_COUNT = 4;
+const CHIP_CLASSNAME = cn(getButtonStyling("secondary", "base"), "max-w-full min-w-0");
 
-const formatDate = (value?: Date) => {
-  if (!value) return "Unknown";
-  return new Intl.DateTimeFormat("en", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value));
+const formatDate = (entry: TKnowledgeEntry) => {
+  const time = updatedTime(entry);
+  return time ? new Intl.DateTimeFormat("en", { day: "numeric", month: "short", year: "numeric" }).format(time) : "—";
 };
 
 export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
   const { workspaceSlug } = params;
-  const { getUserDetails } = useMember();
+  const { can } = useSummonAccess(workspaceSlug);
+  const showOpportunities = can("commercial.view");
   const [query, setQuery] = useState("");
-  const [tab, setTab] = useHashTab(KNOWLEDGE_TABS.map((item) => item.value));
+
   const {
     data: pages = [],
     error,
     isLoading,
     mutate,
-  } = useSWR(["summon-knowledge-pages", workspaceSlug], () => listAccessiblePlanePages(workspaceSlug));
+  } = useSWR(["summon-plane-pages", workspaceSlug], () => listAccessiblePlanePages(workspaceSlug));
   const { data: contexts = [] } = useSWR(["summon-knowledge-contexts", workspaceSlug], () =>
     summonService.listPageContexts(workspaceSlug)
   );
-  const { data: home } = useSWR(["summon-knowledge-home", workspaceSlug], () =>
-    summonService.getHomeSummary(workspaceSlug)
+  const { data: clients = [] } = useSWR(["summon-clients", workspaceSlug], () =>
+    summonService.listClients(workspaceSlug)
+  );
+  // Deals are commercial records: only people who may see them fetch them.
+  const { data: opportunities = [] } = useSWR(showOpportunities ? ["summon-opportunities", workspaceSlug] : null, () =>
+    summonService.listOpportunities(workspaceSlug)
   );
 
-  const contextByPage = useMemo(() => new Map(contexts.map((context) => [context.page, context])), [contexts]);
-  const normalizedQuery = query.trim().toLowerCase();
-  const filteredPages = useMemo(
-    () =>
-      pages.filter(({ page, project }) => {
-        const context = page.id ? contextByPage.get(page.id) : undefined;
-        const matchesQuery = `${page.name || ""} ${project.name} ${context?.category || ""}`
-          .toLowerCase()
-          .includes(normalizedQuery);
-        if (!matchesQuery || tab === "all") return matchesQuery;
-        if (tab === "documents") return context?.category === "document" || !context?.category;
-        return context?.category?.toLowerCase() === tab.replace("-", "_");
-      }),
-    [contextByPage, normalizedQuery, pages, tab]
-  );
-  const recentPages = useMemo(() => {
-    // oxlint-disable-next-line unicorn/no-array-sort -- ES2023 toSorted is unavailable in the app's current TypeScript target.
-    return [...pages].sort(
-      (left, right) =>
-        (Date.parse(String(right.page.updated_at ?? "")) || 0) - (Date.parse(String(left.page.updated_at ?? "")) || 0)
-    );
-  }, [pages]);
-  const uniqueContributors = new Set(pages.flatMap(({ page }) => [page.created_by, page.updated_by]).filter(Boolean));
-  const contextCards = [
-    {
-      label: "Projects",
-      count: new Set(pages.map(({ project }) => project.id)).size,
-      icon: FolderKanban,
-      detail: "Project pages and delivery knowledge",
-    },
-    {
-      label: "Clients",
-      count: contexts.filter((item) => item.client).length,
-      icon: Users,
-      detail: "Client-linked notes and requirements",
-    },
-    {
-      label: "Opportunities",
-      count: contexts.filter((item) => item.opportunity).length,
-      icon: BriefcaseBusiness,
-      detail: "Commercial and proposal knowledge",
-    },
-    {
-      label: "Processes",
-      count: contexts.filter((item) => item.category === "process").length,
-      icon: BookOpen,
-      detail: "Procedures and team workflows",
-    },
-    {
-      label: "Company",
-      count: contexts.filter((item) => !item.project && !item.client && !item.opportunity).length,
-      icon: Building2,
-      detail: "Workspace-wide knowledge",
-    },
-  ];
-  const firstProject = home?.projects[0];
+  const entries = useMemo(() => knowledgeEntries(pages, contexts), [contexts, pages]);
+  const searching = Boolean(query.trim());
 
   return (
-    <div className={summonPageClassName}>
-      <PageHead title="Knowledge · Summon Core" />
-      <SummonPageHeader title="Knowledge" description="Company knowledge, notes and insights in one place" />
+    <SummonScreen
+      title="Knowledge"
+      description="Pages and notes from the projects you can access, and answers drawn from them."
+      actions={
+        <>
+          <Link href={`/${workspaceSlug}/summon/resources/`} className={getButtonStyling("secondary", "lg")}>
+            <Link2 aria-hidden />
+            Add link
+          </Link>
+          <Link href={`/${workspaceSlug}/summon/documents/`} className={getButtonStyling("secondary", "lg")}>
+            <Upload aria-hidden />
+            Upload
+          </Link>
+          <NewPageMenu workspaceSlug={workspaceSlug} />
+        </>
+      }
+    >
+      <div className="flex flex-col gap-6">
+        <FindOrAsk workspaceSlug={workspaceSlug} query={query} onQueryChange={setQuery} entries={entries} />
+        {searching ? null : <KnowledgeOverview workspaceSlug={workspaceSlug} entries={entries} />}
+        <KnowledgeLibrary
+          workspaceSlug={workspaceSlug}
+          entries={entries}
+          query={query}
+          contextOptions={contextOptionsFor(entries, clients, showOpportunities ? opportunities : [])}
+          loading={isLoading}
+          error={error}
+          onRetry={() => void mutate()}
+        />
+      </div>
+    </SummonScreen>
+  );
+}
 
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
-        <main className="min-w-0 space-y-5">
-          <SummonSearchField
-            label="Search knowledge"
-            placeholder="Search knowledge, notes, topics, or ask anything…"
-            value={query}
-            onValueChange={setQuery}
-            className="max-w-3xl"
-          />
+/** One field that finds pages as you type and hands the same words to the Assistant. */
+function FindOrAsk(props: {
+  workspaceSlug: string;
+  query: string;
+  onQueryChange: (query: string) => void;
+  entries: TKnowledgeEntry[];
+}) {
+  const searching = Boolean(props.query.trim());
+  return (
+    <section aria-label="Find or ask" className="flex max-w-3xl flex-col gap-3">
+      <div className="flex gap-2">
+        <SummonSearchField
+          label="Find or ask about knowledge"
+          placeholder="Find a page, or ask Summon a question…"
+          value={props.query}
+          onValueChange={props.onQueryChange}
+          className="flex-1"
+        />
+        <Link
+          href={searching ? askHref(props.workspaceSlug, props.query) : `/${props.workspaceSlug}/summon/assistant/`}
+          className={getButtonStyling("primary", "lg")}
+        >
+          <Sparkles aria-hidden />
+          Ask<span className="max-sm:sr-only"> Summon</span>
+        </Link>
+      </div>
+      {searching ? null : (
+        <ul className="flex flex-wrap gap-2" aria-label="Suggested questions">
+          {starterQuestions(props.entries).map((question) => (
+            <li key={question} className="min-w-0">
+              <Link
+                href={askHref(props.workspaceSlug, question)}
+                className={cn(getButtonStyling("secondary", "sm"), "max-w-full rounded-full text-secondary")}
+              >
+                <MessageSquareText aria-hidden />
+                <span className="truncate">{question}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
 
-          <section className="rounded-xl border border-accent-subtle bg-accent-subtle/50 p-4">
-            <div className="flex items-center gap-3">
-              <span className="grid size-12 place-items-center rounded-xl bg-accent-primary text-white">
-                <Sparkles className="size-6" />
-              </span>
-              <div>
-                <h2 className="text-sm font-semibold text-primary">Ask Summon Assistant anything</h2>
-                <p className="mt-1 text-xs text-secondary">
-                  Get answers from accessible workspace, project, and Plane Page context.
-                </p>
-              </div>
-            </div>
-            <Link
-              href={`/${workspaceSlug}/summon/assistant/`}
-              className="mt-5 flex h-12 items-center gap-3 rounded-xl border border-subtle bg-surface-1 px-4 text-xs text-secondary shadow-xs"
-            >
-              <span className="flex-1">Ask a question about projects, clients, processes, or anything…</span>
-              <Send className="size-4" />
-            </Link>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {["Summarize a project", "Find recent meeting notes", "Show deployment knowledge"].map((prompt) => (
+/** Real counts, then the pages touched last — the latter only when the library alone would bury them. */
+function KnowledgeOverview({ workspaceSlug, entries }: { workspaceSlug: string; entries: TKnowledgeEntry[] }) {
+  if (!entries.length) return null;
+  const stats = knowledgeStats(entries, Date.now());
+  return (
+    <>
+      <SummonMetricStrip>
+        <SummonMetric label="Pages" value={stats.pages} />
+        <SummonMetric label="Projects" value={stats.projects} />
+        <SummonMetric label="Updated this week" value={stats.updatedThisWeek} />
+        <SummonMetric label="Contributors" value={stats.contributors} />
+      </SummonMetricStrip>
+      {entries.length > RECENT_COUNT ? (
+        <section>
+          <SummonSectionHeader title="Jump back in" className="mb-3" />
+          <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {entries.slice(0, RECENT_COUNT).map((entry) => (
+              <li key={entry.page.id} className="min-w-0">
                 <Link
-                  key={prompt}
-                  href={`/${workspaceSlug}/summon/assistant/`}
-                  className="rounded-full border border-subtle bg-surface-1 px-3 py-2 text-12 text-secondary"
+                  href={pageHref(workspaceSlug, entry)}
+                  className={cn(
+                    summonSurfaceClassName,
+                    "flex h-full flex-col gap-3 p-3.5 transition-colors hover:bg-layer-1"
+                  )}
                 >
-                  {prompt}
-                </Link>
-              ))}
-            </div>
-          </section>
-
-          <section>
-            <SummonSectionHeader title="Browse by Context" className="mb-3" />
-            <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-5">
-              {contextCards.map(({ label, count, icon: Icon, detail }) => (
-                <SummonCard key={label}>
-                  <div className="flex items-center justify-between">
-                    <span className="grid size-8 place-items-center rounded-lg bg-accent-subtle text-accent-primary">
-                      <Icon className="size-4" />
-                    </span>
-                    <span className="rounded-full bg-layer-1 px-2 py-1 text-12 text-secondary">{count}</span>
-                  </div>
-                  <h3 className="mt-4 text-13 font-medium text-primary">{label}</h3>
-                  <p className="mt-1 text-12 leading-relaxed text-secondary">{detail}</p>
-                </SummonCard>
-              ))}
-            </div>
-          </section>
-
-          <section>
-            <SummonSectionHeader title="Recent Knowledge" count={filteredPages.length} />
-            <SectionTabs
-              items={KNOWLEDGE_TABS}
-              value={tab}
-              onValueChange={setTab}
-              label="Knowledge categories"
-              className="mt-2"
-            />
-            <ViewPanel value={tab}>
-              <SummonRequestState
-                loading={isLoading}
-                error={error}
-                empty={!isLoading && filteredPages.length === 0}
-                emptyAsset="knowledge"
-                emptyTitle="No knowledge here yet"
-                emptyMessage="Pages you can access in this category show up here."
-                onRetry={() => void mutate()}
-              />
-              {!!filteredPages.length && (
-                <SummonTableShell className="mt-3">
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[46rem] text-left text-xs">
-                      <thead className="border-b border-subtle bg-layer-1 text-12 text-tertiary">
-                        <tr>
-                          <th className="px-4 py-3 font-medium">Title</th>
-                          <th className="px-4 py-3 font-medium">Context</th>
-                          <th className="px-4 py-3 font-medium">Type</th>
-                          <th className="px-4 py-3 font-medium">Updated</th>
-                          <th className="px-4 py-3 font-medium">Updated by</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-subtle">
-                        {filteredPages.slice(0, 8).map(({ page, project }) => {
-                          const context = page.id ? contextByPage.get(page.id) : undefined;
-                          const actor = page.updated_by ? getUserDetails(page.updated_by) : undefined;
-                          return (
-                            <tr key={page.id} className="hover:bg-layer-1">
-                              <td className="px-4 py-3">
-                                <Link
-                                  href={`/${workspaceSlug}/projects/${project.id}/pages/${page.id}/`}
-                                  className="flex items-center gap-2 font-medium text-primary"
-                                >
-                                  <FileText className="size-4 shrink-0 text-accent-primary" />
-                                  <span className="max-w-64 truncate">{page.name || "Untitled Page"}</span>
-                                </Link>
-                              </td>
-                              <td className="px-4 py-3 text-secondary">{project.name}</td>
-                              <td className="px-4 py-3">
-                                <span className="rounded-full bg-accent-subtle px-2 py-1 text-12 text-accent-primary">
-                                  {context?.category || "Page"}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 text-secondary">{formatDate(page.updated_at)}</td>
-                              <td className="px-4 py-3 text-secondary">{actor?.display_name || "Unknown"}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </SummonTableShell>
-              )}
-            </ViewPanel>
-          </section>
-        </main>
-
-        <aside className="space-y-4">
-          <SummonPanel title="Quick Actions">
-            <div className="space-y-1">
-              <QuickAction
-                icon={FileText}
-                label="Create New Note"
-                href={
-                  firstProject
-                    ? `/${workspaceSlug}/projects/${firstProject.id}/pages/`
-                    : `/${workspaceSlug}/summon/projects/`
-                }
-              />
-              <QuickAction icon={Upload} label="Upload Document" href={`/${workspaceSlug}/summon/documents/`} />
-              <QuickAction
-                icon={Link2}
-                label="Create Knowledge from URL"
-                href={`/${workspaceSlug}/summon/resources/`}
-              />
-              <QuickAction icon={Sparkles} label="Ask Summon Assistant" href={`/${workspaceSlug}/summon/assistant/`} />
-            </div>
-          </SummonPanel>
-          <SummonPanel title="Recent Notes" link={{ href: `/${workspaceSlug}/summon/documents/`, label: "View all" }}>
-            <div className="space-y-3">
-              {recentPages.slice(0, 5).map(({ page, project }) => (
-                <Link
-                  key={page.id}
-                  href={`/${workspaceSlug}/projects/${project.id}/pages/${page.id}/`}
-                  className="flex gap-2"
-                >
-                  <FileText className="mt-0.5 size-4 shrink-0 text-accent-primary" />
+                  <span className="grid size-8 place-items-center rounded-lg bg-layer-2 text-secondary">
+                    <FileText aria-hidden className="size-4" />
+                  </span>
                   <span className="min-w-0">
-                    <strong className="block truncate text-12 font-medium text-primary">
-                      {page.name || "Untitled Page"}
-                    </strong>
-                    <small className="text-12 text-secondary">{formatDate(page.updated_at)}</small>
+                    <span className="line-clamp-2 text-13 font-medium text-primary">
+                      {entry.page.name || "Untitled page"}
+                    </span>
+                    <span className="mt-1 flex items-center gap-1.5 text-12 text-tertiary">
+                      <span className="truncate">{entry.project.name}</span>
+                      <span aria-hidden>·</span>
+                      <span className="flex-none">{formatDate(entry)}</span>
+                    </span>
                   </span>
                 </Link>
-              ))}
-              {!recentPages.length && <Empty asset="note" text="No accessible notes." />}
-            </div>
-          </SummonPanel>
-          <SummonPanel title="Knowledge Stats">
-            <div className="grid grid-cols-2 gap-2">
-              <Stat label="Total Pages" value={String(pages.length)} />
-              <Stat label="Projects" value={String(new Set(pages.map(({ project }) => project.id)).size)} />
-              <Stat label="Contributors" value={String(uniqueContributors.size)} />
-            </div>
-          </SummonPanel>
-        </aside>
-      </div>
-    </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+    </>
   );
 }
 
-function QuickAction({ icon: Icon, label, href }: { icon: typeof FileText; label: string; href: string }) {
+/** Every accessible page, newest first, narrowed by search, category and context, ten at a time. */
+function KnowledgeLibrary(props: {
+  workspaceSlug: string;
+  entries: TKnowledgeEntry[];
+  query: string;
+  contextOptions: TKnowledgeContextOptions;
+  loading: boolean;
+  error: unknown;
+  onRetry: () => void;
+}) {
+  const [category, setCategory] = useState(ALL_CATEGORIES);
+  const [contextFilter, setContextFilter] = useState<TKnowledgeContextFilter>("all");
+  const [page, setPage] = useState(1);
+  const categories = knowledgeCategories(props.entries);
+  const filtered = filterKnowledge(props.entries, { query: props.query, category, context: contextFilter });
+  const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)));
+  const searching = Boolean(props.query.trim());
+  const narrowed = searching || category !== ALL_CATEGORIES || contextFilter !== "all";
+  const categoryTabs: TSectionTab<string>[] = [
+    { value: ALL_CATEGORIES, label: "All", icon: SquaresFourIcon },
+    ...categories.map((value) => ({ value, label: categoryLabel(value), icon: NoteIcon })),
+  ];
+
   return (
-    <Link href={href} className="flex items-center gap-3 rounded-lg px-2 py-2.5 text-12 text-primary hover:bg-layer-1">
-      <Icon className="size-4 text-accent-primary" />
-      <span className="flex-1">{label}</span>
-      <ChevronRight className="size-3.5 text-tertiary" />
-    </Link>
+    <section>
+      <SummonSectionHeader title="Library" count={filtered.length} className="mb-3" />
+      <SummonTableShell
+        filters={
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            {categories.length ? (
+              <SectionTabs
+                items={categoryTabs}
+                value={category}
+                onValueChange={(value) => {
+                  setCategory(value);
+                  setPage(1);
+                }}
+                label="Knowledge categories"
+              />
+            ) : (
+              <span className="text-12 text-tertiary">Most recently updated first</span>
+            )}
+            <ContextFilter
+              value={contextFilter}
+              options={props.contextOptions}
+              onChange={(value) => {
+                setContextFilter(value);
+                setPage(1);
+              }}
+            />
+          </div>
+        }
+      >
+        {searching ? (
+          <Link
+            href={askHref(props.workspaceSlug, props.query)}
+            className="flex items-center gap-3 border-b border-subtle px-3.5 py-2.5 text-13 text-primary hover:bg-layer-1"
+          >
+            <span className="grid size-7 flex-none place-items-center rounded-md bg-accent-subtle text-accent-primary">
+              <Sparkles aria-hidden className="size-3.5" />
+            </span>
+            <span className="min-w-0 flex-1 truncate">
+              Ask Summon about <q className="font-medium">{props.query.trim()}</q>
+            </span>
+            <ArrowUpRight aria-hidden className="size-4 flex-none text-tertiary" />
+          </Link>
+        ) : null}
+        <div className="px-3.5">
+          <SummonRequestState
+            loading={props.loading}
+            error={props.error}
+            empty={!props.loading && !filtered.length}
+            emptyAsset="knowledge"
+            emptyTitle={narrowed ? "No pages match" : "No knowledge yet"}
+            emptyMessage={
+              narrowed
+                ? "Try another word or context, or ask Summon instead."
+                : "Pages you can access in your projects show up here."
+            }
+            onRetry={props.onRetry}
+          />
+        </div>
+        <LibraryTable
+          workspaceSlug={props.workspaceSlug}
+          entries={filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)}
+          showCategory={categories.length > 0}
+        />
+        <SummonPagination
+          page={currentPage}
+          pageSize={PAGE_SIZE}
+          total={filtered.length}
+          noun="pages"
+          onPageChange={setPage}
+        />
+      </SummonTableShell>
+    </section>
   );
 }
-function Stat({ label, value }: { label: string; value: string }) {
+
+/** Title and date always; project, category and editor join as the width allows. */
+function LibraryTable(props: { workspaceSlug: string; entries: TKnowledgeEntry[]; showCategory: boolean }) {
+  const { getUserDetails } = useMember();
+  if (!props.entries.length) return null;
   return (
-    <div className="rounded-xl border border-subtle p-3">
-      <p className="text-12 text-tertiary">{label}</p>
-      <p className="mt-1 truncate text-sm font-semibold text-primary">{value}</p>
-    </div>
+    <table className="w-full table-fixed text-left text-13">
+      <thead className="border-b border-subtle text-12 text-tertiary">
+        <tr>
+          <th className="px-3.5 py-2.5 font-medium">Title</th>
+          <th className="hidden w-48 px-3.5 py-2.5 font-medium md:table-cell">Project</th>
+          {props.showCategory ? (
+            <th className="hidden w-36 px-3.5 py-2.5 font-medium lg:table-cell">Category</th>
+          ) : null}
+          <th className="w-28 px-3.5 py-2.5 font-medium">Updated</th>
+          <th className="hidden w-40 px-3.5 py-2.5 font-medium lg:table-cell">Updated by</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-subtle">
+        {props.entries.map((entry) => (
+          <tr key={entry.page.id} className="hover:bg-layer-1">
+            <td className="px-3.5 py-2.5">
+              <Link href={pageHref(props.workspaceSlug, entry)} className="flex min-w-0 items-center gap-2">
+                <FileText aria-hidden className="size-4 flex-none text-tertiary" />
+                <span className="min-w-0">
+                  <span className="block truncate font-medium text-primary">{entry.page.name || "Untitled page"}</span>
+                  <span className="block truncate text-12 text-tertiary md:hidden">{entry.project.name}</span>
+                </span>
+              </Link>
+            </td>
+            <td className="hidden truncate px-3.5 py-2.5 text-secondary md:table-cell">{entry.project.name}</td>
+            {props.showCategory ? (
+              <td className="hidden px-3.5 py-2.5 text-secondary lg:table-cell">
+                {categoryLabel(entry.context?.category)}
+              </td>
+            ) : null}
+            <td className="px-3.5 py-2.5 text-secondary tabular-nums">{formatDate(entry)}</td>
+            <td className="hidden truncate px-3.5 py-2.5 text-secondary lg:table-cell">
+              {(entry.page.updated_by && getUserDetails(entry.page.updated_by)?.display_name) || "—"}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
-function Empty({ text, asset }: { text: string; asset: CompactAssetType }) {
-  return <EmptyStateCompact assetKey={asset} assetClassName="size-20" title={text} rootClassName="py-4" />;
+
+const CONTEXT_GROUPS = [
+  { kind: "project", label: "Project", icon: FolderKanban },
+  { kind: "client", label: "Client", icon: Users },
+  { kind: "opportunity", label: "Opportunity", icon: BriefcaseBusiness },
+] as const;
+
+/** Narrow the library to one project, client or (for people who may see deals) opportunity. */
+function ContextFilter(props: {
+  value: TKnowledgeContextFilter;
+  options: TKnowledgeContextOptions;
+  onChange: (value: TKnowledgeContextFilter) => void;
+}) {
+  const [kind, id] = props.value.split(":");
+  const group = CONTEXT_GROUPS.find((item) => item.kind === kind);
+  const selected = group ? props.options[group.kind].find((option) => option.id === id) : undefined;
+  const Icon = group?.icon ?? Layers;
+  return (
+    <Menu.Root>
+      <Menu.Trigger className={CHIP_CLASSNAME} aria-label={`Context: ${selected?.label ?? "All contexts"}. Change`}>
+        <Icon aria-hidden />
+        <span className="max-w-48 truncate">{selected?.label ?? "All contexts"}</span>
+        <ChevronDown aria-hidden />
+      </Menu.Trigger>
+      <Menu.Portal>
+        <Menu.Positioner side="bottom" align="end" sideOffset={4} className="z-[120]">
+          <Menu.Popup className={OPTION_POPUP_CLASSNAME}>
+            <OptionItem
+              label="All contexts"
+              icon={<Layers aria-hidden className="size-4 text-secondary" />}
+              selected={props.value === "all"}
+              onClick={() => props.onChange("all")}
+            />
+            {CONTEXT_GROUPS.filter((item) => props.options[item.kind].length).map((item) => (
+              <OptionSubmenu
+                key={item.kind}
+                icon={item.icon}
+                label={item.label}
+                options={props.options[item.kind]}
+                trailing={kind === item.kind ? <Check aria-hidden className="size-4 text-accent-primary" /> : null}
+                isChecked={(optionId) => kind === item.kind && optionId === id}
+                onPick={(optionId) => props.onChange(`${item.kind}:${optionId}`)}
+              />
+            ))}
+          </Menu.Popup>
+        </Menu.Positioner>
+      </Menu.Portal>
+    </Menu.Root>
+  );
+}
+
+/** Pick the project, create an empty page there and open it. */
+function NewPageMenu({ workspaceSlug }: { workspaceSlug: string }) {
+  const router = useRouter();
+  const { joinedProjectIds, getProjectById } = useProject();
+  const [creating, setCreating] = useState(false);
+  const projects = uniqueOptions(joinedProjectIds.map((id) => ({ id, label: getProjectById(id)?.name ?? id })));
+
+  const create = async (projectId: string) => {
+    setCreating(true);
+    try {
+      const created = await pageService.create(workspaceSlug, projectId, { name: "", access: EPageAccess.PUBLIC });
+      router.push(`/${workspaceSlug}/projects/${projectId}/pages/${created.id}/`);
+    } catch (error) {
+      setToast({ type: TOAST_TYPE.ERROR, title: "Couldn't create the page", message: summonErrorMessage(error) });
+      setCreating(false);
+    }
+  };
+
+  return (
+    <OptionMenuScope options={projects}>
+      <Menu.Root>
+        <Menu.Trigger
+          render={<Button size="lg" loading={creating} disabled={!projects.length || creating} />}
+          aria-label="New page. Choose a project"
+        >
+          <Plus aria-hidden />
+          New page
+        </Menu.Trigger>
+        <Menu.Portal>
+          <Menu.Positioner side="bottom" align="end" sideOffset={4} className="z-[120]">
+            <OptionPopup
+              label="Choose a project"
+              options={projects}
+              isChecked={() => false}
+              onPick={(projectId) => void create(projectId)}
+            />
+          </Menu.Positioner>
+        </Menu.Portal>
+      </Menu.Root>
+    </OptionMenuScope>
+  );
 }

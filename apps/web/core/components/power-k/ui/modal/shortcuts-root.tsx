@@ -42,7 +42,7 @@ export function ShortcutsModal(props: Props) {
         if (!open) handleClose();
       }}
     >
-      <Dialog.Panel className="sm:max-w-md">
+      <Dialog.Panel className="md:max-w-md">
         <div className="flex h-[61vh] w-full flex-col space-y-4 overflow-hidden rounded-lg bg-surface-1 py-5 shadow-raised-200 sm:w-[28rem]">
           <Dialog.Title className="flex justify-between px-5">
             <span className="text-16 font-medium">Keyboard shortcuts</span>

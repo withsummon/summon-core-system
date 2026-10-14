@@ -71,7 +71,7 @@ export const IssuePeekOverview = observer(function IssuePeekOverview(props: TIss
       >
         <Dialog.Panel
           aria-label="Work item details"
-          className="top-0 right-0 left-auto h-full max-h-none w-full translate-x-0 translate-y-0 rounded-none sm:w-1/2 sm:max-w-none"
+          className="h-full max-h-none w-full rounded-none md:top-0 md:right-0 md:left-auto md:max-h-none md:w-1/2 md:max-w-none md:translate-x-0 md:translate-y-0 md:rounded-none"
         >
           <SidePeekView anchor={anchor} handleClose={handleClose} issueDetails={issueDetails} />
         </Dialog.Panel>
@@ -84,7 +84,9 @@ export const IssuePeekOverview = observer(function IssuePeekOverview(props: TIss
       >
         <Dialog.Panel
           aria-label="Work item details"
-          className={peekMode === "modal" ? "h-[70%] w-[95%] sm:w-3/5 sm:max-w-none" : "size-[95%] sm:max-w-none"}
+          className={
+            peekMode === "modal" ? "h-[70%] w-[95%] md:w-3/5 md:max-w-none" : "size-[95%] md:size-[95%] md:max-w-none"
+          }
         >
           {peekMode === "modal" && (
             <SidePeekView anchor={anchor} handleClose={handleClose} issueDetails={issueDetails} />

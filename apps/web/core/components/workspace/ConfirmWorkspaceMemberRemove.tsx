@@ -39,7 +39,7 @@ export const ConfirmWorkspaceMemberRemove = observer(function ConfirmWorkspaceMe
         if (!open) handleClose();
       }}
     >
-      <Dialog.Panel className="sm:max-w-[40rem]">
+      <Dialog.Panel className="md:max-w-[40rem]">
         <div className="px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
           <div className="sm:flex sm:items-start">
             <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-danger-subtle sm:mx-0 sm:h-10 sm:w-10">
