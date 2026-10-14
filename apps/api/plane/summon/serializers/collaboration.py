@@ -20,9 +20,11 @@ from plane.summon.serializers.shapes import (
     MeetingWorkItemReadSerializer,
     PageRefSerializer,
     ProjectRefSerializer,
+    MeetingAttendeeSerializer,
+    TranscriptSegmentSerializer,
     UserRefSerializer,
 )
-from plane.db.models import Page, ProjectMember, WorkspaceMember
+from plane.db.models import Page, ProjectMember, ProjectPage, WorkspaceMember
 from plane.summon.models import (
     Meeting,
     MeetingParticipant,
@@ -30,7 +32,8 @@ from plane.summon.models import (
     ResourceLink,
     SummonPageContext,
 )
-from plane.summon.services.meeting_transcript import write_meeting_transcript
+from plane.summon.services.meeting_transcript import transcript_segments, write_meeting_transcript
+from plane.summon.services.tldv import TLDV_SOURCE, tldv_meeting_url
 from plane.summon.services.page_document import summon_document_metadata
 
 
@@ -160,6 +163,9 @@ class MeetingSerializer(CollaborationSerializer):
     recording_asset_detail = serializers.SerializerMethodField()
     transcript_asset_detail = serializers.SerializerMethodField()
     transcript_text = serializers.SerializerMethodField()
+    transcript_segments = serializers.SerializerMethodField()
+    external_url = serializers.SerializerMethodField()
+    attendees = MeetingAttendeeSerializer(many=True, read_only=True)
     summary_page_detail = serializers.SerializerMethodField()
 
     class Meta:
@@ -189,6 +195,10 @@ class MeetingSerializer(CollaborationSerializer):
             "summary_output_tokens",
             "transcript",
             "transcript_text",
+            "transcript_segments",
+            "external_source",
+            "external_url",
+            "attendees",
             "organizer",
             "participant_ids",
             "participants",
@@ -196,7 +206,7 @@ class MeetingSerializer(CollaborationSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["organizer", "created_at", "updated_at"]
+        read_only_fields = ["organizer", "external_source", "created_at", "updated_at"]
 
     def validate(self, attrs):
         errors = {}
@@ -254,7 +264,15 @@ class MeetingSerializer(CollaborationSerializer):
         participant_ids = validated_data.pop("participant_ids", None)
         transcript = validated_data.pop("transcript", None)
         old_recording_id = instance.recording_asset_id
+        old_project_id = instance.project_id
         instance = super().update(instance, validated_data)
+        if instance.project_id != old_project_id and self._is_canonical_meeting_page(instance):
+            # The transcript/minutes page is filed under the meeting's project, so it moves with the meeting.
+            ProjectPage.objects.filter(page=instance.summary_page, project_id=old_project_id).delete()
+            if instance.project_id:
+                ProjectPage.objects.get_or_create(
+                    workspace=self.workspace, project=instance.project, page=instance.summary_page
+                )
         if participant_ids is not None:
             self._replace_participants(instance, participant_ids)
         if transcript is not None:
@@ -342,6 +360,18 @@ class MeetingSerializer(CollaborationSerializer):
             props.get("summon_transcript_meeting_id"),
             props.get("summon_summary_meeting_id"),
         }
+
+    @extend_schema_field(TranscriptSegmentSerializer(many=True))
+    def get_transcript_segments(self, instance):
+        text = self.get_transcript_text(instance)
+        if not text:
+            return []
+        return transcript_segments(summon_document_metadata(instance.summary_page), text)
+
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_external_url(self, instance):
+        """Where the source recording lives when the meeting was imported (tl;dv keeps the video)."""
+        return tldv_meeting_url(instance.external_id) if instance.external_source == TLDV_SOURCE else ""
 
     @extend_schema_field(OpenApiTypes.STR)
     def get_transcript_text(self, instance):

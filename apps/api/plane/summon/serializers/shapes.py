@@ -87,6 +87,18 @@ class MeetingWorkItemReadSerializer(serializers.Serializer):
     created_at = serializers.DateTimeField()
 
 
+class TranscriptSegmentSerializer(serializers.Serializer):
+    start = serializers.FloatField(allow_null=True)
+    end = serializers.FloatField(allow_null=True)
+    speaker = serializers.CharField(allow_blank=True)
+    text = serializers.CharField()
+
+
+class MeetingAttendeeSerializer(serializers.Serializer):
+    name = serializers.CharField(allow_blank=True)
+    email = serializers.EmailField()
+
+
 class MeetingSummaryPageSerializer(serializers.Serializer):
     id = serializers.UUIDField()
     name = serializers.CharField(allow_blank=True)

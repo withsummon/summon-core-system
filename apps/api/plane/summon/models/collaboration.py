@@ -54,6 +54,9 @@ class Meeting(BaseModel):
     summary_output_tokens = models.PositiveIntegerField(null=True, blank=True)
     external_source = models.CharField(max_length=255, null=True, blank=True)
     external_id = models.CharField(max_length=255, null=True, blank=True)
+    # People an importer saw on the invite ({name, email}), including those outside the workspace; members among
+    # them are also linked as participants.
+    attendees = models.JSONField(default=list, blank=True)
 
     class Meta:
         ordering = ("-starts_at",)

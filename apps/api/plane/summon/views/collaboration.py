@@ -12,8 +12,8 @@ from rest_framework.response import Response
 
 from plane.app.services.llm import LLMError
 from plane.summon.views.base import SummonAPIView, SummonViewSet
-from plane.db.models import Issue, Page, ProjectMember
-from plane.summon.models import Meeting, MeetingWorkItem, ResourceLink, SummonPageContext
+from plane.db.models import Issue, Page, Project, ProjectMember
+from plane.summon.models import Credential, Meeting, MeetingWorkItem, ResourceLink, SummonPageContext
 from plane.summon.permissions import SummonWorkspacePermission
 from plane.summon.serializers.collaboration import (
     MEETING_READ_PREFETCH,
@@ -34,7 +34,9 @@ from plane.summon.services.collaboration import link_work_item
 from plane.summon.services.commercial import accessible_pages
 from plane.summon.services.context import page_href, page_text
 from plane.summon.services.reports import visible_project_ids
+from plane.summon.services.credential import audit, can_use, decrypt_secret
 from plane.summon.services.meeting_summary import summarize_meeting
+from plane.summon.services.tldv import TLDV_SOURCE, TldvError, sync_tldv_meetings
 from plane.summon.views.commercial import WorkspaceContextMixin
 
 
@@ -174,6 +176,73 @@ class MeetingSummaryView(WorkspaceContextMixin, SummonAPIView):
             data["error_code"] = error.code
             return Response(data, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         return Response(MeetingSerializer(meeting, context=self.get_serializer_context()).data)
+
+
+class TldvImportRequestSerializer(serializers.Serializer):
+    credential = serializers.UUIDField()
+    project = serializers.UUIDField()
+
+
+class TldvImportView(WorkspaceContextMixin, SummonAPIView):
+    permission_classes = [SummonWorkspacePermission]
+    summon_tool = "none"  # spends a stored tl;dv key; imports stay with people in the app
+
+    @extend_schema(
+        summary="Import tl;dv meetings",
+        description=(
+            "Import tl;dv meetings this workspace has not seen yet, with their speaker transcript, AI notes and "
+            "attendees. Each meeting is filed under the client project its attendees or title match, else under "
+            "`project`. Imports a batch per call; `remaining` counts what the next call will pick up."
+        ),
+        request=TldvImportRequestSerializer,
+        responses={
+            200: inline_serializer(
+                "TldvImportResult",
+                {"meetings": MeetingSerializer(many=True), "remaining": serializers.IntegerField()},
+            ),
+            400: ErrorCodeSerializer,
+            502: ErrorCodeSerializer,
+        },
+    )
+    def post(self, request, slug):
+        payload = TldvImportRequestSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        workspace = self.get_workspace()
+        credential = Credential.objects.filter(
+            workspace=workspace,
+            id=payload.validated_data["credential"],
+            provider=TLDV_SOURCE,
+            status=Credential.Status.ACTIVE,
+        ).first()
+        if not credential or not can_use(credential, request.user):
+            return Response(
+                {"error_code": "tldv_credential_required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        project_id = payload.validated_data["project"]
+        project_ids = set(accessible_project_ids(request, slug, write=True))
+        if project_id not in project_ids:
+            return Response(
+                {"error_code": "project_required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        audit(credential, request.user, "use", request, {"purpose": "tldv_import"})
+        try:
+            meetings, remaining = sync_tldv_meetings(
+                workspace,
+                Project.objects.get(id=project_id),
+                request.user,
+                decrypt_secret(credential.secret_ciphertext),
+                project_ids,
+            )
+        except TldvError as error:
+            return Response({"error_code": error.code}, status=status.HTTP_502_BAD_GATEWAY)
+        return Response(
+            {
+                "meetings": MeetingSerializer(meetings, many=True, context=self.get_serializer_context()).data,
+                "remaining": remaining,
+            }
+        )
 
 
 class MeetingWorkItemDetailView(MeetingWorkItemView):

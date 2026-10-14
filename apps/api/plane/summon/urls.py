@@ -37,6 +37,7 @@ from plane.summon.views import (
     LLMStatusView,
     MCPStatusView,
     MeetingSummaryView,
+    TldvImportView,
     MeetingViewSet,
     MeetingWorkItemDetailView,
     MeetingWorkItemView,
@@ -229,6 +230,7 @@ urlpatterns = [
     ),
     path("workspaces/<str:slug>/meetings/", meeting_list, name="summon-meeting-list"),
     path("workspaces/<str:slug>/meetings/<uuid:pk>/", meeting_detail, name="summon-meeting-detail"),
+    path("workspaces/<str:slug>/meetings/import/tldv/", TldvImportView.as_view(), name="summon-meeting-import-tldv"),
     path(
         "workspaces/<str:slug>/meetings/<uuid:meeting_id>/summary/",
         MeetingSummaryView.as_view(),

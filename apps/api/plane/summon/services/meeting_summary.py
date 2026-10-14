@@ -148,6 +148,13 @@ def summarize_meeting(meeting, actor, selection, transcript_source=None):
                 name=f"{meeting.title} MoM",
                 is_global=False,
             )
+        previous = summon_document_metadata(page) if page and page.pk else {}
+        # Speaker turns belong to the transcript; keep them while the minutes are built from that same text.
+        kept_segments = (
+            {"source_segments": previous["source_segments"]}
+            if previous.get("source_segments") and (previous.get("source_transcript") or "").strip() == transcript
+            else {}
+        )
         page.name = f"{meeting.title} MoM"
         page.view_props = {
             **(page.view_props if isinstance(page.view_props, dict) else {}),
@@ -160,6 +167,7 @@ def summarize_meeting(meeting, actor, selection, transcript_source=None):
                 "kind": "summon_mom",
                 "markdown": markdown,
                 "source_transcript": transcript,
+                **kept_segments,
                 **result,
                 "citations": bundle.citations,
                 "context_truncated": bundle.truncated or source_truncated,
