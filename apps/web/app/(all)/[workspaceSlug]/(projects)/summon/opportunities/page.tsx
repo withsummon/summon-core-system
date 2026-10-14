@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import useSWR from "swr";
@@ -87,10 +87,20 @@ function SummonOpportunitiesPageContent({ params }: Route.ComponentProps) {
     error: detailError,
     isLoading: detailLoading,
     mutate: mutateDetail,
-  } = useSWR(selected ? ["summon-opportunity", workspaceSlug, selected.id] : null, () =>
-    summonService.getOpportunityDetail(workspaceSlug, selected!.id)
+  } = useSWR(
+    selected ? ["summon-opportunity", workspaceSlug, selected.id] : null,
+    () => summonService.getOpportunityDetail(workspaceSlug, selected!.id),
+    // Keep the last opportunity on screen while the next one loads, so a switch never drops to a loading state.
+    { keepPreviousData: true }
   );
-  const inspected = detail && detail.id === selected?.id ? detail : undefined;
+  const inspected = selected && !(detailError && detail?.id !== selected.id) ? detail : undefined;
+  const switching = Boolean(inspected && inspected.id !== selected?.id);
+  // Each opportunity enters from the top of the pane rather than at the last one's scroll offset.
+  const inspectorScrollRef = useRef<HTMLDivElement>(null);
+  const shownId = inspected?.id;
+  useEffect(() => {
+    inspectorScrollRef.current?.scrollTo({ top: 0 });
+  }, [shownId]);
 
   const hrefFor = (next: { stage?: TStageFilter; opportunity?: string | null }) =>
     opportunitiesHref(workspaceSlug, { stage, opportunity: requestedId, ...next });
@@ -169,12 +179,14 @@ function SummonOpportunitiesPageContent({ params }: Route.ComponentProps) {
           </div>
 
           <div
+            ref={inspectorScrollRef}
             className={`vertical-scrollbar min-h-0 overflow-y-auto bg-layer-1/25 p-4 lg:p-5 @3xl:block ${explicit ? "block" : "hidden"}`}
           >
             <OpportunityInspectorPane
               workspaceSlug={workspaceSlug}
               selectedId={selected?.id}
               inspected={inspected}
+              switching={switching}
               detailLoading={detailLoading}
               detailError={detailError}
               backHref={hrefFor({ opportunity: null })}
@@ -289,21 +301,29 @@ function OpportunityInspectorPane(props: {
   workspaceSlug: string;
   selectedId: string | undefined;
   inspected: Parameters<typeof OpportunityInspector>[0]["detail"] | undefined;
+  switching: boolean;
   detailLoading: boolean;
   detailError: unknown;
   backHref: string;
   onChanged: () => Promise<unknown>;
   onRetry: () => void;
 }) {
-  const { workspaceSlug, selectedId, inspected, detailLoading, detailError, backHref, onChanged, onRetry } = props;
+  const { workspaceSlug, selectedId, inspected, switching, detailLoading, detailError, backHref, onChanged, onRetry } =
+    props;
   return inspected ? (
-    <OpportunityInspector
-      workspaceSlug={workspaceSlug}
-      detail={inspected}
-      onChanged={onChanged}
-      backHref={backHref}
-      backClassName="@3xl:hidden"
-    />
+    // The outgoing opportunity dims and stops taking input until the next one arrives and rises in.
+    <div
+      aria-busy={switching}
+      className={`transition-opacity duration-150 ease-out motion-reduce:transition-none ${switching ? "pointer-events-none opacity-50" : ""}`}
+    >
+      <OpportunityInspector
+        workspaceSlug={workspaceSlug}
+        detail={inspected}
+        onChanged={onChanged}
+        backHref={backHref}
+        backClassName="@3xl:hidden"
+      />
+    </div>
   ) : (
     <SummonRequestState
       loading={Boolean(selectedId) && (detailLoading || !detailError)}

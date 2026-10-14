@@ -19,7 +19,7 @@ import { Input } from "@plane/ui";
 import type { ISummonOpportunityDetail, TSummonOpportunityStage } from "@plane/types";
 import { SummonField } from "@/components/summon/forms";
 import { formatSummonDate } from "@/components/summon/date";
-import { summonErrorMessage, SummonPanel } from "@/components/summon/screen";
+import { summonErrorMessage, SummonPanel, ViewPanel } from "@/components/summon/screen";
 import { useMember } from "@/hooks/store/use-member";
 import { useWorkspaceMoney } from "@/components/summon/use-workspace-money";
 import { summonService } from "@/services/summon.service";
@@ -71,37 +71,40 @@ export const OpportunityInspector = observer(function OpportunityInspector(props
         </Link>
       ) : null}
       <article className="@container flex min-w-0 flex-col gap-4" aria-labelledby={`opportunity-${detail.id}`}>
-        <OpportunityHeader workspaceSlug={workspaceSlug} detail={detail} />
+        {/* Switching opportunities remounts the sections so they rise in again; saving the same one does not. */}
+        <ViewPanel value={detail.id}>
+          <OpportunityHeader workspaceSlug={workspaceSlug} detail={detail} />
 
-        <StageTrack stage={detail.stage} />
+          <StageTrack stage={detail.stage} />
 
-        <dl className="grid grid-cols-2 overflow-hidden rounded-xl bg-layer-1/60 ring-1 ring-subtle @xl:grid-cols-4">
-          <Fact label="Value" value={money(detail.value) || "Not set"} />
-          <Fact label="Probability" value={`${detail.probability}%`}>
-            <span className="mt-2 block h-1 overflow-hidden rounded-full bg-layer-3">
-              <span
-                className="block h-full rounded-full bg-accent-primary"
-                style={{ width: `${detail.probability}%` }}
-              />
-            </span>
-          </Fact>
-          <Fact label="Expected close" value={expectedCloseDate} />
-          <Fact label="Owner" value={owner || "Not assigned"} />
-        </dl>
+          <dl className="grid grid-cols-2 overflow-hidden rounded-xl bg-layer-1/60 ring-1 ring-subtle @xl:grid-cols-4">
+            <Fact label="Value" value={money(detail.value) || "Not set"} />
+            <Fact label="Probability" value={`${detail.probability}%`}>
+              <span className="mt-2 block h-1 overflow-hidden rounded-full bg-layer-3">
+                <span
+                  className="block h-full rounded-full bg-accent-primary"
+                  style={{ width: `${detail.probability}%` }}
+                />
+              </span>
+            </Fact>
+            <Fact label="Expected close" value={expectedCloseDate} />
+            <Fact label="Owner" value={owner || "Not assigned"} />
+          </dl>
 
-        <StageForm key={detail.id} workspaceSlug={workspaceSlug} detail={detail} onChanged={onChanged} />
+          <StageForm workspaceSlug={workspaceSlug} detail={detail} onChanged={onChanged} />
 
-        <DeliveryHandoffCard workspaceSlug={workspaceSlug} opportunity={detail} onChanged={onChanged} />
+          <DeliveryHandoffCard workspaceSlug={workspaceSlug} opportunity={detail} onChanged={onChanged} />
 
-        <div className="grid gap-4 @2xl:grid-cols-2">
-          <AboutPanel detail={detail} />
-          <ContactsPanel workspaceSlug={workspaceSlug} detail={detail} />
-          <ActionItemsPanel workspaceSlug={workspaceSlug} detail={detail} />
-          <PagesAndMeetingsPanel workspaceSlug={workspaceSlug} detail={detail} />
-          <RecentActivityPanel detail={detail} />
-        </div>
+          <div className="grid gap-4 @2xl:grid-cols-2">
+            <AboutPanel detail={detail} />
+            <ContactsPanel workspaceSlug={workspaceSlug} detail={detail} />
+            <ActionItemsPanel workspaceSlug={workspaceSlug} detail={detail} />
+            <PagesAndMeetingsPanel workspaceSlug={workspaceSlug} detail={detail} />
+            <RecentActivityPanel detail={detail} />
+          </div>
 
-        <CreateFromOpportunity workspaceSlug={workspaceSlug} detail={detail} />
+          <CreateFromOpportunity workspaceSlug={workspaceSlug} detail={detail} />
+        </ViewPanel>
       </article>
     </div>
   );
