@@ -25,9 +25,10 @@ import { getButtonStyling } from "@plane/propel/button";
 import { Popover } from "@plane/propel/popover";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { AvatarGroup, Avatar } from "@plane/ui";
-import { copyUrlToClipboard } from "@plane/utils";
+import { convertMinutesToHoursMinutesString, copyUrlToClipboard } from "@plane/utils";
 import { PageHead } from "@/components/core/page-title";
 import { ProjectDropdown } from "@/components/dropdowns/project/dropdown";
+import { formatSummonDate } from "@/components/summon/date";
 import { SectionTabs } from "@/components/summon/section-tabs";
 import type { TSectionTab } from "@/components/summon/section-tabs";
 import { StatusBadge } from "@/components/summon/status-badge";
@@ -54,21 +55,59 @@ const PANES: TSectionTab<TPane>[] = [
   { value: "transcript", label: "Transcript", icon: ChatTextIcon },
 ];
 
-const DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
-  weekday: "short",
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-});
-const TIME_FORMATTER = new Intl.DateTimeFormat(undefined, { timeStyle: "short" });
 const AUDIO_TYPES = "audio/mpeg,audio/mp4,audio/x-m4a,audio/wav,audio/x-wav,audio/webm,audio/ogg";
 
-function durationLabel(startsAt: string, endsAt: string | null) {
-  if (!endsAt) return null;
-  const minutes = Math.round((new Date(endsAt).getTime() - new Date(startsAt).getTime()) / 60000);
-  if (minutes <= 0) return null;
-  if (minutes < 60) return `${minutes} min`;
-  return minutes % 60 ? `${Math.floor(minutes / 60)} h ${minutes % 60} min` : `${minutes / 60} h`;
+/** When the meeting ran, and how long: "Tue, Oct 13, 2026 · 09:10 AM–09:45 AM · 34m". */
+function MeetingTime({ startsAt, endsAt }: { startsAt: string; endsAt: string | null }) {
+  const minutes = endsAt ? Math.round((new Date(endsAt).getTime() - new Date(startsAt).getTime()) / 60000) : 0;
+  return (
+    <>
+      <span className="inline-flex items-center gap-1.5">
+        <CalendarDays className="size-3.5 text-tertiary" aria-hidden="true" />
+        <time dateTime={startsAt}>{formatSummonDate(startsAt, "", "EEE, MMM d, yyyy")}</time>
+      </span>
+      <span className="inline-flex items-center gap-1.5 tabular-nums">
+        <Clock3 className="size-3.5 text-tertiary" aria-hidden="true" />
+        {formatSummonDate(startsAt, "", "hh:mm a")}
+        {endsAt ? `–${formatSummonDate(endsAt, "", "hh:mm a")}` : ""}
+        {minutes > 0 ? (
+          <span className="text-tertiary">· {convertMinutesToHoursMinutesString(minutes).trim()}</span>
+        ) : null}
+      </span>
+    </>
+  );
+}
+
+/** The meeting's project, changeable in place, with a link to open it. */
+function MeetingProject({
+  data,
+  workspaceSlug,
+  onMoveToProject,
+}: Pick<Props, "data" | "workspaceSlug" | "onMoveToProject">) {
+  return (
+    <span className="-ml-1.5 inline-flex items-center">
+      <ProjectDropdown
+        value={data.project}
+        onChange={(projectId) => {
+          if (projectId !== data.project) onMoveToProject(projectId);
+        }}
+        multiple={false}
+        buttonVariant="transparent-with-text"
+        buttonClassName="h-6 px-1.5 text-12 text-secondary"
+        placeholder="No project"
+        dropdownArrow
+      />
+      {data.project_detail ? (
+        <Link
+          href={`/${workspaceSlug}/summon/projects/${data.project_detail.id}/`}
+          aria-label={`Open ${data.project_detail.name}`}
+          className="ml-1 grid size-5 place-items-center rounded-sm text-tertiary hover:bg-layer-1 hover:text-primary"
+        >
+          <ArrowUpRight className="size-3.5" aria-hidden="true" />
+        </Link>
+      ) : null}
+    </span>
+  );
 }
 
 /** Who was in the meeting: the importer's invite list when there is one, else the linked members. */
@@ -148,6 +187,95 @@ function UploadRecording({
   );
 }
 
+function RecordingSlot({
+  data,
+  audioRef,
+  onPlayhead,
+  transcribing,
+  uploading,
+  onUpload,
+}: {
+  data: ISummonMeeting;
+  audioRef: React.RefObject<HTMLAudioElement>;
+  onPlayhead: (seconds: number) => void;
+  transcribing: boolean;
+  uploading: boolean;
+  onUpload: (file: File) => void;
+}) {
+  const recordingUrl = data.recording_asset_detail?.url;
+  if (recordingUrl)
+    return (
+      <div className="space-y-2">
+        <audio
+          ref={audioRef}
+          controls
+          preload="metadata"
+          src={recordingUrl}
+          className="h-10 w-full"
+          onTimeUpdate={(event) => onPlayhead(event.currentTarget.currentTime)}
+        >
+          <track kind="captions" />
+        </audio>
+        <UploadRecording
+          uploading={uploading}
+          onUpload={onUpload}
+          className="inline-flex items-center gap-1.5 text-12 text-tertiary hover:text-primary"
+        >
+          <Upload className="size-3.5" aria-hidden="true" />
+          {uploading ? "Uploading…" : "Replace recording"}
+        </UploadRecording>
+      </div>
+    );
+  if (data.external_url)
+    return (
+      <div className="flex items-center gap-3 rounded-lg border border-subtle bg-surface-1 p-3">
+        <span className="grid size-9 shrink-0 place-items-center rounded-md bg-layer-1 text-secondary">
+          <Video className="size-4" aria-hidden="true" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-13 font-medium text-primary">Recording in tl;dv</p>
+          <p className="text-12 text-tertiary">Timestamps open the video at that moment.</p>
+        </div>
+        <a
+          href={data.external_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={getButtonStyling("secondary", "sm")}
+        >
+          <PlayCircle className="size-3.5" aria-hidden="true" /> Watch
+        </a>
+      </div>
+    );
+  if (transcribing)
+    return (
+      <p className="flex items-center gap-2 text-13 text-secondary" role="status">
+        <LoaderCircle className="size-4 animate-spin text-accent-primary" aria-hidden="true" />
+        Transcribing the recording…
+      </p>
+    );
+  return (
+    <UploadRecording
+      uploading={uploading}
+      onUpload={onUpload}
+      className="flex items-center gap-3 rounded-lg border border-dashed border-strong bg-surface-1 p-3 focus-within:outline-2 focus-within:outline-accent-strong hover:bg-layer-transparent-hover"
+    >
+      <span className="grid size-9 shrink-0 place-items-center rounded-md bg-accent-subtle text-accent-primary">
+        {uploading ? (
+          <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+        ) : (
+          <Upload className="size-4" aria-hidden="true" />
+        )}
+      </span>
+      <span className="min-w-0">
+        <span className="block text-13 font-medium text-primary">
+          {uploading ? "Uploading…" : "Upload the recording"}
+        </span>
+        <span className="block text-12 text-tertiary">Audio is transcribed with timestamps.</span>
+      </span>
+    </UploadRecording>
+  );
+}
+
 export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
   data,
   workspaceSlug,
@@ -163,8 +291,6 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
   const audioRef = useRef<HTMLAudioElement>(null);
   const recordingUrl = data.recording_asset_detail?.url;
   const transcribing = data.summary_error === "transcribing";
-  const duration = durationLabel(data.starts_at, data.ends_at);
-  const startsAt = new Date(data.starts_at);
 
   // A moment plays from Summon's own recording; an imported meeting opens tl;dv, which keeps the video, at that moment.
   let seek: TSeek;
@@ -207,38 +333,8 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
                 <StatusBadge status={data.status} />
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-12 text-secondary">
-                <span className="inline-flex items-center gap-1.5">
-                  <CalendarDays className="size-3.5 text-tertiary" aria-hidden="true" />
-                  <time dateTime={data.starts_at}>{DATE_FORMATTER.format(startsAt)}</time>
-                </span>
-                <span className="inline-flex items-center gap-1.5 tabular-nums">
-                  <Clock3 className="size-3.5 text-tertiary" aria-hidden="true" />
-                  {TIME_FORMATTER.format(startsAt)}
-                  {data.ends_at ? `–${TIME_FORMATTER.format(new Date(data.ends_at))}` : ""}
-                  {duration ? <span className="text-tertiary">· {duration}</span> : null}
-                </span>
-                <span className="-ml-1.5 inline-flex items-center">
-                  <ProjectDropdown
-                    value={data.project}
-                    onChange={(projectId) => {
-                      if (projectId !== data.project) onMoveToProject(projectId);
-                    }}
-                    multiple={false}
-                    buttonVariant="transparent-with-text"
-                    buttonClassName="h-6 px-1.5 text-12 text-secondary"
-                    placeholder="No project"
-                    dropdownArrow
-                  />
-                  {data.project_detail ? (
-                    <Link
-                      href={`/${workspaceSlug}/summon/projects/${data.project_detail.id}/`}
-                      aria-label={`Open ${data.project_detail.name}`}
-                      className="ml-1 grid size-5 place-items-center rounded-sm text-tertiary hover:bg-layer-1 hover:text-primary"
-                    >
-                      <ArrowUpRight className="size-3.5" aria-hidden="true" />
-                    </Link>
-                  ) : null}
-                </span>
+                <MeetingTime startsAt={data.starts_at} endsAt={data.ends_at} />
+                <MeetingProject data={data} workspaceSlug={workspaceSlug} onMoveToProject={onMoveToProject} />
                 <MeetingPeople data={data} />
               </div>
             </div>
@@ -300,71 +396,14 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
             className={`${pane === "transcript" ? "flex" : "max-xl:hidden xl:flex"} min-h-0 flex-col border-subtle bg-surface-2 xl:border-l`}
           >
             <div className="border-b border-subtle p-4">
-              {recordingUrl ? (
-                <div className="space-y-2">
-                  <audio
-                    ref={audioRef}
-                    controls
-                    preload="metadata"
-                    src={recordingUrl}
-                    className="h-10 w-full"
-                    onTimeUpdate={(event) => setPlayhead(event.currentTarget.currentTime)}
-                  >
-                    <track kind="captions" />
-                  </audio>
-                  <UploadRecording
-                    uploading={uploadingRecording}
-                    onUpload={onUploadRecording}
-                    className="inline-flex items-center gap-1.5 text-12 text-tertiary hover:text-primary"
-                  >
-                    <Upload className="size-3.5" aria-hidden="true" />
-                    {uploadingRecording ? "Uploading…" : "Replace recording"}
-                  </UploadRecording>
-                </div>
-              ) : data.external_url ? (
-                <div className="flex items-center gap-3 rounded-lg border border-subtle bg-surface-1 p-3">
-                  <span className="grid size-9 shrink-0 place-items-center rounded-md bg-layer-1 text-secondary">
-                    <Video className="size-4" aria-hidden="true" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-13 font-medium text-primary">Recording in tl;dv</p>
-                    <p className="text-12 text-tertiary">Timestamps open the video at that moment.</p>
-                  </div>
-                  <a
-                    href={data.external_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={getButtonStyling("secondary", "sm")}
-                  >
-                    <PlayCircle className="size-3.5" aria-hidden="true" /> Watch
-                  </a>
-                </div>
-              ) : transcribing ? (
-                <p className="flex items-center gap-2 text-13 text-secondary" role="status">
-                  <LoaderCircle className="size-4 animate-spin text-accent-primary" aria-hidden="true" />
-                  Transcribing the recording…
-                </p>
-              ) : (
-                <UploadRecording
-                  uploading={uploadingRecording}
-                  onUpload={onUploadRecording}
-                  className="flex items-center gap-3 rounded-lg border border-dashed border-strong bg-surface-1 p-3 focus-within:outline-2 focus-within:outline-accent-strong hover:bg-layer-transparent-hover"
-                >
-                  <span className="grid size-9 shrink-0 place-items-center rounded-md bg-accent-subtle text-accent-primary">
-                    {uploadingRecording ? (
-                      <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-                    ) : (
-                      <Upload className="size-4" aria-hidden="true" />
-                    )}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-13 font-medium text-primary">
-                      {uploadingRecording ? "Uploading…" : "Upload the recording"}
-                    </span>
-                    <span className="block text-12 text-tertiary">Audio is transcribed with timestamps.</span>
-                  </span>
-                </UploadRecording>
-              )}
+              <RecordingSlot
+                data={data}
+                audioRef={audioRef}
+                onPlayhead={setPlayhead}
+                transcribing={transcribing}
+                uploading={uploadingRecording}
+                onUpload={onUploadRecording}
+              />
             </div>
             <div className="min-h-0 flex-1 p-4 xl:overflow-y-auto">
               {data.transcript_segments.length ? (

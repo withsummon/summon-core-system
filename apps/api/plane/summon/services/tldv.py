@@ -15,7 +15,6 @@ from urllib.parse import urlparse
 
 import requests
 from django.db import transaction
-from django.utils.dateparse import parse_datetime
 
 from plane.db.models import Project, WorkspaceMember
 from plane.summon.models import ClientContact, Meeting, MeetingParticipant, SummonProjectProfile
@@ -39,13 +38,10 @@ class TldvError(Exception):
 
 
 def parse_happened_at(value):
-    """tl;dv's REST API sends JavaScript `Date.toString()` text ("Wed Oct 14 2026 08:01:15 GMT+0000 (Coordinated
-    Universal Time)"); its webhooks and MCP send ISO 8601. Returns None for anything else."""
+    """tl;dv's REST API sends JavaScript `Date.toString()` text, not ISO 8601: "Wed Oct 14 2026 08:01:15 GMT+0000
+    (Coordinated Universal Time)". Returns None for anything else."""
     if not isinstance(value, str):
         return None
-    parsed = parse_datetime(value)
-    if parsed:
-        return parsed
     try:
         return datetime.strptime(value.split(" (", 1)[0], "%a %b %d %Y %H:%M:%S GMT%z")
     except ValueError:
@@ -78,11 +74,8 @@ class TldvClient:
         except ValueError as exc:
             raise TldvError("tldv_invalid_response") from exc
 
-    def meetings(self, page=1, happened_after=None):
-        params = {"page": page, "limit": 50, "onlyParticipated": "false"}
-        if happened_after:
-            params["from"] = happened_after.isoformat().replace("+00:00", "Z")
-        return self._get("/meetings", params)
+    def meetings(self, page):
+        return self._get("/meetings", {"page": page, "limit": 50, "onlyParticipated": "false"})
 
     def transcript(self, meeting_id):
         return self._get(f"/meetings/{meeting_id}/transcript", allow_missing=True)
@@ -98,7 +91,7 @@ def _clock(seconds):
     return f"{hours:02d}:{minutes:02d}:{secs:02d}" if hours else f"{minutes:02d}:{secs:02d}"
 
 
-def transcript_segments(transcript):
+def _segments(transcript):
     """tl;dv transcript `data` → the segment shape `write_meeting_transcript` stores (times in seconds)."""
     segments = []
     for item in (transcript or {}).get("data") or []:
@@ -118,7 +111,7 @@ def transcript_segments(transcript):
     return segments
 
 
-def segments_text(segments):
+def _segments_text(segments):
     """The plain transcript the summary model reads: one `[mm:ss] Speaker: text` line per segment."""
     lines = []
     for segment in segments:
@@ -141,8 +134,6 @@ def meeting_attendees(meeting):
 
 def _attendee_member_ids(workspace, attendees):
     emails = [attendee["email"] for attendee in attendees]
-    if not emails:
-        return []
     return list(
         WorkspaceMember.objects.filter(workspace=workspace, is_active=True, member__email__in=emails).values_list(
             "member_id", flat=True
@@ -233,15 +224,13 @@ class ProjectMatcher:
 
 
 @transaction.atomic
-def import_tldv_meeting(workspace, project, actor, meeting, transcript=None, notes=None, matcher=None):
-    """Create or update the Summon meeting for one tl;dv meeting payload. Returns (meeting, created)."""
-    starts_at = parse_happened_at(meeting.get("happenedAt"))
-    if not starts_at:
-        raise TldvError("tldv_invalid_meeting")
+def import_tldv_meeting(workspace, project, actor, meeting, transcript=None, notes=None):
+    """Create or update the Summon meeting, in `project`, for one tl;dv meeting payload with a parseable date."""
+    starts_at = parse_happened_at(meeting["happenedAt"])
     duration = meeting.get("duration")
     attendees = meeting_attendees(meeting)
     fields = {
-        "project": (matcher and matcher.match(meeting.get("name"), attendees)) or project,
+        "project": project,
         "title": (meeting.get("name") or "tl;dv meeting")[:255],
         "status": Meeting.Status.COMPLETED,
         "starts_at": starts_at,
@@ -250,7 +239,7 @@ def import_tldv_meeting(workspace, project, actor, meeting, transcript=None, not
         "attendees": attendees,
     }
     # create_defaults replaces defaults on insert, so it carries every field plus the importing organizer.
-    instance, created = Meeting.objects.update_or_create(
+    instance, _created = Meeting.objects.update_or_create(
         workspace=workspace,
         external_source=TLDV_SOURCE,
         external_id=meeting["id"],
@@ -272,10 +261,10 @@ def import_tldv_meeting(workspace, project, actor, meeting, transcript=None, not
             if member_id not in existing
         ]
     )
-    segments = transcript_segments(transcript)
+    segments = _segments(transcript)
     if segments:
-        write_meeting_transcript(instance, actor, segments_text(segments), segments=segments)
-    return instance, created
+        write_meeting_transcript(instance, actor, _segments_text(segments), segments=segments)
+    return instance
 
 
 def sync_tldv_meetings(workspace, project, actor, api_key, project_ids):
@@ -300,14 +289,14 @@ def sync_tldv_meetings(workspace, project, actor, api_key, project_ids):
     pending.sort(key=lambda item: parse_happened_at(item["happenedAt"]), reverse=True)
     imported = []
     for item in pending[:TLDV_IMPORT_BATCH]:
-        meeting, _created = import_tldv_meeting(
-            workspace,
-            project,
-            actor,
-            item,
-            transcript=client.transcript(item["id"]),
-            notes=client.notes(item["id"]),
-            matcher=matcher,
+        imported.append(
+            import_tldv_meeting(
+                workspace,
+                matcher.match(item.get("name"), meeting_attendees(item)) or project,
+                actor,
+                item,
+                transcript=client.transcript(item["id"]),
+                notes=client.notes(item["id"]),
+            )
         )
-        imported.append(meeting)
     return imported, max(len(pending) - TLDV_IMPORT_BATCH, 0)

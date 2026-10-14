@@ -6,6 +6,7 @@ import base64
 from uuid import uuid4
 
 import pytest
+from cryptography.fernet import Fernet
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
@@ -28,6 +29,7 @@ from plane.db.models import (
 )
 from plane.summon.models import (
     Client,
+    ClientContact,
     Credential,
     Meeting,
     MeetingParticipant,
@@ -35,7 +37,10 @@ from plane.summon.models import (
     Opportunity,
     ResourceLink,
     SummonPageContext,
+    SummonProjectProfile,
 )
+from plane.summon.services import tldv
+from plane.summon.services.credential import encrypt_secret
 
 
 def authenticated_user(workspace, role=20):
@@ -176,13 +181,17 @@ def test_meeting_rejects_foreign_or_nontext_transcript_assets(workspace):
 def test_meeting_persists_plain_transcript_in_a_canonical_page(workspace, monkeypatch):
     actor, api = authenticated_user(workspace)
     project = project_with_member(workspace, actor, "TRANSCRIPT")
+    sent = []
     monkeypatch.setattr(
         copy_s3_object,
         "sync_with_external_service",
-        lambda _entity, _html: {
-            "description_json": {"type": "doc", "content": [{"type": "paragraph"}]},
-            "description_binary": base64.b64encode(b"canonical-transcript-page").decode(),
-        },
+        lambda _entity, html: (
+            sent.append(html)
+            or {
+                "description_json": {"type": "doc", "content": [{"type": "paragraph"}]},
+                "description_binary": base64.b64encode(b"canonical-transcript-page").decode(),
+            }
+        ),
     )
     meeting = Meeting.objects.create(
         workspace=workspace,
@@ -207,6 +216,23 @@ def test_meeting_persists_plain_transcript_in_a_canonical_page(workspace, monkey
     assert meeting.summary_page.description_json["type"] == "doc"
     assert meeting.summary_page.view_props["summon_document"]["source_transcript"] == ("Decision: ship the review.")
     assert ProjectPage.objects.filter(workspace=workspace, project=project, page=meeting.summary_page).exists()
+    # Live gets one paragraph per line, escaped.
+    assert sent == ["<p>Decision: ship the review.</p>"]
+
+    # Whisper-style timestamps become timed segments; untimed lines stay as text.
+    timed = api.patch(
+        f"/api/summon/workspaces/{workspace.slug}/meetings/{meeting.id}/",
+        {"transcript": "[00:01:05] Opening & remarks\nUntimed note"},
+        format="json",
+    )
+
+    assert timed.status_code == status.HTTP_200_OK
+    assert sent[-1] == "<p>[00:01:05] Opening &amp; remarks</p><p>Untimed note</p>"
+    assert timed.data["transcript_segments"] == [
+        {"start": 65.0, "end": None, "speaker": "", "text": "Opening & remarks"},
+        {"start": None, "end": None, "speaker": "", "text": "Untimed note"},
+    ]
+    assert timed.data["external_url"] == ""
 
 
 @pytest.mark.django_db
@@ -454,3 +480,153 @@ def test_meeting_list_query_count_does_not_grow_with_meetings(workspace):
             assert summary is None
         else:
             assert summary["name"] == f"{meeting['title']} summary"
+
+
+TLDV_MEETING = {
+    "id": "6acdf591a77a580013b2b38a",
+    "name": "POC lanjutan",
+    # The REST API's real format: JavaScript Date.toString(), not ISO 8601.
+    "happenedAt": "Tue Oct 13 2026 09:10:41 GMT+0000 (Coordinated Universal Time)",
+    "duration": 2081,
+    "organizer": {"name": "Summon Development", "email": "business@with-summon.com"},
+    # Another person at a client contact's company, plus a personal mailbox that names no client.
+    "invitees": [{"name": "Budi", "email": "Budi@ish.co.id"}, {"name": "Ayu", "email": "ayu@gmail.com"}],
+}
+TLDV_NOTES = {"markdownContent": "## 1. Item Tindakan\n\n- [ ] Kirim file sampel [04:35](/app/meetings/x?t=275)"}
+
+
+class FakeTldvClient:
+    def __init__(self, api_key):
+        assert api_key == "tldv-key"
+
+    def meetings(self, page):
+        return {
+            "page": 1,
+            "pages": 1,
+            "results": [
+                TLDV_MEETING,
+                # Titles name clients the short way: an acronym, or the name without its legal form.
+                {**TLDV_MEETING, "id": "by-acronym", "name": "[Online] Proyek PDF BSB", "invitees": []},
+                {**TLDV_MEETING, "id": "by-name", "name": "Meet WBS PLN AI Security", "invitees": []},
+                {**TLDV_MEETING, "id": "unmatched", "name": "Weekly sync", "invitees": []},
+            ],
+        }
+
+    def transcript(self, meeting_id):
+        return {
+            "data": [
+                {"speaker": "Summon Development", "text": "Selamat sore.", "startTime": 217, "endTime": 220},
+                {"speaker": "Triana", "text": "Hai, Bu Miska.", "startTime": 235, "endTime": 237},
+                {"speaker": "Triana", "text": "  ", "startTime": 238, "endTime": 239},
+            ]
+        }
+
+    def notes(self, meeting_id):
+        return TLDV_NOTES
+
+
+def client_project(workspace, member, identifier, client_name):
+    project = Project.objects.create(workspace=workspace, name=client_name, identifier=identifier)
+    ProjectMember.objects.create(workspace=workspace, project=project, member=member, role=20)
+    client = Client.objects.create(workspace=workspace, name=client_name)
+    SummonProjectProfile.objects.create(workspace=workspace, project=project, client=client)
+    return project, client
+
+
+@pytest.mark.django_db
+def test_tldv_import_files_meetings_by_client_and_is_idempotent(workspace, settings, monkeypatch):
+    settings.SUMMON_CREDENTIAL_KEY = Fernet.generate_key().decode()
+    monkeypatch.setattr(tldv, "TldvClient", FakeTldvClient)
+    monkeypatch.setattr(
+        copy_s3_object,
+        "sync_with_external_service",
+        lambda _entity, _html: {
+            "description_json": {"type": "doc", "content": [{"type": "paragraph"}]},
+            "description_binary": base64.b64encode(b"meeting-page").decode(),
+        },
+    )
+    actor, api = authenticated_user(workspace)
+    fallback = project_with_member(workspace, actor, "TLDV")
+    talent, ish = client_project(workspace, actor, "TAL", "PT Infomedia Solusi Humanika")
+    ClientContact.objects.create(workspace=workspace, client=ish, name="Rina", email="rina@ish.co.id")
+    logistics, _ = client_project(workspace, actor, "LOGI", "PT Bangun Semangat Bersama")
+    security, _ = client_project(workspace, actor, "SOC", "PT PLN (Persero)")
+    credential = Credential.objects.create(
+        workspace=workspace, owner=actor, name="tl;dv", provider="github", secret_ciphertext=encrypt_secret("tldv-key")
+    )
+    url = f"/api/summon/workspaces/{workspace.slug}/meetings/import/tldv/"
+    body = {"credential": str(credential.id), "project": str(fallback.id)}
+
+    rejected = api.post(url, body, format="json")
+    assert rejected.status_code == status.HTTP_400_BAD_REQUEST
+    assert rejected.data["error_code"] == "tldv_credential_required"
+
+    credential.provider = "tldv"
+    credential.save(update_fields=["provider"])
+    response = api.post(url, body, format="json")
+
+    assert response.status_code == status.HTTP_200_OK, response.data
+    assert response.data["remaining"] == 0
+    meetings = {meeting["title"]: meeting for meeting in response.data["meetings"]}
+    assert {title: str(meeting["project"]) for title, meeting in meetings.items()} == {
+        "POC lanjutan": str(talent.id),
+        "[Online] Proyek PDF BSB": str(logistics.id),
+        "Meet WBS PLN AI Security": str(security.id),
+        "Weekly sync": str(fallback.id),
+    }
+    imported = meetings["POC lanjutan"]
+    assert imported["status"] == "completed"
+    assert imported["starts_at"].startswith("2026-10-13T09:10:41")
+    assert imported["ends_at"].startswith("2026-10-13T09:45:22")
+    assert imported["external_url"] == f"https://tldv.io/app/meetings/{TLDV_MEETING['id']}"
+    assert imported["notes"] == TLDV_NOTES["markdownContent"]
+    # Everyone on the invite is kept, members or not; the organizer comes first.
+    assert imported["attendees"] == [
+        {"name": "Summon Development", "email": "business@with-summon.com"},
+        {"name": "Budi", "email": "budi@ish.co.id"},
+        {"name": "Ayu", "email": "ayu@gmail.com"},
+    ]
+    assert imported["transcript_segments"] == [
+        {"start": 217.0, "end": 220.0, "speaker": "Summon Development", "text": "Selamat sore."},
+        {"start": 235.0, "end": 237.0, "speaker": "Triana", "text": "Hai, Bu Miska."},
+    ]
+    assert imported["transcript_text"] == "[03:37] Summon Development: Selamat sore.\n[03:55] Triana: Hai, Bu Miska."
+
+    # A second sync skips meetings it already imported.
+    again = api.post(url, body, format="json")
+    assert again.data["meetings"] == []
+    assert Meeting.objects.filter(workspace=workspace, external_source="tldv").count() == 4
+
+    # Moving a meeting moves its transcript page with it.
+    moved = api.patch(
+        f"/api/summon/workspaces/{workspace.slug}/meetings/{imported['id']}/",
+        {"project": str(logistics.id)},
+        format="json",
+    )
+    assert moved.status_code == status.HTTP_200_OK, moved.data
+    page_id = Meeting.objects.get(id=imported["id"]).summary_page_id
+    assert list(ProjectPage.objects.filter(page_id=page_id).values_list("project_id", flat=True)) == [logistics.id]
+
+
+def test_tldv_client_reads_no_content_as_a_missing_transcript():
+    class Response:
+        def __init__(self, status_code, body=None):
+            self.status_code = status_code
+            self.body = body
+
+        def json(self):
+            if self.body is None:
+                raise ValueError("no body")
+            return self.body
+
+    responses = {
+        "/meetings/a/transcript": Response(204),
+        "/meetings/a/notes": Response(200, {"markdownContent": None}),
+    }
+    client = tldv.TldvClient.__new__(tldv.TldvClient)
+    client.session = type(
+        "Session", (), {"get": lambda _self, url, **_kw: responses[url.removeprefix(tldv.TLDV_API_URL)]}
+    )()
+
+    assert client.transcript("a") is None
+    assert client.notes("a") == {"markdownContent": None}

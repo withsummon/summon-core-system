@@ -233,6 +233,60 @@ function Files({ data }: Pick<Props, "data">) {
   );
 }
 
+const SOURCES = [
+  ["minutes", "Summon minutes"],
+  ["imported", "tl;dv notes"],
+] as const;
+
+/** Switches between Summon's minutes and tl;dv's notes when a meeting has both. */
+function SourceToggle({ shown, onChange }: { shown: TSource; onChange: (source: TSource) => void }) {
+  return (
+    <div role="group" aria-label="Notes source" className="inline-flex rounded-md bg-layer-1 p-0.5">
+      {SOURCES.map(([value, label]) => (
+        <button
+          key={value}
+          type="button"
+          aria-pressed={shown === value}
+          onClick={() => onChange(value)}
+          className={`rounded-sm px-2.5 py-1 text-12 font-medium transition-colors ${
+            shown === value ? "bg-surface-1 text-primary shadow-xs" : "text-secondary hover:text-primary"
+          }`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Why minutes are missing or failed; transcription in progress is a status, everything else an alert. */
+function SummaryStatus({ storedError, requestError }: { storedError: string; requestError: string }) {
+  const message = requestError || (storedError && (SUMMARY_ERROR_MESSAGES[storedError] ?? storedError));
+  if (!message) return null;
+  return (
+    <p
+      className="rounded-md bg-layer-1 px-3 py-2 text-12 text-secondary"
+      role={!requestError && storedError === "transcribing" ? "status" : "alert"}
+    >
+      {message}
+    </p>
+  );
+}
+
+function NoNotes({ canGenerate }: { canGenerate: boolean }) {
+  return (
+    <div className="rounded-lg border border-dashed border-subtle px-4 py-8 text-center">
+      <Sparkles className="mx-auto size-5 text-tertiary" aria-hidden="true" />
+      <p className="mt-2 text-13 font-medium text-primary">No notes yet</p>
+      <p className="mt-1 text-12 text-tertiary">
+        {canGenerate
+          ? "Generate minutes from the transcript: decisions, discussion and next actions."
+          : "Notes appear once the meeting has a transcript: upload the recording or import it from tl;dv."}
+      </p>
+    </div>
+  );
+}
+
 export function MeetingNotes({ data, workspaceSlug, onSeek, summarizing, summaryError, onRegenerate }: Props) {
   const minutes = data.summary_page_detail?.summary ? data.summary_page_detail : null;
   const imported = data.notes.trim();
@@ -240,33 +294,12 @@ export function MeetingNotes({ data, workspaceSlug, onSeek, summarizing, summary
   const shown: TSource | null =
     minutes && (source === "minutes" || !imported) ? "minutes" : imported ? "imported" : null;
   const canGenerate = Boolean(data.project && (data.transcript_text || data.transcript_asset_detail));
-  const error =
-    summaryError || (data.summary_error && (SUMMARY_ERROR_MESSAGES[data.summary_error] ?? data.summary_error));
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         {minutes && imported ? (
-          <div role="group" aria-label="Notes source" className="inline-flex rounded-md bg-layer-1 p-0.5">
-            {(
-              [
-                ["minutes", "Summon minutes"],
-                ["imported", "tl;dv notes"],
-              ] as const
-            ).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={shown === value}
-                onClick={() => setSource(value)}
-                className={`rounded-sm px-2.5 py-1 text-12 font-medium transition-colors ${
-                  shown === value ? "bg-surface-1 text-primary shadow-xs" : "text-secondary hover:text-primary"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <SourceToggle shown={source} onChange={setSource} />
         ) : (
           <h2 className="text-14 font-semibold text-primary">
             {shown === "imported" ? "tl;dv notes" : "Meeting notes"}
@@ -280,28 +313,11 @@ export function MeetingNotes({ data, workspaceSlug, onSeek, summarizing, summary
         ) : null}
       </div>
 
-      {error ? (
-        <p
-          className="rounded-md bg-layer-1 px-3 py-2 text-12 text-secondary"
-          role={!summaryError && data.summary_error === "transcribing" ? "status" : "alert"}
-        >
-          {error}
-        </p>
-      ) : null}
+      <SummaryStatus storedError={data.summary_error} requestError={summaryError} />
 
       {shown === "minutes" && minutes ? <Minutes summary={minutes} /> : null}
       {shown === "imported" ? <ImportedNotes markdown={imported} onSeek={onSeek} /> : null}
-      {!shown ? (
-        <div className="rounded-lg border border-dashed border-subtle px-4 py-8 text-center">
-          <Sparkles className="mx-auto size-5 text-tertiary" aria-hidden="true" />
-          <p className="mt-2 text-13 font-medium text-primary">No notes yet</p>
-          <p className="mt-1 text-12 text-tertiary">
-            {canGenerate
-              ? "Generate minutes from the transcript: decisions, discussion and next actions."
-              : "Notes appear once the meeting has a transcript: upload the recording or import it from tl;dv."}
-          </p>
-        </div>
-      ) : null}
+      {shown ? null : <NoNotes canGenerate={canGenerate} />}
 
       <ActionItems data={data} workspaceSlug={workspaceSlug} />
       <Files data={data} />

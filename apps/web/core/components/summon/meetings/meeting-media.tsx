@@ -5,12 +5,13 @@
  */
 
 import { Avatar } from "@plane/propel/avatar";
+import { generateRandomColor, hslToHex } from "@plane/utils";
 
 /** Jumps the recording to a moment; undefined when the meeting has nowhere to play it. */
 export type TSeek = ((seconds: number) => void) | undefined;
 
 /** 217 → "03:37", 3725 → "1:02:05". */
-export function formatClock(seconds: number) {
+function formatClock(seconds: number) {
   const whole = Math.max(0, Math.floor(seconds));
   const hours = Math.floor(whole / 3600);
   const minutes = Math.floor((whole % 3600) / 60);
@@ -34,22 +35,14 @@ export function TimestampButton({ seconds, onSeek }: { seconds: number; onSeek: 
   );
 }
 
-// Mid-tone hues that hold white initials in both themes; a speaker keeps one colour across the page.
-const SPEAKER_COLORS = ["#5B6BD5", "#2F8F83", "#C0671F", "#A8488A", "#3B82C4", "#7457C9", "#4F8A3A", "#BF4B4B"];
-
-export function speakerColor(name: string) {
-  let hash = 0;
-  for (const char of name) hash = (hash * 31 + char.charCodeAt(0)) | 0;
-  return SPEAKER_COLORS[Math.abs(hash) % SPEAKER_COLORS.length];
-}
-
 export function SpeakerAvatar({ name, size = "base" }: { name: string; size?: "md" | "base" }) {
   return (
     <Avatar
       name={name || "Speaker"}
       size={size}
-      fallbackBackgroundColor={speakerColor(name || "Speaker")}
-      fallbackTextColor="#ffffff"
+      // A speaker keeps one pastel colour across the page; pastels need dark initials.
+      fallbackBackgroundColor={hslToHex(generateRandomColor(name || "Speaker"))}
+      fallbackTextColor="#1f2328"
       showTooltip={false}
     />
   );
