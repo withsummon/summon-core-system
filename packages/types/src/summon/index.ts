@@ -4,6 +4,8 @@
  * See the LICENSE file for details.
  */
 
+import type { TInstanceLLMErrorCode } from "../instance/ai";
+
 export type TSummonOpportunityStage = "lead" | "qualified" | "proposal" | "negotiation" | "won" | "lost";
 export type TSummonAutomationJobStatus = "queued" | "running" | "completed" | "failed";
 export type TSummonResourceType = "repository" | "figma" | "deployment" | "drive" | "recording" | "account" | string;
@@ -341,7 +343,16 @@ export interface ISummonAssistantMessage {
   citations: ISummonAssistantCitation[];
   provider: string;
   model: string;
-  status: "completed" | "failed";
+  input_tokens: number | null;
+  output_tokens: number | null;
+  /** `streaming` while the AI service still writes the reply; it settles to `completed` or `failed`. */
+  status: "streaming" | "completed" | "failed";
+  /** Empty unless `failed`; an `llm_*` code or one of the AI service's `ChatErrorCode`s. */
+  error_code: string;
+  /** What the model did (text and tool calls), saved so a reload can show it. */
+  parts: unknown[];
+  /** Provider usage for the turn (cached and reasoning tokens, cost, timings). */
+  usage: Record<string, unknown>;
   attachments: ISummonAssistantAttachment[];
   automation_job: ISummonAutomationJob | null;
   created_at: string;
@@ -502,14 +513,7 @@ export interface ISummonMCPStatus {
   authentication: string;
 }
 
-export type TSummonLLMErrorCode =
-  | "llm_not_configured"
-  | "llm_authentication_failed"
-  | "llm_rate_limited"
-  | "llm_timeout"
-  | "llm_provider_unavailable"
-  | "llm_invalid_response"
-  | "llm_context_too_large";
+export type TSummonLLMErrorCode = TInstanceLLMErrorCode;
 
 export interface ISummonCredential {
   id: string;

@@ -8,6 +8,7 @@ import type { HTMLAttributes, ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { IconButton } from "@plane/propel/icon-button";
+import type { TInstanceLLMErrorCode } from "@plane/types";
 import { PageHead } from "@/components/core/page-title";
 
 /** The one card surface: every Summon card, panel and table draws this border, radius and shadow. */
@@ -241,38 +242,30 @@ export function summonErrorMessage(error: unknown) {
   return "Request failed. Please check the fields and try again.";
 }
 
+const SUMMON_LLM_ERROR_MESSAGES = {
+  llm_not_configured: "Ask an instance administrator to configure an LLM, then retry.",
+  llm_authentication_failed: "Provider authentication failed. Ask an instance administrator to verify the key.",
+  llm_rate_limited: "The provider rate limit was reached. Wait briefly, then retry.",
+  llm_timeout: "The provider timed out. Retry with less selected context.",
+  llm_provider_unavailable: "The provider is unavailable. Wait briefly, then retry.",
+  llm_invalid_response: "The provider returned an invalid response. Retry or ask an administrator to check the model.",
+  llm_context_too_large: "The selected context is too large. Remove one or more sources, then retry.",
+  transcript_required: "Supply an accessible text transcript before generating a summary.",
+  project_required: "Select a project you can access before generating or publishing a page.",
+  project_access_revoked: "Project access changed. Reopen the record and select a project you can access.",
+  unsupported_document_type:
+    "This legacy preview cannot create files. Generate a new preview with one of the current document templates.",
+} satisfies Record<TInstanceLLMErrorCode, string> & Record<string, string>;
+
 export function summonLLMErrorMessage(error: unknown) {
   let code: unknown;
   if (error && typeof error === "object") {
     if ("error_code" in error) code = error.error_code;
     else if ("code" in error) code = error.code;
   }
-  switch (code) {
-    case "llm_not_configured":
-      return "Ask an instance administrator to configure an LLM, then retry.";
-    case "llm_authentication_failed":
-      return "Provider authentication failed. Ask an instance administrator to verify the key.";
-    case "llm_rate_limited":
-      return "The provider rate limit was reached. Wait briefly, then retry.";
-    case "llm_timeout":
-      return "The provider timed out. Retry with less selected context.";
-    case "llm_provider_unavailable":
-      return "The provider is unavailable. Wait briefly, then retry.";
-    case "llm_invalid_response":
-      return "The provider returned an invalid response. Retry or ask an administrator to check the model.";
-    case "llm_context_too_large":
-      return "The selected context is too large. Remove one or more sources, then retry.";
-    case "transcript_required":
-      return "Supply an accessible text transcript before generating a summary.";
-    case "project_required":
-      return "Select a project you can access before generating or publishing a page.";
-    case "project_access_revoked":
-      return "Project access changed. Reopen the record and select a project you can access.";
-    case "unsupported_document_type":
-      return "This legacy preview cannot create files. Generate a new preview with one of the current document templates.";
-    default:
-      return summonErrorMessage(error);
-  }
+  return typeof code === "string" && Object.hasOwn(SUMMON_LLM_ERROR_MESSAGES, code)
+    ? SUMMON_LLM_ERROR_MESSAGES[code as keyof typeof SUMMON_LLM_ERROR_MESSAGES]
+    : summonErrorMessage(error);
 }
 
 /**
