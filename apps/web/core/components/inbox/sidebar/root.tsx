@@ -87,10 +87,11 @@ export const InboxSidebar = observer(function InboxSidebar(props: IInboxSidebarP
       <div className="relative flex h-full w-full flex-col overflow-hidden">
         <Header variant={EHeaderVariant.SECONDARY}>
           {tabNavigationOptions.map((option) => (
-            <div
+            <button
+              type="button"
               key={option?.key}
               className={cn(
-                `relative flex h-full cursor-pointer items-center gap-1 px-3 text-13 font-medium transition-all`,
+                `relative flex h-full cursor-pointer items-center gap-1 px-3 text-13 font-medium transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong focus-visible:outline-solid`,
                 currentTab === option?.key ? `text-accent-primary` : `hover:text-secondary`
               )}
               onClick={() => {
@@ -102,7 +103,7 @@ export const InboxSidebar = observer(function InboxSidebar(props: IInboxSidebarP
             >
               <div>{t(option?.i18n_label)}</div>
               {option?.key === "open" && currentTab === option?.key && (
-                <div className="rounded-full bg-accent-primary/20 p-1.5 py-0.5 text-11 font-semibold text-accent-primary">
+                <div className="rounded-full bg-accent-primary/20 p-1.5 py-0.5 text-11 font-semibold text-accent-primary tabular-nums">
                   {inboxIssuePaginationInfo?.total_results || 0}
                 </div>
               )}
@@ -112,7 +113,7 @@ export const InboxSidebar = observer(function InboxSidebar(props: IInboxSidebarP
                   currentTab === option?.key ? `border-accent-strong` : `border-transparent`
                 )}
               />
-            </div>
+            </button>
           ))}
           <div className="m-auto mr-0">
             <FiltersRoot />

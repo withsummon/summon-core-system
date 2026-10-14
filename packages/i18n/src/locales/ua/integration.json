@@ -14,7 +14,7 @@
     "back_to_integrations": "Назад до інтеграцій",
     "select_state": "Виберіть Стейт",
     "set_state": "Встановити Стейт",
-    "choose_project": "Виберіть Проджект...",
+    "choose_project": "Виберіть Проджект…",
     "skip_backward_state_movement": "Запобігти переміщенню завдань у попередній стан через оновлення PR"
   },
   "github_integration": {
@@ -62,7 +62,7 @@
     "ISSUE_CLOSED": "Issue Закрито",
     "save": "Зберегти",
     "start_sync": "Почати Синхронізацію",
-    "choose_repository": "Виберіть Репозиторій..."
+    "choose_repository": "Виберіть Репозиторій…"
   },
   "gitlab_integration": {
     "name": "Gitlab",
@@ -103,7 +103,7 @@
     "ISSUE_CLOSED": "Задача закрита",
     "save": "Зберегти",
     "start_sync": "Почати синхронізацію",
-    "choose_repository": "Виберіть репозиторій..."
+    "choose_repository": "Виберіть репозиторій…"
   },
   "gitlab_enterprise_integration": {
     "name": "Gitlab Enterprise",
@@ -186,7 +186,7 @@
       "add_new_state_mapping": "Додати нове відображення стану",
       "empty_state": "Відображення станів не налаштовано. Створіть перше відображення для синхронізації станів інцидентів Sentry зі станами вашого проекту.",
       "failed_loading_state_mappings": "Не вдалося завантажити ваші відображення станів. Це може бути пов'язано з проблемою мережі або проблемою з інтеграцією.",
-      "loading_project_states": "Завантаження станів проекту...",
+      "loading_project_states": "Завантаження станів проекту…",
       "error_loading_states": "Помилка завантаження станів",
       "no_states_available": "Стани недоступні",
       "no_permission_states": "У вас немає дозволу на доступ до станів для цього проекту",
@@ -205,7 +205,7 @@
     "connected": "Підключено",
     "connect": "Підключити",
     "uninstall": "Видалити",
-    "uninstalling": "Видалення...",
+    "uninstalling": "Видалення…",
     "install_success": "OAuth Bridge успішно встановлено.",
     "install_error": "Не вдалося встановити OAuth Bridge.",
     "uninstall_success": "OAuth Bridge видалено.",
@@ -260,7 +260,7 @@
       "rate_limit_placeholder": "120/minute",
       "rate_limit_description": "Обмеження запитів у форматі кількість/період (напр. 120/minute). Залиште порожнім для обмеження за замовчуванням.",
       "enable_provider": "Увімкнути цього провайдера",
-      "saving": "Збереження...",
+      "saving": "Збереження…",
       "update": "Оновити"
     }
   },
@@ -296,7 +296,7 @@
     "webhook_secret_error": "Секретний ключ webhook є обов'язковим",
     "private_key_title": "Приватний Ключ (Base64)",
     "private_key_description": "Base64 закодований приватний ключ вашого застосунку в організації GitHub Enterprise.",
-    "private_key_placeholder": "e.g., \"MIIEpAIBAAKCAQEA...",
+    "private_key_placeholder": "e.g., \"MIIEpAIBAAKCAQEA…",
     "private_key_error": "Приватний ключ є обов'язковим",
     "connect_app": "Підключити Застосунок"
   },

@@ -115,6 +115,7 @@ function UserInvitationsPage() {
           <div className="absolute top-1/2 left-0 h-[0.5px] w-full -translate-y-1/2 border-b-[0.5px] border-subtle sm:top-0 sm:left-1/2 sm:h-screen sm:w-[0.5px] sm:-translate-x-1/2 sm:translate-y-0 sm:border-r-[0.5px] md:left-1/3" />
           <Link
             href="/"
+            aria-label="Go to home"
             className="absolute top-1/2 left-5 z-10 grid -translate-y-1/2 place-items-center px-3 sm:top-12 sm:left-1/2 sm:-translate-x-[15px] sm:translate-y-0 sm:px-0 sm:py-5 md:left-1/3"
           >
             <PlaneLogo className="h-9 w-auto text-primary" />
@@ -134,9 +135,11 @@ function UserInvitationsPage() {
                     const isSelected = invitationsRespond.includes(invitation.id);
 
                     return (
-                      <div
+                      <button
+                        type="button"
                         key={invitation.id}
-                        className={`flex cursor-pointer items-center gap-2 rounded-sm border px-3.5 py-5 ${
+                        aria-pressed={isSelected}
+                        className={`flex w-full cursor-pointer items-center gap-2 rounded-sm border px-3.5 py-5 text-left ${
                           isSelected ? "border-accent-strong" : "border-subtle hover:bg-layer-1"
                         }`}
                         onClick={() => handleInvitation(invitation, isSelected ? "withdraw" : "accepted")}
@@ -149,13 +152,15 @@ function UserInvitationsPage() {
                           />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="text-13 font-medium">{truncateText(invitation.workspace.name, 30)}</div>
+                          <div className="text-13 font-medium" title={invitation.workspace.name}>
+                            {truncateText(invitation.workspace.name, 30)}
+                          </div>
                           <p className="text-11 text-secondary">{ROLE[invitation.role]}</p>
                         </div>
                         <span className={`flex-shrink-0 ${isSelected ? "text-accent-primary" : "text-secondary"}`}>
                           <CheckCircle2 className="h-5 w-5" />
                         </span>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>

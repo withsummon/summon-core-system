@@ -34,7 +34,7 @@ export const WorkspaceLogo = observer(function WorkspaceLogo(props: Props) {
           alt={t("aria_labels.projects_sidebar.workspace_logo")}
         />
       ) : (
-        (props.name?.[0] ?? "...")
+        (props.name?.[0] ?? "…")
       )}
     </div>
   );

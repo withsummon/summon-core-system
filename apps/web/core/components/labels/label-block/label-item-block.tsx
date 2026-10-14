@@ -97,6 +97,8 @@ export function LabelItemBlock(props: ILabelItemBlock) {
           {!isLabelGroup && (
             <div className="py-0.5">
               <button
+                type="button"
+                aria-label="Delete label"
                 className="flex size-5 items-center justify-center rounded-sm hover:bg-layer-1"
                 onClick={() => {
                   handleLabelDelete(label);

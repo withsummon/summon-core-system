@@ -344,8 +344,8 @@
         "done": "Hotovo"
       },
       "progress": {
-        "uploading": "Nahrávanie...",
-        "importing": "Importovanie..."
+        "uploading": "Nahrávanie…",
+        "importing": "Importovanie…"
       },
       "summary": {
         "title": {

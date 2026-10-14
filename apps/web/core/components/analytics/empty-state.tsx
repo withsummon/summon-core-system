@@ -34,7 +34,7 @@ function AnalyticsEmptyState({ title, description, assetPath, className }: Props
         {assetPath && (
           <div className="relative flex max-h-[200px] max-w-[200px] items-center justify-center">
             <img src={assetPath} alt={title} className="z-10 h-2/3 w-2/3 object-contain" />
-            <div className="absolute inset-0">
+            <div className="pointer-events-none absolute inset-0">
               <img src={backgroundReolvedPath} alt={title} className="h-full w-full object-contain" />
             </div>
           </div>

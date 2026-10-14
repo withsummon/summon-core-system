@@ -188,6 +188,7 @@ const InviteMemberInput = observer(function InviteMemberInput(props: InviteMembe
         {fields.length > 1 && (
           <button
             type="button"
+            aria-label="Remove"
             className="absolute right-0 hidden place-items-center self-center rounded-sm group-hover:grid"
             onClick={() => remove(index)}
           >

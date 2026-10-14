@@ -14,7 +14,7 @@
     "back_to_integrations": "인테그레이션으로 돌아가기",
     "select_state": "스테이트 선택",
     "set_state": "스테이트 설정",
-    "choose_project": "프로젝트 선택...",
+    "choose_project": "프로젝트 선택…",
     "skip_backward_state_movement": "PR 업데이트로 인해 이슈가 이전 상태로 이동하는 것을 방지"
   },
   "github_integration": {
@@ -62,7 +62,7 @@
     "ISSUE_CLOSED": "이슈 닫힘",
     "save": "저장",
     "start_sync": "동기화 시작",
-    "choose_repository": "레포지토리 선택..."
+    "choose_repository": "레포지토리 선택…"
   },
   "gitlab_integration": {
     "name": "깃랩",
@@ -103,7 +103,7 @@
     "ISSUE_CLOSED": "이슈 닫힘",
     "save": "저장",
     "start_sync": "동기화 시작",
-    "choose_repository": "레포지토리 선택..."
+    "choose_repository": "레포지토리 선택…"
   },
   "gitlab_enterprise_integration": {
     "name": "Gitlab Enterprise",
@@ -186,7 +186,7 @@
       "add_new_state_mapping": "새 상태 매핑 추가",
       "empty_state": "상태 매핑이 구성되지 않았습니다. Sentry 인시던트 상태를 프로젝트 상태와 동기화하기 위한 첫 번째 매핑을 만드세요.",
       "failed_loading_state_mappings": "상태 매핑을 로드할 수 없었습니다. 네트워크 문제 또는 통합 문제로 인한 것일 수 있습니다.",
-      "loading_project_states": "프로젝트 상태 로딩 중...",
+      "loading_project_states": "프로젝트 상태 로딩 중…",
       "error_loading_states": "상태 로딩 오류",
       "no_states_available": "사용 가능한 상태가 없습니다",
       "no_permission_states": "이 프로젝트의 상태에 액세스할 권한이 없습니다",
@@ -205,7 +205,7 @@
     "connected": "연결됨",
     "connect": "연결",
     "uninstall": "제거",
-    "uninstalling": "제거 중...",
+    "uninstalling": "제거 중…",
     "install_success": "OAuth Bridge가 성공적으로 설치되었습니다.",
     "install_error": "OAuth Bridge 설치에 실패했습니다.",
     "uninstall_success": "OAuth Bridge가 제거되었습니다.",
@@ -260,7 +260,7 @@
       "rate_limit_placeholder": "120/minute",
       "rate_limit_description": "요청 제한(예: 120/minute). 기본 속도 제한을 사용하려면 비워두세요.",
       "enable_provider": "이 공급자 활성화",
-      "saving": "저장 중...",
+      "saving": "저장 중…",
       "update": "업데이트"
     }
   },
@@ -296,7 +296,7 @@
     "webhook_secret_error": "Webhook Secret는 필수입니다",
     "private_key_title": "Private Key (Base64 encoded)",
     "private_key_description": "깃허브 엔터프라이즈 조직에서 생성한 앱의 Private Key입니다.",
-    "private_key_placeholder": "e.g., \"MIIEpAIBAAKCAQEA...",
+    "private_key_placeholder": "e.g., \"MIIEpAIBAAKCAQEA…",
     "private_key_error": "Private Key는 필수입니다",
     "connect_app": "앱 연결"
   },

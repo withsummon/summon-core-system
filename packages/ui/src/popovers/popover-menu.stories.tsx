@@ -22,7 +22,7 @@ const meta: Meta<typeof PopoverMenu<TPopoverMenu>> = {
   tags: ["autodocs"],
   args: {
     popperPosition: "bottom-start",
-    panelClassName: "rounded-sm bg-gray-100 p-2",
+    panelClassName: "rounded-sm bg-layer-1 p-2",
     data: [
       { id: 1, name: "John Doe" },
       { id: 2, name: "Jane Doe" },
@@ -31,7 +31,7 @@ const meta: Meta<typeof PopoverMenu<TPopoverMenu>> = {
     ],
     keyExtractor: (item, index: number) => `${item.id}-${index}`,
     render: (item: TPopoverMenu) => (
-      <div className="text-gray-600 hover:text-gray-700 hover:bg-gray-200 cursor-pointer rounded-xs px-1.5 py-0.5 text-13 capitalize transition-all">
+      <div className="cursor-pointer rounded-xs px-1.5 py-0.5 text-13 text-secondary capitalize transition-colors hover:bg-layer-1-hover hover:text-primary">
         {item.name}
       </div>
     ),

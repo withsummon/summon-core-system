@@ -398,7 +398,7 @@
         },
         "toasts": {
           "set": {
-            "loading": "Estableciendo asignados...",
+            "loading": "Estableciendo asignados…",
             "success": {
               "title": "¡Éxito!",
               "message": "Asignados establecidos correctamente."
@@ -425,7 +425,7 @@
         "toggle_description": "Organiza elementos de trabajo por plazos de hitos."
       },
       "toasts": {
-        "loading": "Actualizando función del proyecto...",
+        "loading": "Actualizando función del proyecto…",
         "success": "Función del proyecto actualizada correctamente.",
         "error": "Algo salió mal al actualizar la función del proyecto. Por favor, inténtalo de nuevo."
       }

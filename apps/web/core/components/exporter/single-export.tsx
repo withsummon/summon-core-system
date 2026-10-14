@@ -45,15 +45,15 @@ export function SingleExport({ service, refreshing }: Props) {
               service.status === "completed"
                 ? "bg-success-subtle text-success-primary"
                 : service.status === "processing"
-                  ? "bg-yellow-500/20 text-yellow-500"
+                  ? "bg-warning-subtle text-warning-primary"
                   : service.status === "failed"
                     ? "bg-danger-subtle text-danger-primary"
                     : service.status === "expired"
-                      ? "bg-orange-500/20 text-orange-500"
+                      ? "bg-layer-1 text-tertiary"
                       : ""
             }`}
           >
-            {refreshing ? "Refreshing..." : service.status}
+            {refreshing ? "Refreshing…" : service.status}
           </span>
         </h4>
         <div className="mt-2 flex items-center gap-2 text-11 text-secondary">
@@ -67,7 +67,7 @@ export function SingleExport({ service, refreshing }: Props) {
             <div>
               <a target="_blank" href={service?.url} rel="noopener noreferrer">
                 <Button variant="primary" className="w-full">
-                  {isLoading ? "Downloading..." : "Download"}
+                  {isLoading ? "Downloading…" : "Download"}
                 </Button>
               </a>
             </div>

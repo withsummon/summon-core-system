@@ -148,8 +148,8 @@ export function SelectDuplicateInboxIssueModal(props: Props) {
           />
           <Combobox.Input
             type="text"
-            className="h-12 w-full border-0 bg-transparent pr-4 pl-11 text-primary outline-none focus:ring-0 sm:text-13"
-            placeholder="Search..."
+            className="h-12 w-full border-0 bg-transparent pr-4 pl-11 text-primary outline-none sm:text-13"
+            placeholder="Search…"
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>

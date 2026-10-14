@@ -32,6 +32,7 @@ export const AppliedProjectDisplayFilters = observer(function AppliedProjectDisp
             {filterLabel && t(filterLabel)}
             {editable && (
               <button
+                aria-label="Remove filter"
                 type="button"
                 className="grid place-items-center text-tertiary hover:text-secondary"
                 onClick={() => handleRemove(key)}

@@ -113,7 +113,7 @@ export const SubIssuesListItem = observer(function SubIssuesListItem(props: Prop
       >
         {issue && (
           <div
-            className="group relative flex h-full min-h-11 w-full items-center py-1 pr-2 transition-all hover:bg-surface-2"
+            className="group relative flex h-full min-h-11 w-full items-center py-1 pr-2 transition-colors hover:bg-surface-2"
             style={{ paddingLeft: `${spacingLeft}px` }}
           >
             <div className="flex size-5 flex-shrink-0 items-center justify-center">
@@ -121,11 +121,18 @@ export const SubIssuesListItem = observer(function SubIssuesListItem(props: Prop
               {subIssueCount > 0 && !isCurrentIssueRoot && (
                 <>
                   {subIssueHelpers.preview_loader.includes(issue.id) ? (
-                    <div className="flex h-full w-full cursor-not-allowed items-center justify-center rounded-xs bg-layer-1 transition-all">
+                    <div className="flex h-full w-full cursor-not-allowed items-center justify-center rounded-xs bg-layer-1">
                       <Loader width={14} strokeWidth={2} className="animate-spin" />
                     </div>
                   ) : (
-                    <div
+                    <button
+                      type="button"
+                      aria-label={
+                        subIssueHelpers.issue_visibility.includes(issue.id)
+                          ? "Hide sub-work items"
+                          : "Show sub-work items"
+                      }
+                      aria-expanded={subIssueHelpers.issue_visibility.includes(issue.id)}
                       className="flex h-full w-full cursor-pointer items-center justify-center text-placeholder hover:text-tertiary"
                       onClick={async (e) => {
                         e.preventDefault();
@@ -139,12 +146,12 @@ export const SubIssuesListItem = observer(function SubIssuesListItem(props: Prop
                       }}
                     >
                       <ChevronRightIcon
-                        className={cn("size-3.5 transition-all", {
+                        className={cn("size-3.5 transition-[rotate]", {
                           "rotate-90": subIssueHelpers.issue_visibility.includes(issue.id),
                         })}
                         strokeWidth={2.5}
                       />
-                    </div>
+                    </button>
                   )}
                 </>
               )}

@@ -114,7 +114,7 @@ export const WorkspaceImageUploadModal = observer(function WorkspaceImageUploadM
           <div className="flex items-center justify-center gap-3">
             <div
               {...getRootProps()}
-              className={`relative grid h-80 w-80 cursor-pointer place-items-center rounded-lg p-12 text-center focus:ring-2 focus:ring-accent-strong focus:ring-offset-2 focus:outline-none ${
+              className={`relative grid h-80 w-80 cursor-pointer place-items-center rounded-lg p-12 text-center focus-visible:ring-2 focus-visible:ring-accent-strong focus-visible:ring-offset-2 focus-visible:outline-none ${
                 (image === null && isDragActive) || !value
                   ? "border-2 border-dashed border-subtle hover:bg-surface-2"
                   : ""

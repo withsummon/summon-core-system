@@ -71,7 +71,7 @@ export const FilterDisplayProperties = observer(function FilterDisplayProperties
               <button
                 key={displayProperty.key}
                 type="button"
-                className={`rounded-sm border px-2 py-0.5 text-11 transition-all ${
+                className={`rounded-sm border px-2 py-0.5 text-11 transition-colors ${
                   displayProperties?.[displayProperty.key]
                     ? "border-accent-strong bg-accent-primary text-on-color"
                     : "border-subtle hover:bg-layer-1"

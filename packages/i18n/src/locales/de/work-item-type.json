@@ -414,7 +414,7 @@
         "set_as_default": {
           "label": "Als Standard festlegen",
           "toast": {
-            "loading": "Als Standard festlegen...",
+            "loading": "Als Standard festlegen…",
             "success": {
               "title": "Erfolg!",
               "message": "Hierarchieebene {level} erfolgreich als Standard festgelegt."
@@ -427,7 +427,7 @@
         }
       },
       "update_level_toast": {
-        "loading": "Verschiebe {workItemTypeName} in Ebene {level}...",
+        "loading": "Verschiebe {workItemTypeName} in Ebene {level}…",
         "success": {
           "title": "Erfolg!",
           "message": "{workItemTypeName} wurde erfolgreich in Ebene {level} verschoben."

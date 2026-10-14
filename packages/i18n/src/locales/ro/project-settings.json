@@ -398,7 +398,7 @@
         },
         "toasts": {
           "set": {
-            "loading": "Setarea persoanelor desemnate...",
+            "loading": "Setarea persoanelor desemnate…",
             "success": {
               "title": "Succes!",
               "message": "Persoanele desemnate au fost setate cu succes."
@@ -425,7 +425,7 @@
         "toggle_description": "Organizați elementele de lucru după termenele etapelor importante."
       },
       "toasts": {
-        "loading": "Se actualizează funcționalitatea proiectului...",
+        "loading": "Se actualizează funcționalitatea proiectului…",
         "success": "Funcționalitatea proiectului a fost actualizată cu succes.",
         "error": "Ceva a mers greșit la actualizarea funcționalității proiectului. Vă rugăm să încercați din nou."
       }

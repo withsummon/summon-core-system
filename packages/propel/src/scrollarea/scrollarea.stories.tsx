@@ -289,7 +289,7 @@ export const DataTable: Story = {
                 <td className="px-4 py-2">user{i + 1}@example.com</td>
                 <td className="px-4 py-2">
                   <span
-                    className={`rounded-sm px-2 py-1 text-11 ${i % 3 === 0 ? "bg-success-primary text-success-primary" : "bg-gray-500/20 text-gray-500"}`}
+                    className={`rounded-sm px-2 py-1 text-11 ${i % 3 === 0 ? "bg-success-primary text-success-primary" : "bg-label-grey-bg text-label-grey-text"}`}
                   >
                     {i % 3 === 0 ? "Active" : "Inactive"}
                   </span>

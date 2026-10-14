@@ -46,8 +46,8 @@ function OnboardingPage() {
 
   return (
     <AuthenticationWrapper pageType={EPageTypes.ONBOARDING}>
-      <div className="relative flex size-full overflow-hidden rounded-lg bg-canvas transition-all duration-300 ease-in-out">
-        <div className="size-full flex-grow overflow-hidden p-2 transition-all duration-300 ease-in-out">
+      <div className="relative flex size-full overflow-hidden rounded-lg bg-canvas">
+        <div className="size-full flex-grow overflow-hidden p-2">
           <div className="relative flex h-full w-full flex-col overflow-hidden rounded-lg border border-subtle bg-surface-1 shadow-md">
             {user && !invitationsLoader ? (
               <OnboardingRoot invitations={invitations ?? []} />

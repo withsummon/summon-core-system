@@ -60,13 +60,16 @@ class CollaborationSerializer(BaseSerializer):
             return True
         if page.access == Page.PRIVATE_ACCESS:
             return False
-        return (
-            page.is_global
-            or ProjectMember.objects.filter(
-                project__pages=page,
+        return page.is_global or any(link.project_id in self.member_project_ids for link in page.project_pages.all())
+
+    @cached_property
+    def member_project_ids(self):
+        return set(
+            ProjectMember.objects.filter(
+                workspace=self.workspace,
                 member=self.user,
                 is_active=True,
-            ).exists()
+            ).values_list("project_id", flat=True)
         )
 
     def is_accessible_asset(self, asset):
@@ -129,7 +132,12 @@ class MeetingWorkItemSerializer(BaseSerializer):
 
 # Relations MeetingSerializer reads; apply both to any queryset it serializes with many=True.
 MEETING_READ_RELATED = ("project", "recording_asset__workspace", "transcript_asset__workspace", "summary_page")
-MEETING_READ_PREFETCH = ("participants__member", "work_items__issue__state", "work_items__issue__project")
+MEETING_READ_PREFETCH = (
+    "participants__member",
+    "work_items__issue__state",
+    "work_items__issue__project",
+    "summary_page__project_pages",
+)
 
 
 class MeetingSerializer(CollaborationSerializer):
@@ -280,16 +288,6 @@ class MeetingSerializer(CollaborationSerializer):
             }
             for participant in instance.participants.all()
         ]
-
-    @cached_property
-    def member_project_ids(self):
-        return set(
-            ProjectMember.objects.filter(
-                workspace=self.workspace,
-                member=self.user,
-                is_active=True,
-            ).values_list("project_id", flat=True)
-        )
 
     def get_work_items(self, instance):
         # Reads MEETING_READ_PREFETCH when the queryset applied it, so a list costs no query per meeting.

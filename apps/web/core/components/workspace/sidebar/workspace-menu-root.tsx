@@ -99,7 +99,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
         {variant === "top-navigation" && (
           <Menu.Trigger
             className={cn(
-              "group/menu-button flex min-w-0 flex-grow items-center justify-between gap-1 truncate rounded-sm p-1 text-13 font-medium text-secondary hover:bg-layer-1 focus:outline-none",
+              "group/menu-button flex min-w-0 flex-grow items-center justify-between gap-1 truncate rounded-sm p-1 text-13 font-medium text-secondary hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
               {
                 "bg-layer-1": open,
               }
@@ -149,7 +149,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
 
               {isAdmin && activeWorkspace ? (
                 <>
-                  <Menu.Separator className="bg-subtle -mx-1 my-1 h-px" />
+                  <Menu.Separator className="-mx-1 my-1 h-px bg-(--border-color-subtle)" />
                   <Menu.Item
                     render={<Link href={`/${activeWorkspace.slug}/summon/settings`} />}
                     onClick={handleItemClick}
@@ -169,7 +169,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
                 </>
               ) : null}
 
-              <Menu.Separator className="bg-subtle -mx-1 my-1 h-px" />
+              <Menu.Separator className="-mx-1 my-1 h-px bg-(--border-color-subtle)" />
               {!isWorkspaceCreationDisabled && (
                 <Menu.Item
                   render={<Link href="/create-workspace" />}

@@ -388,7 +388,7 @@ export const ProfileSetup = observer(function ProfileSetup(props: Props) {
                             onChange={onChange}
                             ref={ref}
                             hasError={Boolean(errors.password)}
-                            placeholder="New password..."
+                            placeholder="New password…"
                             className="w-full border-[0.5px] border-subtle pr-12 placeholder:text-placeholder"
                             onFocus={() => setIsPasswordInputFocused(true)}
                             onBlur={() => setIsPasswordInputFocused(false)}
@@ -477,8 +477,10 @@ export const ProfileSetup = observer(function ProfileSetup(props: Props) {
                   render={({ field: { value, onChange } }) => (
                     <div className="flex flex-wrap gap-2 overflow-auto py-2 break-all">
                       {USER_ROLE.map((userRole) => (
-                        <div
+                        <button
+                          type="button"
                           key={userRole}
+                          aria-pressed={value === userRole}
                           className={cn(
                             "shrink-0 rounded border-[0.5px] px-3 py-1.5 text-13 font-medium hover:cursor-pointer hover:bg-surface-2",
                             {
@@ -489,7 +491,7 @@ export const ProfileSetup = observer(function ProfileSetup(props: Props) {
                           onClick={() => onChange(userRole)}
                         >
                           {userRole}
-                        </div>
+                        </button>
                       ))}
                     </div>
                   )}
@@ -515,8 +517,10 @@ export const ProfileSetup = observer(function ProfileSetup(props: Props) {
                       {USER_DOMAIN.map((userDomain) => {
                         const isSelected = value?.includes(userDomain) || false;
                         return (
-                          <div
+                          <button
+                            type="button"
                             key={userDomain}
+                            aria-pressed={isSelected}
                             className={`flex-shrink-0 border-[0.5px] hover:cursor-pointer hover:bg-surface-2 ${
                               isSelected ? "border-accent-strong" : "border-strong"
                             } rounded px-3 py-1.5 text-13 font-medium`}
@@ -530,7 +534,7 @@ export const ProfileSetup = observer(function ProfileSetup(props: Props) {
                             }}
                           >
                             {userDomain}
-                          </div>
+                          </button>
                         );
                       })}
                     </div>

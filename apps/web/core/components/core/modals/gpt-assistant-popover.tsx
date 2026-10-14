@@ -184,7 +184,7 @@ export function GptAssistantPopover(props: Props) {
   );
 
   const generateResponseButtonText = isSubmitting
-    ? "Generating response..."
+    ? "Generating response…"
     : response === ""
       ? "Generate response"
       : "Generate again";
@@ -259,7 +259,7 @@ export function GptAssistantPopover(props: Props) {
                   onChange={onChange}
                   ref={ref}
                   placeholder={`${
-                    prompt && prompt !== "" ? "Tell AI what action to perform on this content..." : "Ask AI anything..."
+                    prompt && prompt !== "" ? "Tell AI what action to perform on this content…" : "Ask AI anything…"
                   }`}
                   className="w-full"
                   autoFocus

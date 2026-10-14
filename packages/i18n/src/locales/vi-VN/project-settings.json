@@ -398,7 +398,7 @@
         },
         "toasts": {
           "set": {
-            "loading": "Đang đặt người được chỉ định...",
+            "loading": "Đang đặt người được chỉ định…",
             "success": {
               "title": "Thành công!",
               "message": "Người được chỉ định đã được đặt thành công."
@@ -425,7 +425,7 @@
         "toggle_description": "Tổ chức các mục công việc theo thời hạn cột mốc."
       },
       "toasts": {
-        "loading": "Đang cập nhật tính năng dự án...",
+        "loading": "Đang cập nhật tính năng dự án…",
         "success": "Đã cập nhật tính năng dự án thành công.",
         "error": "Đã xảy ra lỗi khi cập nhật tính năng dự án. Vui lòng thử lại."
       }

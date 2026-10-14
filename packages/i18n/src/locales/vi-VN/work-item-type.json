@@ -414,7 +414,7 @@
         "set_as_default": {
           "label": "Đặt làm mặc định",
           "toast": {
-            "loading": "Đang đặt làm mặc định...",
+            "loading": "Đang đặt làm mặc định…",
             "success": {
               "title": "Thành công!",
               "message": "Cấp độ phân cấp {level} đã được đặt làm mặc định thành công."
@@ -427,7 +427,7 @@
         }
       },
       "update_level_toast": {
-        "loading": "Đang chuyển {workItemTypeName} sang cấp độ {level}...",
+        "loading": "Đang chuyển {workItemTypeName} sang cấp độ {level}…",
         "success": {
           "title": "Thành công!",
           "message": "{workItemTypeName} đã được chuyển sang cấp độ {level} thành công."

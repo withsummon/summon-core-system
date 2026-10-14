@@ -398,7 +398,7 @@
         },
         "toasts": {
           "set": {
-            "loading": "Zuständige werden festgelegt...",
+            "loading": "Zuständige werden festgelegt…",
             "success": {
               "title": "Erfolg!",
               "message": "Zuständige erfolgreich festgelegt."
@@ -425,7 +425,7 @@
         "toggle_description": "Organisieren Sie Arbeitselemente nach Meilenstein-Fristen."
       },
       "toasts": {
-        "loading": "Projektfunktion wird aktualisiert...",
+        "loading": "Projektfunktion wird aktualisiert…",
         "success": "Projektfunktion erfolgreich aktualisiert.",
         "error": "Beim Aktualisieren der Projektfunktion ist etwas schiefgelaufen. Bitte versuchen Sie es erneut."
       }

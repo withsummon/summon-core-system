@@ -76,6 +76,7 @@ export function IssueLinkDetail(props: TIssueLinkDetail) {
             <div className="z-[1] flex flex-shrink-0 items-center gap-2">
               <button
                 type="button"
+                aria-label="Edit link"
                 className="flex items-center justify-center p-1 hover:bg-layer-1"
                 onClick={(e) => {
                   e.preventDefault();

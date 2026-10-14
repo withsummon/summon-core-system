@@ -24,7 +24,7 @@ export const TemplateLibraryCard: React.FC<ITemplateLibraryCardProps> = ({ onSel
         <button
           type="button"
           onClick={onViewAllTemplates}
-          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 text-xs font-medium transition-colors"
+          className="flex items-center gap-1 text-xs font-medium text-link-primary transition-colors hover:text-link-primary-hover"
         >
           <span>View all templates</span>
           <ArrowRight size={13} />
@@ -34,22 +34,23 @@ export const TemplateLibraryCard: React.FC<ITemplateLibraryCardProps> = ({ onSel
       {/* Grid of 4 cards */}
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {TEMPLATE_LIBRARY.map((item) => (
-          <div
+          <button
+            type="button"
             key={item.id}
             onClick={() => onSelectTemplate?.(item.name)}
-            className="group hover:border-blue-400 flex cursor-pointer flex-col justify-between rounded-xl border border-subtle bg-surface-2/60 p-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-1 hover:shadow-md"
+            className="group flex cursor-pointer flex-col justify-between rounded-xl border border-subtle bg-surface-2/60 p-3.5 text-left transition-[translate,background-color,border-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-accent-strong hover:bg-surface-1 hover:shadow-md focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
           >
             <div className="space-y-2">
               <TypeIcon type={item.name} boxed size={16} />
               <div>
-                <h3 className="group-hover:text-blue-600 dark:group-hover:text-blue-400 text-xs font-semibold text-primary transition-colors">
+                <h3 className="text-xs font-semibold text-primary transition-colors group-hover:text-accent-primary">
                   {item.title}
                 </h3>
                 <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-secondary">{item.description}</p>
               </div>
             </div>
             {item.lastUsed && <p className="mt-3 text-[10px] font-medium text-placeholder">{item.lastUsed}</p>}
-          </div>
+          </button>
         ))}
       </div>
     </div>

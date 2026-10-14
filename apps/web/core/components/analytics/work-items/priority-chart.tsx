@@ -128,7 +128,7 @@ const PriorityChart = observer(function PriorityChart(props: Props) {
       {
         accessorKey: "count",
         header: () => <div className="text-right">Count</div>,
-        cell: ({ row }) => <div className="text-right">{row.original.count}</div>,
+        cell: ({ row }) => <div className="text-right tabular-nums">{row.original.count}</div>,
         meta: {
           export: {
             key: "Count",

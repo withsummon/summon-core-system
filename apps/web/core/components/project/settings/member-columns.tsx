@@ -72,11 +72,10 @@ export function NameColumn(props: NameProps) {
             optionsClassName="p-1.5"
             placement="bottom-end"
           >
-            <CustomMenu.MenuItem>
+            <CustomMenu.MenuItem onClick={() => setRemoveMemberModal(rowData)}>
               <div
                 className="flex cursor-pointer items-center gap-x-1 font-medium text-danger-primary"
                 data-ph-element={MEMBER_TRACKER_ELEMENTS.PROJECT_MEMBER_TABLE_CONTEXT_MENU}
-                onClick={() => setRemoveMemberModal(rowData)}
               >
                 <CircleMinus className="size-3.5 flex-shrink-0" />
                 {rowData.member?.id === currentUser?.id ? "Leave " : "Remove "}

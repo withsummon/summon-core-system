@@ -139,9 +139,6 @@ export function LinkEditView({ viewProps }: LinkEditViewProps) {
     <div
       onKeyDown={handleKeyDown}
       className="animate-in fade-in flex translate-y-1 flex-col gap-3 rounded-sm border-2 border-subtle bg-layer-1 p-2 shadow-md"
-      style={{
-        transition: "all 0.1s cubic-bezier(.55, .085, .68, .53)",
-      }}
       tabIndex={0}
     >
       <InputView label="URL" placeholder="Enter or paste URL" value={localUrl} onChange={setLocalUrl} autoFocus />

@@ -42,7 +42,7 @@ function Trigger({ children, className, buttonRef }: TriggerProps) {
     <BaseCollapsible.Trigger
       ref={buttonRef}
       className={clsx(
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-strong",
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
         className
       )}
     >

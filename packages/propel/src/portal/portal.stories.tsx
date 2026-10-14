@@ -82,10 +82,10 @@ function ModalContent({
 }) {
   return (
     <div className="flex h-full flex-col bg-white">
-      <div className="border-gray-200 flex items-center justify-between border-b p-6">
+      <div className="flex items-center justify-between border-b border-subtle p-6">
         <div>
-          <h2 className="text-gray-900 text-18 font-semibold">{title}</h2>
-          <p className="text-gray-500 mt-1 text-13">Modal demonstration</p>
+          <h2 className="text-18 font-semibold text-primary">{title}</h2>
+          <p className="mt-1 text-13 text-secondary">Modal demonstration</p>
         </div>
         {showCloseButton && onClose && (
           <Button variant="ghost" onClick={onClose} aria-label="Close modal">
@@ -94,12 +94,12 @@ function ModalContent({
         )}
       </div>
       <div className="flex-1 overflow-y-auto p-6">
-        <p className="text-gray-600 mb-6">{description}</p>
+        <p className="mb-6 text-secondary">{description}</p>
 
         <div className="space-y-4">
-          <div className="bg-gray-50 rounded-lg p-4">
-            <h3 className="text-gray-900 mb-2 font-medium">Feature Highlights</h3>
-            <ul className="text-gray-600 space-y-1 text-13">
+          <div className="rounded-lg bg-layer-1 p-4">
+            <h3 className="mb-2 font-medium text-primary">Feature Highlights</h3>
+            <ul className="space-y-1 text-13 text-secondary">
               <li>• ESC key closes the modal</li>
               <li>• Click outside overlay to close</li>
             </ul>
@@ -180,7 +180,7 @@ export const BasicPortal: Story = {
       <div className="relative">
         <p>This content renders in the normal document flow.</p>
         <PortalWrapper portalId="storybook-portal">
-          <div className="bg-blue-500 fixed top-4 right-4 z-50 rounded-sm p-4 text-on-color shadow-lg">
+          <div className="fixed top-4 right-4 z-50 rounded-sm bg-accent-primary p-4 text-on-color shadow-lg">
             This content is rendered in a portal!
           </div>
         </PortalWrapper>

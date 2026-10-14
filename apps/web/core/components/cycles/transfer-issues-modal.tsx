@@ -84,7 +84,7 @@ export const TransferIssuesModal = observer(function TransferIssuesModal(props: 
             <TransferIcon className="w-5 fill-primary" />
             <h4 className="text-18 font-medium text-primary">Transfer work items</h4>
           </div>
-          <button onClick={handleClose}>
+          <button type="button" onClick={handleClose} aria-label="Close">
             <CloseIcon className="h-4 w-4" />
           </button>
         </div>
@@ -92,7 +92,7 @@ export const TransferIssuesModal = observer(function TransferIssuesModal(props: 
           <SearchIcon className="h-4 w-4 text-secondary" />
           <input
             className="text-13 outline-none"
-            placeholder="Search for a cycle..."
+            placeholder="Search for a cycle…"
             onChange={(e) => setQuery(e.target.value)}
             value={query}
           />
@@ -118,7 +118,9 @@ export const TransferIssuesModal = observer(function TransferIssuesModal(props: 
                   >
                     <CycleIcon className="h-5 w-5" />
                     <div className="flex w-full justify-between truncate">
-                      <span className="truncate">{cycleDetails?.name}</span>
+                      <span className="truncate" title={cycleDetails?.name}>
+                        {cycleDetails?.name}
+                      </span>
                       {cycleDetails.status && (
                         <span className="flex flex-shrink-0 items-center rounded-full bg-layer-1 px-2 capitalize">
                           {cycleDetails.status.toLocaleLowerCase()}
@@ -137,7 +139,7 @@ export const TransferIssuesModal = observer(function TransferIssuesModal(props: 
               </div>
             )
           ) : (
-            <p className="text-center text-secondary">Loading...</p>
+            <p className="text-center text-secondary">Loading…</p>
           )}
         </div>
       </div>

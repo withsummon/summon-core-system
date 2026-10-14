@@ -398,7 +398,7 @@
         },
         "toasts": {
           "set": {
-            "loading": "正在设置负责人...",
+            "loading": "正在设置负责人…",
             "success": {
               "title": "成功！",
               "message": "负责人设置成功。"
@@ -425,7 +425,7 @@
         "toggle_description": "按里程碑截止日期组织工作项。"
       },
       "toasts": {
-        "loading": "正在更新项目功能...",
+        "loading": "正在更新项目功能…",
         "success": "项目功能更新成功。",
         "error": "更新项目功能时出现错误。请重试。"
       }

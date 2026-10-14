@@ -33,7 +33,7 @@ export function ProjectOverviewTab({
             </h2>
             <Link
               href={`/${workspaceSlug}/projects/${projectId}/issues/`}
-              className="inline-flex items-center gap-1 rounded text-xs text-secondary hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong"
+              className="inline-flex items-center gap-1 rounded text-xs text-secondary hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
             >
               View all tasks <ArrowUpRight aria-hidden="true" className="size-3.5" />
             </Link>
@@ -69,7 +69,7 @@ export function ProjectOverviewTab({
                 <li key={milestone.id}>
                   <Link
                     href={milestone.href}
-                    className="flex items-center gap-3 rounded py-3 hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong"
+                    className="flex items-center gap-3 rounded py-3 hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
                   >
                     <Flag aria-hidden="true" className="size-4 shrink-0 text-secondary" />
                     <span className="min-w-0 flex-1">
@@ -95,7 +95,7 @@ export function ProjectOverviewTab({
                 <li key={item.id}>
                   <Link
                     href={item.href}
-                    className="flex gap-3 rounded py-3 hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong"
+                    className="flex gap-3 rounded py-3 hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
                   >
                     <Activity aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-secondary" />
                     <span className="min-w-0">
@@ -130,7 +130,11 @@ export function ProjectOverviewTab({
             </Property>
             <Property label="Phase">{overview.profile?.phase || "Not set"}</Property>
             <Property label="Start date">{formatDate(overview.profile?.start_date)}</Property>
-            {showBudget ? <Property label="Budget">{money(overview.profile?.budget) || "Not set"}</Property> : null}
+            {showBudget ? (
+              <Property label="Budget">
+                <span className="tabular-nums">{money(overview.profile?.budget) || "Not set"}</span>
+              </Property>
+            ) : null}
           </dl>
         </section>
         <ProjectPeopleSection workspaceSlug={workspaceSlug} projectId={projectId} />
@@ -146,7 +150,7 @@ export function ProjectOverviewTab({
                     href={resource.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center gap-2 rounded text-xs text-secondary hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong"
+                    className="flex items-center gap-2 rounded text-xs text-secondary hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
                   >
                     <span className="min-w-0 flex-1 break-words">{resource.title}</span>
                     <ArrowUpRight aria-hidden="true" className="size-3.5 shrink-0" />

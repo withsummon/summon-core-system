@@ -37,7 +37,9 @@ export const ProjectSelect = observer(function ProjectSelect(props: Props) {
           ) : (
             <ProjectIcon className="h-4 w-4" />
           )}
-          <span className="flex-grow truncate">{projectDetails?.name}</span>
+          <span className="flex-grow truncate" title={projectDetails?.name}>
+            {projectDetails?.name}
+          </span>
         </div>
       ),
     };

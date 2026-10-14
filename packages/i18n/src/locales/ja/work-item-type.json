@@ -414,7 +414,7 @@
         "set_as_default": {
           "label": "デフォルトに設定",
           "toast": {
-            "loading": "デフォルトに設定中...",
+            "loading": "デフォルトに設定中…",
             "success": {
               "title": "成功！",
               "message": "階層レベル {level} がデフォルトとして設定されました。"
@@ -427,7 +427,7 @@
         }
       },
       "update_level_toast": {
-        "loading": "{workItemTypeName}をレベル{level}に移動しています...",
+        "loading": "{workItemTypeName}をレベル{level}に移動しています…",
         "success": {
           "title": "成功！",
           "message": "{workItemTypeName}をレベル{level}に正常に移動しました。"

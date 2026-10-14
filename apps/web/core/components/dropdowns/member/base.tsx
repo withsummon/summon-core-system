@@ -110,7 +110,10 @@ export const MemberDropdownBase = observer(function MemberDropdownBase(props: TM
     <button
       aria-label={accessibleLabel}
       type="button"
-      className={cn("clickable block h-full w-full outline-none", buttonContainerClassName)}
+      className={cn(
+        "clickable block h-full w-full outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
+        buttonContainerClassName
+      )}
       disabled={disabled}
       tabIndex={tabIndex}
     >
@@ -121,7 +124,7 @@ export const MemberDropdownBase = observer(function MemberDropdownBase(props: TM
       aria-label={accessibleLabel}
       type="button"
       className={cn(
-        "clickable block h-full max-w-full outline-none",
+        "clickable block h-full max-w-full outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
         {
           "cursor-not-allowed text-secondary": disabled,
           "cursor-pointer": !disabled,

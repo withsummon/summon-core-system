@@ -86,7 +86,7 @@ export function SummonSectionHeader(props: SectionHeading & { className?: string
       {props.link ? (
         <Link
           href={props.link.href}
-          className="relative inline-flex flex-none items-center gap-1 text-12 font-medium text-accent-primary after:absolute after:-inset-x-2 after:-inset-y-3 hover:underline focus-visible:outline-2 focus-visible:outline-accent-strong"
+          className="relative inline-flex flex-none items-center gap-1 text-12 font-medium text-accent-primary after:absolute after:-inset-x-2 after:-inset-y-3 hover:underline focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
         >
           {props.link.label} <ArrowRight aria-hidden className="size-3" />
         </Link>
@@ -136,7 +136,11 @@ export function SummonMetric(props: { label: string; value: ReactNode; detail?: 
         {props.href ? <ChevronRight aria-hidden className="size-3.5 flex-none text-placeholder" /> : null}
       </p>
       <p className="mt-1 text-20 font-semibold tracking-tight text-primary tabular-nums">{props.value}</p>
-      {props.detail ? <p className="mt-0.5 truncate text-12 text-tertiary">{props.detail}</p> : null}
+      {props.detail ? (
+        <p className="mt-0.5 truncate text-12 text-tertiary tabular-nums" title={props.detail}>
+          {props.detail}
+        </p>
+      ) : null}
     </>
   );
   const cell = "min-w-0 bg-surface-1 px-4 py-3";
@@ -211,7 +215,9 @@ export function SummonRecordList(props: {
       {props.records.map((record) => (
         <div key={record.id} className="flex items-center justify-between gap-3 px-3.5 py-2.5 hover:bg-layer-1">
           <div className="min-w-0">
-            <p className="truncate text-13 font-medium text-primary">{record.title}</p>
+            <p className="truncate text-13 font-medium text-primary" title={record.title}>
+              {record.title}
+            </p>
             {record.detail ? <p className="mt-0.5 text-12 break-words text-tertiary">{record.detail}</p> : null}
           </div>
           {record.badge ? (

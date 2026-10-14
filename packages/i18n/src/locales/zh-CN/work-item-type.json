@@ -414,7 +414,7 @@
         "set_as_default": {
           "label": "设为默认",
           "toast": {
-            "loading": "正在设为默认...",
+            "loading": "正在设为默认…",
             "success": {
               "title": "成功！",
               "message": "层级 {level} 已成功设为默认。"
@@ -427,7 +427,7 @@
         }
       },
       "update_level_toast": {
-        "loading": "正在将 {workItemTypeName} 移动到层级 {level}...",
+        "loading": "正在将 {workItemTypeName} 移动到层级 {level}…",
         "success": {
           "title": "成功！",
           "message": "{workItemTypeName} 已成功移动到层级 {level}。"

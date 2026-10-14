@@ -72,7 +72,8 @@ export function ColorPalette(props: TProps) {
                 background_color: color.key,
               });
             }}
-            className="h-6 w-6 rounded-md transition-all hover:ring-2 hover:ring-accent-strong focus:ring-2 focus:ring-accent-strong focus:outline-none"
+            className="h-6 w-6 rounded-md transition-shadow hover:ring-2 hover:ring-accent-strong focus-visible:ring-2 focus-visible:ring-accent-strong focus-visible:outline-none"
+            aria-label={color.label}
             style={{
               backgroundColor: color.backgroundColor,
             }}

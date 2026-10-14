@@ -99,22 +99,30 @@ export const DescriptionVersionsModal = observer(function DescriptionVersionsMod
             <button
               type="button"
               onClick={() => handleNavigation("prev")}
-              className={cn("grid size-6 place-items-center rounded-sm text-secondary transition-colors outline-none", {
-                "hover:bg-layer-1": !isPrevDisabled,
-                "opacity-50": isPrevDisabled,
-              })}
+              className={cn(
+                "grid size-6 place-items-center rounded-sm text-secondary transition-colors outline-none focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
+                {
+                  "hover:bg-layer-1": !isPrevDisabled,
+                  "opacity-50": isPrevDisabled,
+                }
+              )}
               disabled={isPrevDisabled}
+              aria-label="Previous version"
             >
               <ChevronLeftIcon className="size-4" />
             </button>
             <button
               type="button"
               onClick={() => handleNavigation("next")}
-              className={cn("grid size-6 place-items-center rounded-sm text-secondary transition-colors outline-none", {
-                "hover:bg-layer-1": !isNextDisabled,
-                "opacity-50": isNextDisabled,
-              })}
+              className={cn(
+                "grid size-6 place-items-center rounded-sm text-secondary transition-colors outline-none focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
+                {
+                  "hover:bg-layer-1": !isNextDisabled,
+                  "opacity-50": isNextDisabled,
+                }
+              )}
               disabled={isNextDisabled}
+              aria-label="Next version"
             >
               <ChevronRightIcon className="size-4" />
             </button>
@@ -157,10 +165,17 @@ export const DescriptionVersionsModal = observer(function DescriptionVersionsMod
         {/* Footer */}
         <div className="flex items-center justify-between gap-2 border-t-[0.5px] border-subtle pt-4">
           <Tooltip tooltipContent={t("common.actions.copy_markdown")}>
-            <IconButton type="button" variant="ghost" size="base" onClick={handleCopyMarkdown} icon={CopyIcon} />
+            <IconButton
+              type="button"
+              variant="ghost"
+              size="base"
+              onClick={handleCopyMarkdown}
+              icon={CopyIcon}
+              aria-label={t("common.actions.copy_markdown")}
+            />
           </Tooltip>
           <div className="flex items-center gap-2">
-            <Button variant="secondary" size="lg" onClick={handleClose} tabIndex={1}>
+            <Button variant="secondary" size="lg" onClick={handleClose}>
               {t("common.cancel")}
             </Button>
             {!isRestoreDisabled && (

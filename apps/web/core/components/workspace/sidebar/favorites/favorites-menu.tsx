@@ -226,7 +226,7 @@ export const SidebarFavoritesMenu = observer(function SidebarFavoritesMenu() {
               )}
             >
               <ChevronRightIcon
-                className={cn("size-3 flex-shrink-0 transition-all", {
+                className={cn("size-3 flex-shrink-0 transition-[rotate]", {
                   "rotate-90": isFavoriteMenuOpen,
                 })}
               />

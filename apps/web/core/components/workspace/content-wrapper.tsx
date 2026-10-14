@@ -21,14 +21,20 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
   const { shouldRenderAppRail } = useAppRailVisibility();
 
   return (
-    <div className="relative flex size-full flex-col overflow-hidden bg-canvas transition-all duration-300 ease-in-out">
+    <div className="relative flex size-full flex-col overflow-hidden bg-canvas">
+      <a
+        href="#main-content"
+        className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-2 focus-visible:left-2 focus-visible:z-[100] focus-visible:rounded-md focus-visible:bg-surface-1 focus-visible:px-3 focus-visible:py-2 focus-visible:text-13 focus-visible:text-primary focus-visible:shadow-overlay-200"
+      >
+        Skip to content
+      </a>
       <TopNavigationRoot />
       <div className="relative flex size-full overflow-hidden">
         {/* Conditionally render AppRailRoot based on context */}
         {shouldRenderAppRail && <AppRailRoot />}
         <div
           className={cn(
-            "relative size-full flex-grow overflow-hidden pr-2 pb-2 pl-2 transition-all duration-300 ease-in-out",
+            "relative size-full flex-grow overflow-hidden pr-2 pb-2 pl-2 transition-[padding-left] duration-300 ease-in-out",
             {
               "pl-0!": shouldRenderAppRail,
             }

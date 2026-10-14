@@ -50,10 +50,10 @@ export interface PillProps extends React.HTMLAttributes<HTMLSpanElement> {
 const pillVariants = {
   [EPillVariant.DEFAULT]: "bg-surface-2 text-secondary border border-subtle-1",
   [EPillVariant.PRIMARY]: "bg-accent-primary/10 text-accent-primary border border-accent-strong/20",
-  [EPillVariant.SUCCESS]: "bg-green-50 text-success-primary border border-success-subtle",
-  [EPillVariant.WARNING]: "bg-amber-50 text-amber-700 border border-amber-200",
-  [EPillVariant.ERROR]: "bg-red-50 text-danger-primary border border-danger-subtle",
-  [EPillVariant.INFO]: "bg-blue-50 text-blue-700 border border-blue-200",
+  [EPillVariant.SUCCESS]: "bg-success-subtle text-success-primary border border-success-subtle",
+  [EPillVariant.WARNING]: "bg-warning-subtle text-warning-primary border border-warning-subtle",
+  [EPillVariant.ERROR]: "bg-danger-subtle text-danger-primary border border-danger-subtle",
+  [EPillVariant.INFO]: "bg-accent-subtle text-accent-primary border border-accent-subtle",
 };
 
 const pillSizes = {

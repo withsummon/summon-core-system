@@ -48,7 +48,7 @@ const Info: React.FC<{ title: string; children?: React.ReactNode; tone?: "info" 
   tone = "info",
 }) => (
   <div
-    className={`mb-4 rounded-md border ${tone === "warn" ? "bg-red-50 border-danger-strong p-4" : "border-subtle bg-layer-1 p-4"}`}
+    className={`mb-4 rounded-md border ${tone === "warn" ? "border-danger-strong bg-danger-subtle p-4" : "border-subtle bg-layer-1 p-4"}`}
   >
     <h3 className={`mb-2 text-16 font-semibold text-primary`}>{title}</h3>
     <div className="text-13 text-secondary">{children}</div>

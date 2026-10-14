@@ -291,7 +291,9 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
                                   url={item.url}
                                   className="size-4"
                                 />
-                                <span className="truncate">{item.title}</span>
+                                <span className="truncate" title={item.title}>
+                                  {item.title}
+                                </span>
                               </a>
                             </td>
                             <td className="max-w-36 truncate px-3.5 py-2.5 text-secondary">{projectName}</td>

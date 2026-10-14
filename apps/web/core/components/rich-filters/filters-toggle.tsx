@@ -19,7 +19,7 @@ type TFiltersToggleProps<P extends TFilterProperty, E extends TExternalFilter> =
 };
 
 const COMMON_CLASSNAME =
-  "grid place-items-center h-7 w-full py-0.5 px-2 rounded-md border border-subtle-1 transition-all duration-200 cursor-pointer";
+  "grid place-items-center h-7 w-full py-0.5 px-2 rounded-md border border-subtle-1 transition-colors duration-200 cursor-pointer";
 
 export const FiltersToggle = observer(function FiltersToggle<P extends TFilterProperty, E extends TExternalFilter>(
   props: TFiltersToggleProps<P, E>
@@ -42,15 +42,15 @@ export const FiltersToggle = observer(function FiltersToggle<P extends TFilterPr
 
   // Base classes when filter is active
   const activeFilterBaseClasses =
-    "text-accent-primary border border-accent-subtle-1 hover:border-accent-subtle-1 active:border-accent-subtle-1 focus:border-accent-subtle-1";
+    "text-accent-primary border border-accent-subtle hover:border-accent-strong active:border-accent-strong focus-visible:border-accent-strong";
 
   // State classes that prevent hover/active/focus color changes
-  const noHoverStateClasses = "hover:text-accent-primary active:text-accent-primary focus:text-accent-primary";
+  const noHoverStateClasses = "hover:text-accent-primary active:text-accent-primary focus-visible:text-accent-primary";
 
   // Background classes based on toggle state (darker when open, lighter when closed)
   const backgroundClasses = isFilterRowVisible
-    ? "bg-accent-subtle-hover hover:bg-accent-subtle-hover active:bg-accent-subtle-hover focus:bg-accent-subtle-hover"
-    : "bg-accent-subtle hover:bg-accent-subtle active:bg-accent-subtle focus:bg-accent-subtle";
+    ? "bg-accent-subtle-hover hover:bg-accent-subtle-hover active:bg-accent-subtle-hover focus-visible:bg-accent-subtle-hover"
+    : "bg-accent-subtle hover:bg-accent-subtle active:bg-accent-subtle focus-visible:bg-accent-subtle";
 
   const buttonClassName = cn({
     [activeFilterBaseClasses]: showFilterRowChangesPill,

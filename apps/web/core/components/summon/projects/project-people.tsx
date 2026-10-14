@@ -74,7 +74,9 @@ export const ProjectPeopleSection = observer(function ProjectPeopleSection(props
           {shown.map((member) => (
             <li key={member.user_id} className="flex items-center gap-2.5 text-xs">
               <Avatar size={24} name={member.name} src={getFileURL(member.avatar_url ?? "")} />
-              <span className="min-w-0 flex-1 truncate text-primary">{member.name}</span>
+              <span className="min-w-0 flex-1 truncate text-primary" title={member.name}>
+                {member.name}
+              </span>
               <span className="text-tertiary">{roleLabel(member.role)}</span>
             </li>
           ))}
@@ -287,7 +289,9 @@ function PersonOption(props: {
     <li className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-layer-1">
       {props.avatar}
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-13 font-medium text-primary">{props.name}</span>
+        <span className="block truncate text-13 font-medium text-primary" title={props.name}>
+          {props.name}
+        </span>
         <span className="block truncate text-12 text-tertiary">{props.detail}</span>
       </span>
       <Button variant="secondary" size="sm" loading={props.loading} onClick={props.onSelect}>

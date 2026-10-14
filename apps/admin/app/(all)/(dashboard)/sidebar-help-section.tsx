@@ -69,7 +69,7 @@ export const AdminSidebarHelpSection = observer(function AdminSidebarHelpSection
           <button
             type="button"
             aria-label="Help"
-            className={`ml-auto grid place-items-center rounded-md p-1.5 text-secondary outline-none hover:bg-layer-1-hover hover:text-primary ${
+            className={`ml-auto grid place-items-center rounded-md p-1.5 text-secondary outline-none hover:bg-layer-1-hover hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid ${
               isSidebarCollapsed ? "w-full" : ""
             }`}
             onClick={() => setIsNeedHelpOpen((prev) => !prev)}
@@ -81,7 +81,7 @@ export const AdminSidebarHelpSection = observer(function AdminSidebarHelpSection
           <button
             type="button"
             aria-label="Toggle sidebar"
-            className={`grid place-items-center rounded-md p-1.5 text-secondary outline-none hover:bg-layer-1-hover hover:text-primary ${
+            className={`grid place-items-center rounded-md p-1.5 text-secondary outline-none hover:bg-layer-1-hover hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid ${
               isSidebarCollapsed ? "w-full" : ""
             }`}
             onClick={() => toggleSidebar(!isSidebarCollapsed)}

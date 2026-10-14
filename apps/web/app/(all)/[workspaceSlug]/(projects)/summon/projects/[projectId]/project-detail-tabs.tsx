@@ -136,7 +136,7 @@ export function ProjectDetailTab(props: {
           key={file.id}
           href={file.url}
           download
-          className="-mx-2 flex items-center gap-3 rounded-md border-b border-subtle px-2 py-3 last:border-0 hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong"
+          className="-mx-2 flex items-center gap-3 rounded-md border-b border-subtle px-2 py-3 last:border-0 hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
         >
           <FileText className="size-4 shrink-0 text-accent-primary" />
           <span className="min-w-0 flex-1">
@@ -170,7 +170,7 @@ function Row({ href, title, detail, badge }: { href: string; title: string; deta
   return (
     <Link
       href={href}
-      className="-mx-2 flex items-center gap-3 rounded-md border-b border-subtle px-2 py-3 last:border-0 hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong"
+      className="-mx-2 flex items-center gap-3 rounded-md border-b border-subtle px-2 py-3 last:border-0 hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
     >
       <span className="min-w-0 flex-1">
         <strong className="block text-sm font-medium break-words text-primary">{title}</strong>
@@ -188,7 +188,7 @@ function ExternalRow({ href, title, detail }: { href: string; title: string; det
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="-mx-2 flex items-center gap-3 rounded-md border-b border-subtle px-2 py-3 last:border-0 hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong"
+      className="-mx-2 flex items-center gap-3 rounded-md border-b border-subtle px-2 py-3 last:border-0 hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
     >
       <span className="min-w-0 flex-1">
         <strong className="block text-sm font-medium break-words text-primary">{title}</strong>

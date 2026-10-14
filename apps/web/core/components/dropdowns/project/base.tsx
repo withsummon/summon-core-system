@@ -95,7 +95,9 @@ export const ProjectDropdownBase = observer(function ProjectDropdownBase(props: 
               <Logo logo={projectDetails?.logo_props} size={12} />
             </span>
           )}
-          <span className="flex-grow truncate">{projectDetails?.name}</span>
+          <span className="flex-grow truncate" title={projectDetails?.name}>
+            {projectDetails?.name}
+          </span>
         </div>
       ),
     };
@@ -147,7 +149,10 @@ export const ProjectDropdownBase = observer(function ProjectDropdownBase(props: 
   const comboButton = button ? (
     <button
       type="button"
-      className={cn("clickable block h-full w-full outline-none", buttonContainerClassName)}
+      className={cn(
+        "clickable block h-full w-full outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
+        buttonContainerClassName
+      )}
       disabled={disabled}
     >
       {button}
@@ -156,7 +161,7 @@ export const ProjectDropdownBase = observer(function ProjectDropdownBase(props: 
     <button
       type="button"
       className={cn(
-        "clickable block h-full max-w-full outline-none",
+        "clickable block h-full max-w-full outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
         {
           "cursor-not-allowed text-secondary": disabled,
           "cursor-pointer": !disabled,

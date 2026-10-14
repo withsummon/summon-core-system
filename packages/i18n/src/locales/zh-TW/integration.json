@@ -14,7 +14,7 @@
     "back_to_integrations": "返回整合",
     "select_state": "選擇狀態",
     "set_state": "設置狀態",
-    "choose_project": "選擇專案...",
+    "choose_project": "選擇專案…",
     "skip_backward_state_movement": "防止因 PR 更新而將問題移回較早的狀態"
   },
   "github_integration": {
@@ -62,7 +62,7 @@
     "ISSUE_CLOSED": "問題關閉",
     "save": "保存",
     "start_sync": "開始同步",
-    "choose_repository": "選擇倉庫..."
+    "choose_repository": "選擇倉庫…"
   },
   "gitlab_integration": {
     "name": "Gitlab",
@@ -103,7 +103,7 @@
     "ISSUE_CLOSED": "問題關閉",
     "save": "保存",
     "start_sync": "開始同步",
-    "choose_repository": "選擇儲存庫..."
+    "choose_repository": "選擇儲存庫…"
   },
   "gitlab_enterprise_integration": {
     "name": "Gitlab Enterprise",
@@ -186,7 +186,7 @@
       "add_new_state_mapping": "添加新狀態映射",
       "empty_state": "未配置狀態映射。建立您的第一個映射以同步Sentry事件狀態與您的專案狀態。",
       "failed_loading_state_mappings": "我們無法載入您的狀態映射。這可能是由於網路問題或整合問題。",
-      "loading_project_states": "正在載入專案狀態...",
+      "loading_project_states": "正在載入專案狀態…",
       "error_loading_states": "載入狀態時出錯",
       "no_states_available": "沒有可用狀態",
       "no_permission_states": "您沒有權限存取此專案的狀態",
@@ -205,7 +205,7 @@
     "connected": "已連線",
     "connect": "連線",
     "uninstall": "解除安裝",
-    "uninstalling": "解除安裝中...",
+    "uninstalling": "解除安裝中…",
     "install_success": "OAuth Bridge 安裝成功。",
     "install_error": "OAuth Bridge 安裝失敗。",
     "uninstall_success": "OAuth Bridge 已解除安裝。",
@@ -260,7 +260,7 @@
       "rate_limit_placeholder": "120/minute",
       "rate_limit_description": "請求限制格式為 次數/週期（例如 120/minute）。留空使用預設速率限制。",
       "enable_provider": "啟用此提供者",
-      "saving": "儲存中...",
+      "saving": "儲存中…",
       "update": "更新"
     }
   },
@@ -296,7 +296,7 @@
     "webhook_secret_error": "Webhook secret 是必需的",
     "private_key_title": "Private Key (Base64 編碼)",
     "private_key_description": "您在 GitHub Enterprise 組織中創建的應用的 private key。",
-    "private_key_placeholder": "例如，\"MIIEpAIBAAKCAQEA...",
+    "private_key_placeholder": "例如，\"MIIEpAIBAAKCAQEA…",
     "private_key_error": "Private key 是必需的",
     "connect_app": "連接應用"
   },

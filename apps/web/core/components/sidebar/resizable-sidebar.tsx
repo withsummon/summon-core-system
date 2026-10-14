@@ -179,7 +179,7 @@ export function ResizableSidebar({
         id="main-sidebar"
         className={cn(
           "z-20 h-full border-r border-subtle bg-surface-1",
-          !isResizing && "transition-all duration-300 ease-in-out",
+          !isResizing && "transition-[width,min-width,max-width,translate,opacity,visibility] duration-300 ease-in-out",
           isCollapsed ? "invisible w-0 translate-x-[-100%] opacity-0" : "visible translate-x-0 opacity-100",
           "max-md:absolute",
           className
@@ -203,7 +203,7 @@ export function ResizableSidebar({
           {/* Resize Handle */}
           <div
             className={cn(
-              "absolute z-[20] h-full w-1 cursor-ew-resize transition-all duration-200",
+              "absolute z-[20] h-full w-1 cursor-ew-resize transition-[width,background-color] duration-200",
               !isResizing && "hover:bg-surface-2",
               isResizing && "w-1.5 bg-layer-1",
               "top-0 right-0"
@@ -220,7 +220,7 @@ export function ResizableSidebar({
       <div
         className={cn(
           "absolute left-0 z-20 h-full bg-surface-1 shadow-sm",
-          !isResizing && "transition-all duration-300 ease-in-out",
+          !isResizing && "transition-[translate,opacity,visibility] duration-300 ease-in-out",
           isCollapsed && showPeek ? "visible translate-x-0 opacity-100" : "invisible translate-x-[-100%] opacity-0",
           "pointer-events-none",
           isCollapsed && showPeek && "pointer-events-auto",
@@ -245,7 +245,7 @@ export function ResizableSidebar({
           {/* Resize Handle */}
           <div
             className={cn(
-              "absolute z-[20] h-full w-1 cursor-ew-resize transition-all duration-200",
+              "absolute z-[20] h-full w-1 cursor-ew-resize transition-colors duration-200",
               !isResizing && "hover:bg-surface-2",
               isResizing && "bg-layer-1",
               "top-0 right-0"

@@ -108,7 +108,7 @@ export const ProjectsDirectoryRoot = observer(function ProjectsDirectoryRoot({
             <li key={project.id}>
               <Link
                 href={`/${workspaceSlug}/summon/projects/${project.id}/`}
-                className="group grid grid-cols-1 gap-3 px-4 py-3 transition-colors hover:bg-layer-1 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong sm:px-6 md:grid-cols-[minmax(0,1fr)_11rem_10rem] md:items-center md:gap-6"
+                className="group grid grid-cols-1 gap-3 px-4 py-3 transition-colors hover:bg-layer-1 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong focus-visible:outline-solid sm:px-6 md:grid-cols-[minmax(0,1fr)_11rem_10rem] md:items-center md:gap-6"
               >
                 <span className="flex min-w-0 items-center gap-3">
                   <span className="grid size-8 shrink-0 place-items-center rounded-md border border-subtle bg-layer-1 text-secondary">

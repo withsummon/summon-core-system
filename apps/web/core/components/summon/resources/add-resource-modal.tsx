@@ -80,9 +80,7 @@ export function AddResourceModal({ isOpen, onClose, onSave, projects }: IAddReso
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-3.5 p-6">
           {error && (
-            <div className="bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg p-2.5 text-xs font-semibold">
-              {error}
-            </div>
+            <div className="rounded-lg bg-danger-subtle p-2.5 text-xs font-semibold text-danger-primary">{error}</div>
           )}
 
           <div>
@@ -163,7 +161,7 @@ export function AddResourceModal({ isOpen, onClose, onSave, projects }: IAddReso
               rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Context or notes about this resource..."
+              placeholder="Context or notes about this resource…"
               className="mt-1"
             />
           </div>

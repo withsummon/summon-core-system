@@ -22,12 +22,12 @@ export const bannerSizeStyling = {
 export const bannerStyling: IBannerStyling = {
   success: "bg-success-subtle",
   error: "bg-danger-subtle",
-  warning: "bg-yellow-500/10",
-  info: "bg-blue-500/10",
+  warning: "bg-warning-subtle",
+  info: "bg-accent-subtle",
 };
 
 // Base banner styles
-export const bannerBaseStyles = "flex items-center justify-between w-full transition-all duration-200";
+export const bannerBaseStyles = "flex items-center justify-between w-full transition-colors duration-200";
 
 // Get banner container styling
 export const getBannerStyling = (variant: TBannerVariant): string => {

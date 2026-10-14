@@ -414,7 +414,7 @@
         "set_as_default": {
           "label": "Varsayılan olarak ayarla",
           "toast": {
-            "loading": "Varsayılan olarak ayarlanıyor...",
+            "loading": "Varsayılan olarak ayarlanıyor…",
             "success": {
               "title": "Başarılı!",
               "message": "{level}. hiyerarşi seviyesi varsayılan olarak başarıyla ayarlandı."
@@ -427,7 +427,7 @@
         }
       },
       "update_level_toast": {
-        "loading": "{workItemTypeName}, {level}. seviyeye taşınıyor...",
+        "loading": "{workItemTypeName}, {level}. seviyeye taşınıyor…",
         "success": {
           "title": "Başarılı!",
           "message": "{workItemTypeName}, {level}. seviyeye başarıyla taşındı."

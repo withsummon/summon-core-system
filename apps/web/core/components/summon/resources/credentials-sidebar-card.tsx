@@ -46,10 +46,10 @@ export function CredentialsSidebarCard({ credentials, workspaceSlug }: ICredenti
                   <div
                     className={`flex size-7 shrink-0 items-center justify-center rounded-lg ${
                       isAws
-                        ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                        ? "bg-label-indigo-bg text-label-indigo-icon"
                         : isGit
-                          ? "bg-orange-500/10 text-orange-600 dark:text-orange-400"
-                          : "bg-purple-500/10 text-purple-600 dark:text-purple-400"
+                          ? "bg-label-orange-bg text-label-orange-icon"
+                          : "bg-label-purple-bg text-label-purple-icon"
                     }`}
                   >
                     {isAws ? (
@@ -61,7 +61,9 @@ export function CredentialsSidebarCard({ credentials, workspaceSlug }: ICredenti
                     )}
                   </div>
                   <div className="min-w-0 truncate">
-                    <div className="truncate font-medium text-primary">{cred.name}</div>
+                    <div className="truncate font-medium text-primary" title={cred.name}>
+                      {cred.name}
+                    </div>
                     <div className="truncate text-12 text-tertiary">
                       {cred.account_identifier || cred.provider || "Authorized"}
                     </div>

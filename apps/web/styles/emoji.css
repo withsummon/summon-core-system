@@ -24,8 +24,13 @@
     padding: 0.5rem !important;
   }
 
-  button.epr-emoji:hover > *,
-  button.epr-emoji:focus > * {
+  @media (hover: hover) {
+    button.epr-emoji:hover > * {
+      @apply bg-layer-2!;
+    }
+  }
+
+  button.epr-emoji:focus-visible > * {
     @apply bg-layer-2!;
   }
 
@@ -41,9 +46,11 @@
     @apply text-placeholder!;
   }
 
-  button.epr-btn-clear-search:hover {
-    @apply bg-layer-2!;
-    @apply text-tertiary!;
+  @media (hover: hover) {
+    button.epr-btn-clear-search:hover {
+      @apply bg-layer-2!;
+      @apply text-tertiary!;
+    }
   }
 
   .epr-emoji-variation-picker {

@@ -44,50 +44,44 @@ const getTypeStyle = (type: TKnowledgeItemType) => {
     case "Document":
       return {
         icon: FileText,
-        iconClass: "text-blue-600 dark:text-blue-400",
-        badge:
-          "bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800/60",
+        iconClass: "text-label-indigo-icon",
+        badge: "bg-label-indigo-bg text-label-indigo-text border border-label-indigo-border",
       };
     case "Note":
       return {
         icon: FileCode,
-        iconClass: "text-emerald-600 dark:text-emerald-400",
-        badge:
-          "bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/60",
+        iconClass: "text-label-emerald-icon",
+        badge: "bg-label-emerald-bg text-label-emerald-text border border-label-emerald-border",
       };
     case "Template":
       return {
         icon: BookOpen,
-        iconClass: "text-purple-600 dark:text-purple-400",
-        badge:
-          "bg-purple-50 text-purple-600 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800/60",
+        iconClass: "text-label-purple-icon",
+        badge: "bg-label-purple-bg text-label-purple-text border border-label-purple-border",
       };
     case "Lesson Learned":
       return {
         icon: Lightbulb,
-        iconClass: "text-orange-600 dark:text-orange-400",
-        badge:
-          "bg-orange-50 text-orange-600 border border-orange-200 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-800/60",
+        iconClass: "text-label-orange-icon",
+        badge: "bg-label-orange-bg text-label-orange-text border border-label-orange-border",
       };
     case "Guide":
       return {
         icon: FileText,
-        iconClass: "text-blue-600 dark:text-blue-400",
-        badge:
-          "bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800/60",
+        iconClass: "text-label-pink-icon",
+        badge: "bg-label-pink-bg text-label-pink-text border border-label-pink-border",
       };
     case "FAQ":
       return {
         icon: HelpCircle,
-        iconClass: "text-cyan-600 dark:text-cyan-400",
-        badge:
-          "bg-cyan-50 text-cyan-600 border border-cyan-200 dark:bg-cyan-950/40 dark:text-cyan-400 dark:border-cyan-800/60",
+        iconClass: "text-label-yellow-icon",
+        badge: "bg-label-yellow-bg text-label-yellow-text border border-label-yellow-border",
       };
     default:
       return {
         icon: FileText,
-        iconClass: "text-blue-600",
-        badge: "bg-blue-50 text-blue-600 border border-blue-200",
+        iconClass: "text-label-grey-icon",
+        badge: "bg-label-grey-bg text-label-grey-text border border-label-grey-border",
       };
   }
 };
@@ -126,7 +120,7 @@ export const RecentKnowledgeTable: React.FC<IRecentKnowledgeTableProps> = ({
         <button
           type="button"
           onClick={onViewAllKnowledge}
-          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 text-xs font-medium transition-colors"
+          className="flex items-center gap-1 text-xs font-medium text-link-primary transition-colors hover:text-link-primary-hover"
         >
           <span>View all knowledge</span>
           <ArrowRight size={13} />
@@ -148,13 +142,11 @@ export const RecentKnowledgeTable: React.FC<IRecentKnowledgeTableProps> = ({
                 }}
                 className={cn(
                   "relative pb-2 text-xs font-medium whitespace-nowrap transition-colors",
-                  isActive ? "text-blue-600 dark:text-blue-400 font-semibold" : "text-secondary hover:text-primary"
+                  isActive ? "font-semibold text-accent-primary" : "text-secondary hover:text-primary"
                 )}
               >
                 {tab.label}
-                {isActive && (
-                  <span className="bg-blue-600 dark:bg-blue-400 absolute right-0 bottom-0 left-0 h-0.5 rounded-full" />
-                )}
+                {isActive && <span className="absolute right-0 bottom-0 left-0 h-0.5 rounded-full bg-accent-primary" />}
               </button>
             );
           })}
@@ -187,12 +179,14 @@ export const RecentKnowledgeTable: React.FC<IRecentKnowledgeTableProps> = ({
                       <div className="flex items-start gap-2.5">
                         <IconComp size={16} className={cn("mt-0.5 shrink-0", iconClass)} />
                         <div className="max-w-[220px] xl:max-w-[260px]">
-                          <p
+                          <button
+                            type="button"
                             onClick={() => onSelectItem?.(item)}
-                            className="group-hover:text-blue-600 dark:group-hover:text-blue-400 cursor-pointer truncate font-semibold text-primary transition-colors"
+                            title={item.title}
+                            className="block w-full cursor-pointer truncate text-left font-semibold text-primary transition-colors group-hover:text-accent-primary"
                           >
                             {item.title}
-                          </p>
+                          </button>
                           <p className="mt-0.5 truncate text-[11px] text-secondary">{item.description}</p>
                         </div>
                       </div>
@@ -221,7 +215,7 @@ export const RecentKnowledgeTable: React.FC<IRecentKnowledgeTableProps> = ({
                             className="size-5.5 rounded-full object-cover ring-1 ring-subtle"
                           />
                         ) : (
-                          <div className="bg-blue-600 flex size-5.5 items-center justify-center rounded-full text-[9px] font-bold text-white">
+                          <div className="flex size-5.5 items-center justify-center rounded-full bg-label-indigo-bg-strong text-[9px] font-bold text-on-color">
                             {item.updatedBy.initials}
                           </div>
                         )}
@@ -234,8 +228,9 @@ export const RecentKnowledgeTable: React.FC<IRecentKnowledgeTableProps> = ({
                       <div className="relative inline-flex items-center">
                         <button
                           type="button"
+                          aria-label="More actions"
                           onClick={() => setMenuOpenId(isMenuOpen ? null : item.id)}
-                          className="hover:bg-surface-3 rounded-md p-1.5 text-placeholder transition-colors hover:text-primary"
+                          className="rounded-md p-1.5 text-placeholder transition-colors hover:bg-layer-1-hover hover:text-primary"
                         >
                           <MoreHorizontal size={14} />
                         </button>
@@ -283,7 +278,7 @@ export const RecentKnowledgeTable: React.FC<IRecentKnowledgeTableProps> = ({
                                   message: `${item.title} was removed.`,
                                 });
                               }}
-                              className="text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 flex w-full items-center gap-2 px-3 py-1.5 text-[11px] transition-colors"
+                              className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] text-danger-primary transition-colors hover:bg-danger-subtle"
                             >
                               <Trash2 size={12} />
                               <span>Delete</span>
@@ -308,11 +303,14 @@ export const RecentKnowledgeTable: React.FC<IRecentKnowledgeTableProps> = ({
 
       {/* Pagination Footer */}
       <div className="mt-4 flex items-center justify-between border-t border-subtle pt-3 text-xs text-secondary">
-        <div>Showing 1 to {Math.min(pageSize, filteredItems.length)} of 156 knowledge items</div>
+        <div className="tabular-nums">
+          Showing 1 to {Math.min(pageSize, filteredItems.length)} of 156 knowledge items
+        </div>
         <div className="flex items-center gap-1">
           <button
             type="button"
             disabled={currentPage === 1}
+            aria-label="Previous page"
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             className="flex size-7 items-center justify-center rounded-md border border-subtle bg-surface-1 text-placeholder transition-colors hover:border-strong hover:text-primary disabled:opacity-40"
           >
@@ -324,7 +322,7 @@ export const RecentKnowledgeTable: React.FC<IRecentKnowledgeTableProps> = ({
             className={cn(
               "flex size-7 items-center justify-center rounded-md text-xs font-semibold transition-colors",
               currentPage === 1
-                ? "bg-blue-600 text-white shadow-xs"
+                ? "bg-accent-primary text-on-color shadow-xs"
                 : "border border-subtle bg-surface-1 text-primary hover:bg-surface-2"
             )}
           >
@@ -344,7 +342,7 @@ export const RecentKnowledgeTable: React.FC<IRecentKnowledgeTableProps> = ({
           >
             3
           </button>
-          <span className="px-1 text-placeholder">...</span>
+          <span className="px-1 text-placeholder">…</span>
           <button
             type="button"
             onClick={() => setCurrentPage(32)}
@@ -355,6 +353,7 @@ export const RecentKnowledgeTable: React.FC<IRecentKnowledgeTableProps> = ({
           <button
             type="button"
             onClick={() => setCurrentPage((p) => Math.min(32, p + 1))}
+            aria-label="Next page"
             className="flex size-7 items-center justify-center rounded-md border border-subtle bg-surface-1 text-placeholder transition-colors hover:border-strong hover:text-primary"
           >
             <ChevronRight size={13} />

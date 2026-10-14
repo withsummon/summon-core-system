@@ -344,8 +344,8 @@
         "done": "Done"
       },
       "progress": {
-        "uploading": "Uploading...",
-        "importing": "Importing..."
+        "uploading": "Uploading…",
+        "importing": "Importing…"
       },
       "summary": {
         "title": {

@@ -133,7 +133,7 @@ export const CycleProgressStats = observer(function CycleProgressStats(props: TC
             <Tabs.Trigger
               value={stat.key}
               className={cn(
-                `w-full cursor-pointer p-1 text-primary transition-all outline-none focus:outline-none`,
+                `w-full cursor-pointer p-1 text-primary transition-colors outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong focus-visible:outline-solid`,
                 roundedTab ? `rounded-3xl border border-subtle` : `rounded-sm`,
                 stat.key === currentTab
                   ? "bg-layer-transparent-active text-secondary"

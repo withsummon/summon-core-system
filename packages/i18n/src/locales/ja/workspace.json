@@ -344,8 +344,8 @@
         "done": "完了"
       },
       "progress": {
-        "uploading": "アップロード中...",
-        "importing": "インポート中..."
+        "uploading": "アップロード中…",
+        "importing": "インポート中…"
       },
       "summary": {
         "title": {

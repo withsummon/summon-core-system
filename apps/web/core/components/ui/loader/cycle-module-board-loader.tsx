@@ -10,7 +10,7 @@ export function CycleModuleBoardLayoutLoader() {
   return (
     <div className="h-full w-full animate-pulse">
       <div className="flex h-full w-full justify-between">
-        <div className="3xl:grid-cols-4 grid h-full w-full auto-rows-max grid-cols-1 gap-6 overflow-y-auto p-8 transition-all lg:grid-cols-2 xl:grid-cols-3">
+        <div className="3xl:grid-cols-4 grid h-full w-full auto-rows-max grid-cols-1 gap-6 overflow-y-auto p-8 lg:grid-cols-2 xl:grid-cols-3">
           {range(5).map((i) => (
             <div
               key={i}

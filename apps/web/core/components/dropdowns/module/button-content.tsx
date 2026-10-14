@@ -94,6 +94,7 @@ export function ModuleButtonContent(props: ModuleButtonContentProps) {
                       <button
                         type="button"
                         className="flex-shrink-0"
+                        aria-label={`Remove ${moduleDetails?.name ?? "module"}`}
                         onClick={() => {
                           const newModuleIds = value.filter((m) => m !== moduleId);
                           onChange(newModuleIds);

@@ -111,7 +111,14 @@ export function Avatar(props: Props) {
       style={isAValidNumber(size) ? { width: size, height: size } : undefined}
     >
       <AvatarPrimitive.Root className={cn("h-full w-full", getBorderRadius(shape), className)}>
-        <AvatarPrimitive.Image src={src} alt={name ?? ""} className="h-full w-full object-cover" />
+        <AvatarPrimitive.Image
+          src={src}
+          alt={name ?? ""}
+          className={cn(
+            "h-full w-full object-cover outline-1 -outline-offset-1 outline-black/8 outline-solid dark:outline-white/8",
+            getBorderRadius(shape)
+          )}
+        />
         <AvatarPrimitive.Fallback
           className={cn(sizeInfo.fontSize, "grid h-full w-full place-items-center", getBorderRadius(shape), className)}
           style={{

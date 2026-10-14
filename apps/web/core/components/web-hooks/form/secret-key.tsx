@@ -123,7 +123,12 @@ export const WebhookSecretKey = observer(function WebhookSecretKey(props: Props)
                 <div className="flex items-center gap-2">
                   {SECRET_KEY_OPTIONS.map((option) => (
                     <Tooltip key={option.key} tooltipContent={option.label} isMobile={isMobile}>
-                      <button type="button" className="grid flex-shrink-0 place-items-center" onClick={option.onClick}>
+                      <button
+                        type="button"
+                        aria-label={option.label}
+                        className="grid flex-shrink-0 place-items-center"
+                        onClick={option.onClick}
+                      >
                         <option.Icon className="h-3 w-3 text-placeholder" />
                       </button>
                     </Tooltip>
@@ -140,7 +145,7 @@ export const WebhookSecretKey = observer(function WebhookSecretKey(props: Props)
                   loading={isRegenerating}
                   prependIcon={<RefreshCw />}
                 >
-                  {isRegenerating ? `${t("re_generating")}...` : t("re_generate_key")}
+                  {isRegenerating ? `${t("re_generating")}…` : t("re_generate_key")}
                 </Button>
               </div>
             )}

@@ -33,7 +33,9 @@ export function ApiTokenListItem(props: Props) {
       <div className="group relative flex flex-col justify-center border-b border-subtle py-3">
         <Tooltip tooltipContent="Delete token" isMobile={isMobile}>
           <button
+            type="button"
             onClick={() => setDeleteModalOpen(true)}
+            aria-label="Delete token"
             className="absolute right-4 hidden place-items-center group-hover:grid"
             data-ph-element={PROFILE_SETTINGS_TRACKER_ELEMENTS.LIST_ITEM_DELETE_ICON}
           >
@@ -41,7 +43,9 @@ export function ApiTokenListItem(props: Props) {
           </button>
         </Tooltip>
         <div className="flex w-4/5 items-center">
-          <h5 className="truncate text-13 font-medium">{token.label}</h5>
+          <h5 className="truncate text-13 font-medium" title={token.label}>
+            {token.label}
+          </h5>
           <span
             className={`${
               token.is_active ? "bg-success-subtle text-success-primary" : "bg-layer-1 text-placeholder"

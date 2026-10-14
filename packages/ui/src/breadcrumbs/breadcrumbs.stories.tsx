@@ -72,7 +72,7 @@ export const WithCustomComponent: Story = {
         key="custom"
         component={
           <div className="flex items-center gap-2">
-            <span className="bg-blue-500 size-4 rounded-full" />
+            <span className="size-4 rounded-full bg-accent-primary" />
             <span>Custom Component</span>
           </div>
         }

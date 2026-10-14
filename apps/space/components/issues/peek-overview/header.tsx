@@ -65,7 +65,7 @@ export const PeekOverviewHeader = observer(function PeekOverviewHeader(props: Pr
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-4">
         {peekMode === "side" && (
-          <button type="button" onClick={handleClose} className="text-tertiary hover:text-secondary">
+          <button type="button" aria-label="Close" onClick={handleClose} className="text-tertiary hover:text-secondary">
             <MoveRight className="size-4" />
           </button>
         )}
@@ -90,8 +90,8 @@ export const PeekOverviewHeader = observer(function PeekOverviewHeader(props: Pr
         <button
           type="button"
           onClick={handleCopyLink}
-          className="shrink-0 text-tertiary hover:text-secondary focus:outline-none"
-          tabIndex={1}
+          aria-label="Copy link"
+          className="shrink-0 text-tertiary hover:text-secondary focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
         >
           <LinkIcon className="h-4 w-4 -rotate-45" />
         </button>

@@ -90,7 +90,9 @@ export function FavoriteFolder(props: Props) {
                   <div className="grid size-5 flex-shrink-0 place-items-center">
                     <FavoriteFolderIcon />
                   </div>
-                  <p className="truncate text-13 font-medium text-secondary">{favorite.name}</p>
+                  <p className="truncate text-13 font-medium text-secondary" title={favorite.name}>
+                    {favorite.name}
+                  </p>
                 </div>
               );
               return () => root.unmount();
@@ -233,7 +235,7 @@ export function FavoriteFolder(props: Props) {
                     >
                       <CustomMenu.MenuItem onClick={() => handleRemoveFromFavorites(favorite)}>
                         <span className="flex items-center justify-start gap-2">
-                          <Star className="fill-yellow-500 stroke-yellow-500 h-3.5 w-3.5" />
+                          <Star className="h-3.5 w-3.5 fill-label-yellow-icon stroke-label-yellow-icon" />
                           <span>Remove from favorites</span>
                         </span>
                       </CustomMenu.MenuItem>

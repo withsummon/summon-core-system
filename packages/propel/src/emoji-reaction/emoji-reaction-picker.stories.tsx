@@ -140,7 +140,11 @@ export const InlineReactions: Story = {
           onChange={handleReactionAdd}
           closeOnSelect
           label={
-            <button className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-strong bg-surface-1 text-placeholder transition-all duration-200 hover:border-accent-strong hover:bg-accent-primary/5 hover:text-accent-primary">
+            <button
+              type="button"
+              aria-label="Add reaction"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-strong bg-surface-1 text-placeholder transition-colors duration-200 hover:border-accent-strong hover:bg-accent-primary/5 hover:text-accent-primary"
+            >
               <SmilePlus className="h-3.5 w-3.5" />
             </button>
           }
@@ -259,7 +263,7 @@ export const CustomSearchPlaceholder: Story = {
           handleToggle={setIsOpen}
           onChange={setSelectedEmoji}
           closeOnSelect
-          searchPlaceholder="Find your emoji..."
+          searchPlaceholder="Find your emoji…"
           label={
             <button className="rounded-sm border border-subtle bg-layer-1 px-4 py-2 hover:bg-surface-2">
               Custom Search
@@ -384,7 +388,11 @@ export const InMessageContext: Story = {
             onChange={handleReactionAdd}
             closeOnSelect
             label={
-              <button className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-strong bg-surface-1 text-placeholder transition-all duration-200 hover:border-accent-strong hover:bg-accent-primary/5 hover:text-accent-primary">
+              <button
+                type="button"
+                aria-label="Add reaction"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-strong bg-surface-1 text-placeholder transition-colors duration-200 hover:border-accent-strong hover:bg-accent-primary/5 hover:text-accent-primary"
+              >
                 <SmilePlus className="h-3.5 w-3.5" />
               </button>
             }

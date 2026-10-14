@@ -185,7 +185,7 @@ const TabsTrigger = React.forwardRef(function TabsTrigger(
     <TabsPrimitive.Tab
       data-slot="tabs-trigger"
       className={cn(
-        "group/select flex min-w-fit cursor-pointer items-center justify-center gap-1.5 font-medium whitespace-nowrap transition-colors duration-150 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-strong motion-reduce:transition-none",
+        "group/select flex min-w-fit cursor-pointer items-center justify-center gap-1.5 font-medium whitespace-nowrap transition-colors duration-150 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-strong focus-visible:outline-solid motion-reduce:transition-none",
         "text-tertiary hover:text-primary data-[active]:text-primary",
         "disabled:cursor-not-allowed disabled:text-placeholder",
         variant === "underline"

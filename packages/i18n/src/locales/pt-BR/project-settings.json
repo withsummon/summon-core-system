@@ -398,7 +398,7 @@
         },
         "toasts": {
           "set": {
-            "loading": "Definindo responsáveis...",
+            "loading": "Definindo responsáveis…",
             "success": {
               "title": "Sucesso!",
               "message": "Responsáveis definidos com sucesso."
@@ -425,7 +425,7 @@
         "toggle_description": "Organize itens de trabalho por prazos de marcos."
       },
       "toasts": {
-        "loading": "Atualizando recurso do projeto...",
+        "loading": "Atualizando recurso do projeto…",
         "success": "Recurso do projeto atualizado com sucesso.",
         "error": "Algo deu errado ao atualizar o recurso do projeto. Por favor, tente novamente."
       }

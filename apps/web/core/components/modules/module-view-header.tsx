@@ -117,14 +117,14 @@ export const ModuleViewHeader = observer(function ModuleViewHeader() {
           className={cn(
             "ml-auto flex w-0 items-center justify-start gap-1 overflow-hidden rounded-md border border-transparent bg-surface-1 text-placeholder opacity-0 transition-[width] ease-linear",
             {
-              "w-64 border-subtle px-2.5 py-1.5 opacity-100": isSearchOpen,
+              "w-64 border-subtle px-2.5 py-1.5 opacity-100 focus-within:border-accent-strong": isSearchOpen,
             }
           )}
         >
           <SearchIcon className="h-3.5 w-3.5" />
           <input
             ref={inputRef}
-            className="w-full max-w-[234px] border-none bg-transparent text-13 text-primary placeholder:text-placeholder focus:outline-none"
+            className="w-full max-w-[234px] border-none bg-transparent text-13 text-primary outline-none placeholder:text-placeholder"
             placeholder="Search"
             value={searchQuery}
             onChange={(e) => updateSearchQuery(e.target.value)}
@@ -133,6 +133,7 @@ export const ModuleViewHeader = observer(function ModuleViewHeader() {
           {isSearchOpen && (
             <button
               type="button"
+              aria-label="Close search"
               className="grid place-items-center"
               onClick={() => {
                 // updateSearchQuery("");
@@ -175,8 +176,9 @@ export const ModuleViewHeader = observer(function ModuleViewHeader() {
           <Tooltip key={layout.key} tooltipContent={t(layout.i18n_title)} isMobile={isMobile}>
             <button
               type="button"
+              aria-label={t(layout.i18n_title)}
               className={cn(
-                "group grid h-5.5 w-7 place-items-center overflow-hidden rounded-sm transition-all hover:bg-layer-transparent-hover",
+                "group grid h-5.5 w-7 place-items-center overflow-hidden rounded-sm transition-colors hover:bg-layer-transparent-hover",
                 {
                   "bg-layer-transparent-active hover:bg-layer-transparent-active":
                     displayFilters?.layout === layout.key,

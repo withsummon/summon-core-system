@@ -44,7 +44,7 @@ export default meta;
 type Story = StoryObj<typeof Input>;
 
 const createStory = (args: Partial<React.ComponentProps<typeof Input>>): Story => ({
-  args: { placeholder: "Enter text...", className: "w-[400px]", ...args },
+  args: { placeholder: "Enter text…", className: "w-[400px]", ...args },
 });
 
 const createShowcaseStory = (
@@ -58,7 +58,7 @@ const createShowcaseStory = (
         <div className="space-y-2">
           {sections.map(({ label, props }, index) => (
             <div key={index} className="w-full">
-              <label className="text-gray-500 text-11">{label}</label>
+              <label className="text-11 text-secondary">{label}</label>
               <Input className="w-full" {...props} />
             </div>
           ))}
@@ -136,7 +136,7 @@ export const Number = createStory({
 
 export const Search = createStory({
   type: "search",
-  placeholder: "Search...",
+  placeholder: "Search…",
 });
 
 export const AllModes = createShowcaseStory("Input Modes", [

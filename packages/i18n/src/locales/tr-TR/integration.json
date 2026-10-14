@@ -14,7 +14,7 @@
     "back_to_integrations": "Entegrasyonlara geri dön",
     "select_state": "Durum Seçin",
     "set_state": "Durumu Ayarla",
-    "choose_project": "Proje Seçin...",
+    "choose_project": "Proje Seçin…",
     "skip_backward_state_movement": "PR güncellemeleri nedeniyle sorunların önceki bir duruma taşınmasını önle"
   },
   "github_integration": {
@@ -62,7 +62,7 @@
     "ISSUE_CLOSED": "Issue Kapandığında, durumu şuna ayarla",
     "save": "Kaydet",
     "start_sync": "Senkronizasyonu Başlat",
-    "choose_repository": "Repository Seçin..."
+    "choose_repository": "Repository Seçin…"
   },
   "gitlab_integration": {
     "name": "Gitlab",
@@ -103,7 +103,7 @@
     "ISSUE_CLOSED": "Sorun Kapalı",
     "save": "Kaydet",
     "start_sync": "Senkronizasyonu Başlat",
-    "choose_repository": "Depo Seçin..."
+    "choose_repository": "Depo Seçin…"
   },
   "gitlab_enterprise_integration": {
     "name": "Gitlab Enterprise",
@@ -186,7 +186,7 @@
       "add_new_state_mapping": "Yeni durum eşleştirme ekle",
       "empty_state": "Durum eşleştirme yapılandırılmamış. Sentry olay durumlarını proje durumlarınızla senkronize etmek için ilk eşleştirmenizi oluşturun.",
       "failed_loading_state_mappings": "Durum eşleştirmelerinizi yükleyemedik. Bu, ağ sorunu veya entegrasyon sorunu nedeniyle olabilir.",
-      "loading_project_states": "Proje durumları yükleniyor...",
+      "loading_project_states": "Proje durumları yükleniyor…",
       "error_loading_states": "Durumlar yüklenirken hata",
       "no_states_available": "Kullanılabilir durum yok",
       "no_permission_states": "Bu proje için durumlara erişim izniniz yok",
@@ -205,7 +205,7 @@
     "connected": "Bağlı",
     "connect": "Bağlan",
     "uninstall": "Kaldır",
-    "uninstalling": "Kaldırılıyor...",
+    "uninstalling": "Kaldırılıyor…",
     "install_success": "OAuth Bridge başarıyla kuruldu.",
     "install_error": "OAuth Bridge kurulamadı.",
     "uninstall_success": "OAuth Bridge kaldırıldı.",
@@ -260,7 +260,7 @@
       "rate_limit_placeholder": "120/minute",
       "rate_limit_description": "İstek sınırlaması sayı/dönem olarak (ör. 120/minute). Varsayılan hız limiti için boş bırakın.",
       "enable_provider": "Bu sağlayıcıyı etkinleştir",
-      "saving": "Kaydediliyor...",
+      "saving": "Kaydediliyor…",
       "update": "Güncelle"
     }
   },
@@ -296,7 +296,7 @@
     "webhook_secret_error": "Webhook secret gereklidir",
     "private_key_title": "Private Key (Base64 encoded)",
     "private_key_description": "GitHub Enterprise organizasyonunuzda oluşturduğunuz uygulamanın private key'i.",
-    "private_key_placeholder": "e.g., \"MIIEpAIBAAKCAQEA...",
+    "private_key_placeholder": "e.g., \"MIIEpAIBAAKCAQEA…",
     "private_key_error": "Private key gereklidir",
     "connect_app": "Uygulamayı Bağla"
   },

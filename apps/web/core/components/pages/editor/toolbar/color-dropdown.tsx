@@ -36,7 +36,7 @@ export const ColorDropdown = memo(function ColorDropdown(props: Props) {
         <Popover.Button
           type="button"
           className={cn(
-            "flex h-7 items-center gap-1.5 rounded-sm px-2 text-13 outline-none",
+            "flex h-7 items-center gap-1.5 rounded-sm px-2 text-13 outline-none focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
             "text-tertiary hover:bg-layer-1 data-[popup-open]:bg-layer-1 data-[popup-open]:text-primary"
           )}
         >

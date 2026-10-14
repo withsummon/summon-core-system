@@ -54,7 +54,7 @@ export function SummonRequestState(props: {
     return (
       <div
         className="rounded-xl border border-warning-subtle bg-warning-subtle/20 p-4 text-sm text-warning-primary"
-        role="alert"
+        role="status"
       >
         {permissionMessage}
       </div>

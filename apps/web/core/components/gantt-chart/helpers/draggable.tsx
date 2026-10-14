@@ -39,7 +39,7 @@ export const ChartDraggable = observer(function ChartDraggable(props: Props) {
   } = props;
 
   return (
-    <div className="group relative z-[5] inline-flex h-full w-full cursor-pointer items-center font-medium transition-all">
+    <div className="group relative z-[5] inline-flex h-full w-full cursor-pointer items-center font-medium">
       <LeftResizable
         enableBlockLeftResize={enableBlockLeftResize}
         handleBlockDrag={handleBlockDrag}

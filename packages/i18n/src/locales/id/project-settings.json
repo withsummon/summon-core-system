@@ -398,7 +398,7 @@
         },
         "toasts": {
           "set": {
-            "loading": "Mengatur yang ditugaskan...",
+            "loading": "Mengatur yang ditugaskan…",
             "success": {
               "title": "Berhasil!",
               "message": "Yang ditugaskan berhasil diatur."
@@ -425,7 +425,7 @@
         "toggle_description": "Organisir item kerja berdasarkan tenggat tonggak."
       },
       "toasts": {
-        "loading": "Memperbarui fitur proyek...",
+        "loading": "Memperbarui fitur proyek…",
         "success": "Fitur proyek berhasil diperbarui.",
         "error": "Terjadi kesalahan saat memperbarui fitur proyek. Silakan coba lagi."
       }

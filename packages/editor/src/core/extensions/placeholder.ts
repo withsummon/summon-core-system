@@ -48,7 +48,7 @@ export const CustomPlaceholderExtension = (args: TArgs) => {
         else return placeholder(editor.isFocused, editor.getHTML());
       }
 
-      return "Press '/' for commands...";
+      return "Press '/' for commands…";
     },
     includeChildren: true,
   });

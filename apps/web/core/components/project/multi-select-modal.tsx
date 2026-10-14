@@ -92,7 +92,7 @@ export const ProjectMultiSelectModal = observer(function ProjectMultiSelectModal
         <div className="flex items-center gap-2 border-b border-subtle px-4">
           <SearchIcon className="size-4 flex-shrink-0 text-placeholder" aria-hidden="true" />
           <Combobox.Input
-            className="h-12 w-full border-0 bg-transparent text-13 text-primary outline-none placeholder:text-placeholder focus:ring-0"
+            className="h-12 w-full border-0 bg-transparent text-13 text-primary outline-none placeholder:text-placeholder"
             placeholder="Search for projects"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -104,8 +104,10 @@ export const ProjectMultiSelectModal = observer(function ProjectMultiSelectModal
               const projectDetails = projectDetailsMap.get(projectId);
               if (!projectDetails) return null;
               return (
-                <div
+                <button
+                  type="button"
                   key={projectDetails.id}
+                  aria-label={`Remove ${projectDetails.identifier}`}
                   className="group flex cursor-pointer items-center gap-1.5 rounded-sm bg-surface-2 px-2 py-1"
                   onClick={() => {
                     handleSelectedProjectChange(selectedProjectIds.filter((id) => id !== projectDetails.id));
@@ -116,7 +118,7 @@ export const ProjectMultiSelectModal = observer(function ProjectMultiSelectModal
                     {projectDetails.identifier}
                   </p>
                   <CloseIcon className="size-3 flex-shrink-0 text-placeholder transition-colors group-hover:text-secondary" />
-                </div>
+                </button>
               );
             })}
           </div>
@@ -160,7 +162,9 @@ export const ProjectMultiSelectModal = observer(function ProjectMultiSelectModal
                         <Logo logo={projectDetails.logo_props} size={16} />
                       </span>
                       <span className="flex-shrink-0 text-10">{projectDetails.identifier}</span>
-                      <p className="truncate text-13">{projectDetails.name}</p>
+                      <p className="truncate text-13" title={projectDetails.name}>
+                        {projectDetails.name}
+                      </p>
                     </div>
                   </Combobox.Item>
                 );

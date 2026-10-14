@@ -116,7 +116,7 @@ export const RoleSetupStep = observer(function RoleSetupStep({ handleStepChange 
                       e.preventDefault();
                       onChange(role.id);
                     }}
-                    className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 transition-all duration-200 ${
+                    className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 transition-colors duration-200 ${
                       isSelected
                         ? "border-accent-strong bg-accent-subtle text-accent-primary"
                         : "border-subtle text-tertiary hover:border-strong"
@@ -128,11 +128,11 @@ export const RoleSetupStep = observer(function RoleSetupStep({ handleStepChange 
                     </div>
                     {isSelected && (
                       <>
-                        <button
-                          className={`border-blue-500 flex size-4 items-center justify-center rounded-sm border-2 bg-accent-primary`}
+                        <span
+                          className={`flex size-4 items-center justify-center rounded-sm border-2 border-accent-strong bg-accent-primary`}
                         >
                           <CheckIcon className="h-3 w-3 text-on-color" />
-                        </button>
+                        </span>
                       </>
                     )}
                   </button>

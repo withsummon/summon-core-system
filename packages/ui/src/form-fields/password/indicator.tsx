@@ -35,12 +35,12 @@ export function PasswordStrengthIndicator({
     <div className={cn("space-y-3")}>
       {/* Strength Indicator */}
       <div className="space-y-2">
-        <div className="flex w-full gap-1 transition-all duration-300 ease-linear">
+        <div className="flex w-full gap-1">
           {[0, 1, 2].map((fragmentIndex) => (
             <div
               key={fragmentIndex}
               className={cn(
-                "h-1 flex-1 rounded-xs transition-all duration-300 ease-in-out",
+                "h-1 flex-1 rounded-xs transition-colors duration-300 ease-in-out",
                 getFragmentColor(fragmentIndex, strengthInfo.activeFragments)
               )}
             />

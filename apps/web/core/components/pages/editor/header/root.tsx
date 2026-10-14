@@ -34,7 +34,7 @@ export const PageEditorHeaderRoot = observer(function PageEditorHeaderRoot(props
       <div className="flex h-[48px] items-end text-left">
         {!isLogoSelected && (
           <div
-            className={cn("opacity-0 transition-all duration-200 group-hover/page-header:opacity-100", {
+            className={cn("opacity-0 transition-opacity duration-200 group-hover/page-header:opacity-100", {
               "opacity-100": isTitleEmpty,
             })}
           >
@@ -47,7 +47,7 @@ export const PageEditorHeaderRoot = observer(function PageEditorHeaderRoot(props
                 <button
                   type="button"
                   className={cn(
-                    "flex items-center gap-1 rounded-sm p-1 text-13 font-medium text-tertiary transition-colors outline-none hover:bg-layer-1",
+                    "flex items-center gap-1 rounded-sm p-1 text-13 font-medium text-tertiary transition-colors outline-none hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
                     {
                       "bg-layer-1": isLogoPickerOpen,
                     }

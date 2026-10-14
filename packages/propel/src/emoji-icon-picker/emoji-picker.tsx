@@ -101,7 +101,13 @@ export function EmojiPicker(props: TCustomEmojiPicker) {
 
   return (
     <Popover open={isOpen} onOpenChange={handleToggle}>
-      <Popover.Button className={cn("outline-none", buttonClassName)} disabled={disabled}>
+      <Popover.Button
+        className={cn(
+          "outline-none focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
+          buttonClassName
+        )}
+        disabled={disabled}
+      >
         {label}
       </Popover.Button>
       <Popover.Panel

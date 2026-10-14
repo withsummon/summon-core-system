@@ -60,14 +60,16 @@ export function AssistantConversationSidebar(props: AssistantConversationSidebar
                       aria-current={active ? "page" : undefined}
                       onClick={() => props.onSelect(conversation)}
                       className={cn(
-                        "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-13 focus-visible:outline-2 focus-visible:outline-accent-strong",
+                        "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-13 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
                         active
                           ? "bg-layer-1-selected font-medium text-primary"
                           : "text-secondary hover:bg-layer-1-hover hover:text-primary"
                       )}
                     >
                       <Icon aria-hidden className="size-3.5 flex-none text-tertiary" />
-                      <span className="truncate">{conversation.title}</span>
+                      <span className="truncate" title={conversation.title}>
+                        {conversation.title}
+                      </span>
                     </button>
                   </li>
                 );

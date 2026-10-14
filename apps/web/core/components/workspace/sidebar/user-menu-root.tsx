@@ -79,7 +79,7 @@ export const UserMenuRoot = observer(function UserMenuRoot() {
           className="h-29 w-full rounded-lg"
           showDefaultWhenEmpty
         />
-        <div className="absolute inset-0 bg-layer-1/50" />
+        <div className="pointer-events-none absolute inset-0 bg-layer-1/50" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
           <div className="flex flex-col items-center gap-y-2">
             <div>

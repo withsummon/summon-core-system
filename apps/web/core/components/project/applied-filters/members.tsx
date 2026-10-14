@@ -44,6 +44,7 @@ export const AppliedMembersFilters = observer(function AppliedMembersFilters(pro
             <span className="normal-case">{memberDetails.display_name}</span>
             {editable && (
               <button
+                aria-label="Remove filter"
                 type="button"
                 className="grid place-items-center text-tertiary hover:text-secondary"
                 onClick={() => handleRemove(memberId)}

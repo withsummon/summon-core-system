@@ -8,7 +8,7 @@ import { useState, useRef, useEffect } from "react";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import { autoScrollForElements } from "@atlaskit/pragmatic-drag-and-drop-auto-scroll/element";
 import { observer } from "mobx-react";
-import { useParams, usePathname } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { Ellipsis } from "lucide-react";
 import { CollapsiblePrimitive } from "@plane/propel/collapsible";
 // plane imports
@@ -16,10 +16,9 @@ import { EUserPermissions, EUserPermissionsLevel, PROJECT_TRACKER_ELEMENTS } fro
 import { useTranslation } from "@plane/i18n";
 import { PlusIcon, ChevronRightIcon } from "@plane/propel/icons";
 import { IconButton } from "@plane/propel/icon-button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
 import { Loader } from "@plane/ui";
-import { copyUrlToClipboard, cn, orderJoinedProjects } from "@plane/utils";
+import { cn } from "@plane/utils";
 // components
 import { CreateProjectModal } from "@/components/project/create-project-modal";
 import { SidebarNavItem } from "@/components/sidebar/sidebar-navigation";
@@ -30,7 +29,6 @@ import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
 import { useProjectNavigationPreferences } from "@/hooks/use-navigation-preferences";
 // plane web imports
-import type { TProject } from "@plane/types";
 // local imports
 import { SidebarProjectsListItem } from "./projects-list-item";
 
@@ -48,9 +46,10 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
   const { preferences: projectPreferences } = useProjectNavigationPreferences();
   const { isExtendedProjectSidebarOpened, toggleExtendedProjectSidebar } = useAppTheme();
 
-  const { loader, getPartialProjectById, joinedProjectIds: joinedProjects, updateProjectView } = useProject();
+  const { loader, joinedProjectIds: joinedProjects } = useProject();
   // router params
-  const { workspaceSlug } = useParams();
+  const { workspaceSlug, projectId: URLProjectId } = useParams();
+  const router = useRouter();
   const pathname = usePathname();
 
   // auth
@@ -67,46 +66,6 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
   // Check if there are more projects to show
   const hasMoreProjects =
     projectPreferences.showLimitedProjects && joinedProjects.length > projectPreferences.limitedProjectsCount;
-
-  const handleCopyText = (projectId: string) => {
-    copyUrlToClipboard(`${workspaceSlug}/projects/${projectId}/issues`).then(() => {
-      setToast({
-        type: TOAST_TYPE.SUCCESS,
-        title: t("link_copied"),
-        message: t("project_link_copied_to_clipboard"),
-      });
-    });
-  };
-
-  const handleOnProjectDrop = (
-    sourceId: string | undefined,
-    destinationId: string | undefined,
-    shouldDropAtEnd: boolean
-  ) => {
-    if (!sourceId || !destinationId || !workspaceSlug) return;
-    if (sourceId === destinationId) return;
-
-    const joinedProjectsList: TProject[] = [];
-    joinedProjects.map((projectId) => {
-      const projectDetails = getPartialProjectById(projectId);
-      if (projectDetails) joinedProjectsList.push(projectDetails);
-    });
-
-    const sourceIndex = joinedProjects.indexOf(sourceId);
-    const destinationIndex = shouldDropAtEnd ? joinedProjects.length : joinedProjects.indexOf(destinationId);
-
-    if (joinedProjectsList.length <= 0) return;
-
-    const updatedSortOrder = orderJoinedProjects(sourceIndex, destinationIndex, sourceId, joinedProjectsList);
-    if (updatedSortOrder != undefined)
-      updateProjectView(workspaceSlug.toString(), sourceId, { sort_order: updatedSortOrder }).catch(() => {
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: t("error"),
-          message: t("something_went_wrong"),
-        });
-      });
-  };
 
   /**
    * Implementing scroll animation styles based on the scroll length of the container
@@ -225,6 +184,7 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
                 {loader === "init-loader" && (
                   <Loader className="w-full space-y-1.5">
                     {Array.from({ length: 4 }).map((_, index) => (
+                      // oxlint-disable-next-line react/no-array-index-key -- placeholders have no identity
                       <Loader.Item key={index} height="28px" />
                     ))}
                   </Loader>
@@ -236,12 +196,14 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
                         <SidebarProjectsListItem
                           key={projectId}
                           projectId={projectId}
-                          handleCopyText={() => handleCopyText(projectId)}
+                          workspaceSlug={workspaceSlug.toString()}
+                          isActive={projectId === URLProjectId}
+                          navigationMode={projectPreferences.navigationMode}
+                          router={router}
                           projectListType={"JOINED"}
                           disableDrag={false}
                           disableDrop={false}
                           isLastChild={index === displayedProjects.length - 1}
-                          handleOnProjectDrop={handleOnProjectDrop}
                         />
                       ))}
                       {hasMoreProjects && (

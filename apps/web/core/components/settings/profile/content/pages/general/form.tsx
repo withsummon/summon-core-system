@@ -176,7 +176,7 @@ export const GeneralProfileSettingsForm = observer(function GeneralProfileSettin
       .finally(() => setIsLoading(false));
 
     setPromiseToast(updatePromise, {
-      loading: "Updating...",
+      loading: "Updating…",
       success: {
         title: "Success!",
         message: () => `Profile updated successfully.`,

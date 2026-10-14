@@ -35,7 +35,7 @@ export const AddFilterDropdown = observer(function AddFilterDropdown<
   const filterOptions = filter.configManager.allAvailableConfigs.map((config) => ({
     value: config.id,
     content: (
-      <div className="flex items-center justify-between gap-2 text-secondary transition-all duration-200 ease-in-out">
+      <div className="flex items-center justify-between gap-2 text-secondary">
         <div className="flex items-center gap-2">
           {config.icon && (
             <config.icon className="size-4 text-tertiary transition-transform duration-200 ease-in-out" />
@@ -76,7 +76,7 @@ export const AddFilterDropdown = observer(function AddFilterDropdown<
   };
 
   return (
-    <div className="relative transition-all duration-200 ease-in-out">
+    <div className="relative">
       <CustomSearchSelect
         defaultOpen={defaultOpen}
         value={""}

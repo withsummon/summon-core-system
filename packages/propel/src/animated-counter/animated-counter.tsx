@@ -50,7 +50,9 @@ export function AnimatedCounter({ count, className, size = "md" }: AnimatedCount
   const sizeClass = sizeClasses[size];
 
   return (
-    <div className={cn("relative inline-flex min-w-2 items-center justify-center overflow-hidden", sizeClass)}>
+    <div
+      className={cn("relative inline-flex min-w-2 items-center justify-center overflow-hidden tabular-nums", sizeClass)}
+    >
       {/* Previous number sliding out */}
       {isAnimating && (
         <span

@@ -20,10 +20,15 @@ export function FavoriteStar(props: Props) {
   const { buttonClassName, iconClassName, onClick, selected } = props;
 
   return (
-    <button type="button" className={cn("grid h-4 w-4 place-items-center", buttonClassName)} onClick={onClick}>
+    <button
+      type="button"
+      aria-label={selected ? "Remove from favorites" : "Add to favorites"}
+      className={cn("grid h-4 w-4 place-items-center", buttonClassName)}
+      onClick={onClick}
+    >
       <Star
         className={cn(
-          "h-4 w-4 text-tertiary transition-all",
+          "h-4 w-4 text-tertiary transition-colors",
           {
             "fill-(--color-label-yellow-icon) stroke-(--color-label-yellow-icon)": selected,
           },

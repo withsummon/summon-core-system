@@ -69,15 +69,16 @@ export function LabelCreate(props: ILabelCreate) {
 
   return (
     <>
-      <div
-        className="relative flex flex-shrink-0 cursor-pointer items-center gap-1 rounded-full border border-subtle p-0.5 px-2 text-11 text-tertiary transition-all hover:bg-surface-2 hover:text-secondary"
+      <button
+        type="button"
+        className="relative flex flex-shrink-0 cursor-pointer items-center gap-1 rounded-full border border-subtle p-0.5 px-2 text-11 text-tertiary transition-colors hover:bg-surface-2 hover:text-secondary"
         onClick={handleIsCreateToggle}
       >
         <div className="flex-shrink-0">
           {isCreateToggle ? <CloseIcon className="h-2.5 w-2.5" /> : <PlusIcon className="h-2.5 w-2.5" />}
         </div>
         <div className="flex-shrink-0">{isCreateToggle ? "Cancel" : "New"}</div>
-      </div>
+      </button>
 
       {isCreateToggle && (
         <form className="relative flex items-center gap-x-2 p-1" onSubmit={handleSubmit(handleLabel)}>
@@ -91,7 +92,11 @@ export function LabelCreate(props: ILabelCreate) {
                     <>
                       <Popover.Button
                         render={
-                          <button type="button" className="grid place-items-center outline-none">
+                          <button
+                            type="button"
+                            aria-label="Choose label color"
+                            className="grid place-items-center outline-none focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
+                          >
                             {value && value?.trim() !== "" && (
                               <span
                                 className="h-5 w-5 rounded-sm"
@@ -137,6 +142,7 @@ export function LabelCreate(props: ILabelCreate) {
           />
           <button
             type="button"
+            aria-label="Cancel"
             className="grid place-items-center rounded-sm bg-danger-primary p-1"
             onClick={() => setIsCreateToggle(false)}
             disabled={disabled}

@@ -137,7 +137,9 @@ export function AssistantComposer(props: AssistantComposerProps) {
                 className="inline-flex h-7 items-center gap-1.5 rounded-lg bg-layer-1 px-2 text-12 text-secondary"
               >
                 <LoaderCircle aria-hidden className="size-3.5 animate-spin motion-reduce:animate-none" />
-                <span className="max-w-40 truncate">{file.name}</span>
+                <span className="max-w-40 truncate" title={file.name}>
+                  {file.name}
+                </span>
                 <span className="text-tertiary">uploading</span>
               </span>
             ))}
@@ -165,7 +167,7 @@ export function AssistantComposer(props: AssistantComposerProps) {
             <Tooltip tooltipContent={`Attach up to ${MAX_ATTACHMENTS} files · documents 10 MB · MP3/M4A 250 MB`}>
               <label
                 className={cn(
-                  "grid size-7 flex-none cursor-pointer place-items-center rounded-md text-secondary focus-within:outline-2 focus-within:outline-accent-strong hover:bg-layer-transparent-hover hover:text-primary",
+                  "grid size-7 flex-none cursor-pointer place-items-center rounded-md text-secondary focus-within:outline-2 focus-within:outline-accent-strong focus-within:outline-solid hover:bg-layer-transparent-hover hover:text-primary",
                   attachmentCount >= MAX_ATTACHMENTS && "pointer-events-none opacity-50"
                 )}
               >
@@ -259,7 +261,7 @@ function ScopeMenu(props: {
                 onSelect={(id) => props.onScopeChange({ kind, id })}
               />
             ))}
-            <Menu.Separator className="bg-subtle my-1 h-px" />
+            <Menu.Separator className="my-1 h-px bg-(--border-color-subtle)" />
             <CheckSubmenu
               icon={FileText}
               label="Pin pages"
@@ -365,7 +367,7 @@ function ToolsMenu(props: {
             </Menu.Group>
             {props.credentials.length > 1 ? (
               <>
-                <Menu.Separator className="bg-subtle my-1 h-px" />
+                <Menu.Separator className="my-1 h-px bg-(--border-color-subtle)" />
                 <Menu.Group>
                   <Menu.GroupLabel className="px-2 pt-1 pb-1.5 text-11 font-medium text-tertiary">
                     Credential
@@ -423,7 +425,9 @@ function AttachmentChip(props: { attachment: ISummonAssistantAttachment; removin
   return (
     <span className="inline-flex h-7 max-w-full items-center gap-1.5 rounded-lg bg-layer-1 pr-0.5 pl-2 text-12 text-secondary">
       <Icon aria-hidden className="size-3.5 flex-none" />
-      <span className="max-w-40 truncate text-primary">{attachment.original_name}</span>
+      <span className="max-w-40 truncate text-primary" title={attachment.original_name}>
+        {attachment.original_name}
+      </span>
       {status !== "ready" ? (
         <span className={attachment.status === "failed" ? "text-danger-primary" : "text-tertiary"}>{status}</span>
       ) : null}

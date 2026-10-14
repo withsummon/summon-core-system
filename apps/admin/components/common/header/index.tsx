@@ -23,10 +23,10 @@ export const HamburgerToggle = observer(function HamburgerToggle() {
     <button
       type="button"
       aria-label="Toggle sidebar"
-      className="group flex size-7 cursor-pointer items-center justify-center rounded-sm bg-layer-1 transition-all hover:bg-layer-1-hover md:hidden"
+      className="group flex size-7 cursor-pointer items-center justify-center rounded-sm bg-layer-1 transition-colors hover:bg-layer-1-hover md:hidden"
       onClick={() => toggleSidebar(!isSidebarCollapsed)}
     >
-      <Menu size={14} className="text-secondary transition-all group-hover:text-primary" />
+      <Menu size={14} className="text-secondary transition-colors group-hover:text-primary" />
     </button>
   );
 });

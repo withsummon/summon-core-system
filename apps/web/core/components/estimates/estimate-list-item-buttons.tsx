@@ -24,6 +24,8 @@ export const EstimateListItemButtons = observer(function EstimateListItemButtons
   return (
     <div className="relative flex items-center gap-1">
       <button
+        type="button"
+        aria-label="Delete estimate"
         className="relative flex h-6 w-6 flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-sm transition-colors hover:bg-layer-1"
         onClick={() => onDeleteClick && onDeleteClick(estimateId)}
         data-ph-element={PROJECT_SETTINGS_TRACKER_ELEMENTS.ESTIMATES_LIST_ITEM}

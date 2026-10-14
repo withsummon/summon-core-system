@@ -27,8 +27,9 @@ export function NotificationItemOptionButton(props: TNotificationItemOptionButto
     <Tooltip tooltipContent={tooltipContent} isMobile={isMobile}>
       <button
         type="button"
+        aria-label={tooltipContent || undefined}
         className={cn(
-          "relative flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-xs bg-layer-1 outline-none hover:bg-surface-2",
+          "relative flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-xs bg-layer-1 outline-none hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
           buttonClassName
         )}
         onClick={(e) => {

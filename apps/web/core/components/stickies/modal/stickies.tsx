@@ -63,6 +63,7 @@ export const Stickies = observer(function Stickies(props: TProps) {
           {handleClose && (
             <button
               type="button"
+              aria-label="Close"
               onClick={handleClose}
               className="my-auto grid flex-shrink-0 place-items-center rounded-sm p-1 text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
             >

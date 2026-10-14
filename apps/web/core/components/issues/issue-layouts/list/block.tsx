@@ -174,7 +174,7 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
       href={workItemLink}
       aria-label={`${projectIdentifier}-${issue.sequence_id}: ${issue.name}`}
       onClick={() => handleIssuePeekOverview(issue)}
-      className="w-full cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong"
+      className="w-full cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
       disabled={!!issue?.tempId || issue?.is_draft}
     >
       <Row

@@ -135,8 +135,9 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
           </div>
           <button
             type="button"
-            className="relative ml-auto flex h-6 w-6 cursor-pointer items-center justify-center rounded-xs text-accent-primary/80 transition-all hover:bg-danger-subtle-hover"
+            className="relative ml-auto flex h-6 w-6 cursor-pointer items-center justify-center rounded-xs text-accent-primary/80 transition-colors hover:bg-danger-subtle-hover"
             onClick={() => setBannerMessage(false)}
+            aria-label={t("aria_labels.auth_forms.close_alert")}
           >
             <CloseIcon className="h-4 w-4 shrink-0 text-danger-primary" />
           </button>

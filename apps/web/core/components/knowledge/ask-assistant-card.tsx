@@ -49,12 +49,12 @@ export const AskAssistantCard: React.FC<IAskAssistantCardProps> = ({ onAskQuesti
   };
 
   return (
-    <div className="border-blue-100 dark:border-blue-900/50 from-blue-50/70 via-indigo-50/30 dark:from-blue-950/30 dark:via-indigo-950/20 relative overflow-hidden rounded-2xl border bg-gradient-to-r to-surface-1 p-5 shadow-xs dark:to-surface-1">
+    <div className="relative overflow-hidden rounded-2xl border border-accent-subtle bg-accent-subtle p-5 shadow-xs">
       <div className="space-y-4">
         {/* Header with Sparkle Icon */}
         <div className="flex items-center gap-3">
-          <div className="from-blue-600 to-indigo-500 flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr text-white shadow-xs">
-            <Sparkles size={20} className="text-white" />
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent-primary text-on-color shadow-xs">
+            <Sparkles size={20} className="text-on-color" />
           </div>
           <div>
             <h2 className="text-sm font-semibold text-primary">Ask Summon Assistant anything</h2>
@@ -70,19 +70,20 @@ export const AskAssistantCard: React.FC<IAskAssistantCardProps> = ({ onAskQuesti
             e.preventDefault();
             handleSubmit();
           }}
-          className="focus-within:border-blue-500 relative flex items-center rounded-xl border border-subtle bg-surface-1 p-1.5 pl-4 shadow-xs transition-all"
+          className="relative flex items-center rounded-xl border border-subtle bg-surface-1 p-1.5 pl-4 shadow-xs transition-colors focus-within:border-accent-strong"
         >
           <input
             type="text"
-            placeholder="Ask a question about projects, clients, processes, or anything..."
+            placeholder="Ask a question about projects, clients, processes, or anything…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full bg-transparent text-xs text-primary placeholder:text-placeholder focus:outline-none"
+            className="w-full bg-transparent text-xs text-primary outline-none placeholder:text-placeholder"
           />
           <button
             type="submit"
             disabled={!query.trim() || isAsking}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 flex size-8 shrink-0 items-center justify-center rounded-lg text-white transition-all disabled:text-placeholder"
+            aria-label="Ask"
+            className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent-primary text-on-color transition-colors hover:bg-accent-primary-hover disabled:bg-layer-2 disabled:text-placeholder"
           >
             {isAsking ? <Loader2 size={14} className="animate-spin" /> : <ArrowRight size={14} />}
           </button>
@@ -90,14 +91,15 @@ export const AskAssistantCard: React.FC<IAskAssistantCardProps> = ({ onAskQuesti
 
         {/* AI Answer Box if present */}
         {answer && (
-          <div className="border-blue-200 dark:border-blue-800 animate-in fade-in relative rounded-xl border bg-surface-1 p-4 shadow-xs duration-200">
+          <div className="animate-in fade-in relative rounded-xl border border-accent-subtle bg-surface-1 p-4 shadow-xs duration-200">
             <div className="mb-2 flex items-start justify-between gap-2">
-              <div className="text-blue-600 dark:text-blue-400 flex items-center gap-2 text-xs font-semibold">
+              <div className="flex items-center gap-2 text-xs font-semibold text-accent-primary">
                 <Bot size={15} />
                 <span>Summon Assistant Answer</span>
               </div>
               <button
                 type="button"
+                aria-label="Dismiss answer"
                 onClick={() => setAnswer(null)}
                 className="text-placeholder transition-colors hover:text-primary"
               >
@@ -115,7 +117,7 @@ export const AskAssistantCard: React.FC<IAskAssistantCardProps> = ({ onAskQuesti
               key={sq}
               type="button"
               onClick={() => handleSubmit(sq)}
-              className="hover:border-blue-400 hover:bg-blue-50/50 hover:text-blue-600 dark:hover:bg-blue-950/40 dark:hover:text-blue-400 rounded-full border border-subtle bg-surface-1 px-3 py-1.5 text-left text-[11px] font-medium text-secondary shadow-2xs transition-all"
+              className="rounded-full border border-subtle bg-surface-1 px-3 py-1.5 text-left text-[11px] font-medium text-secondary shadow-2xs transition-colors hover:border-accent-strong hover:bg-accent-subtle hover:text-accent-primary"
             >
               {sq}
             </button>

@@ -207,7 +207,9 @@ export function ReportView(props: TReportViewProps) {
                         href={`/${workspaceSlug}/summon/projects/${project.project_id}/`}
                         className="flex items-center justify-between gap-3 py-2 text-12"
                       >
-                        <span className="truncate font-medium text-primary">{project.name}</span>
+                        <span className="truncate font-medium text-primary" title={project.name}>
+                          {project.name}
+                        </span>
                         <span className="rounded-md bg-warning-subtle px-2 py-1 font-semibold text-warning-primary">
                           {project.completion}
                         </span>
@@ -318,7 +320,7 @@ export function ReportView(props: TReportViewProps) {
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
               <a
                 href={exportUrl}
-                className="hover:border-accent-primary/50 flex min-w-0 items-center gap-3 rounded-lg border border-subtle p-3"
+                className="flex min-w-0 items-center gap-3 rounded-lg border border-subtle p-3 hover:border-accent-strong"
               >
                 <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent-subtle text-accent-primary">
                   <FileSpreadsheet className="size-4" />
@@ -338,7 +340,9 @@ export function ReportView(props: TReportViewProps) {
                       <FileSpreadsheet className="size-4" />
                     </span>
                     <span className="min-w-0">
-                      <span className="block truncate text-12 font-semibold text-primary">{name}</span>
+                      <span className="block truncate text-12 font-semibold text-primary" title={name}>
+                        {name}
+                      </span>
                       <span className="mt-1 block text-12 text-tertiary">Not generated</span>
                     </span>
                   </div>

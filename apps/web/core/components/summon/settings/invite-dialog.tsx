@@ -198,7 +198,9 @@ const ProjectPicker = observer(function ProjectPicker(props: {
                 className="accent-[var(--color-accent-primary)]"
               />
               <span className="w-12 flex-none truncate font-mono text-11 text-tertiary">{project.identifier}</span>
-              <span className="min-w-0 truncate">{project.name}</span>
+              <span className="min-w-0 truncate" title={project.name}>
+                {project.name}
+              </span>
             </label>
           ))}
         </div>

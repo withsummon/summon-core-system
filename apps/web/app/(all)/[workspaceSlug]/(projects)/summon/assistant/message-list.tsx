@@ -150,7 +150,9 @@ function UserMessage({ message }: { message: ISummonAssistantMessage }) {
               className="inline-flex items-center gap-1 rounded-md bg-layer-1 px-2 py-1 text-12 text-secondary"
             >
               <Paperclip aria-hidden className="size-3" />
-              <span className="max-w-48 truncate">{attachment.original_name}</span>
+              <span className="max-w-48 truncate" title={attachment.original_name}>
+                {attachment.original_name}
+              </span>
             </li>
           ))}
         </ul>

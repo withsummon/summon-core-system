@@ -92,7 +92,11 @@ const ContextMenuSeparator = React.forwardRef(function ContextMenuSeparator(
   ref: React.ForwardedRef<React.ElementRef<typeof ContextMenuPrimitive.Separator>>
 ) {
   return (
-    <ContextMenuPrimitive.Separator ref={ref} className={cn("bg-subtle-1 -mx-1 my-1 h-px", className)} {...props} />
+    <ContextMenuPrimitive.Separator
+      ref={ref}
+      className={cn("-mx-1 my-1 h-px bg-(--border-color-subtle-1)", className)}
+      {...props}
+    />
   );
 });
 
@@ -106,8 +110,8 @@ const ContextMenuSubmenuTrigger = React.forwardRef(function ContextMenuSubmenuTr
     <ContextMenuPrimitive.SubmenuTrigger
       ref={ref}
       className={cn(
-        "flex cursor-default items-center rounded-md px-2 py-1.5 text-13 outline-none select-none focus:outline-none",
-        "focus:bg-layer-1 data-[state=open]:bg-layer-1",
+        "flex cursor-default items-center rounded-md px-2 py-1.5 text-13 outline-none select-none",
+        "data-[highlighted]:bg-layer-1 data-[popup-open]:bg-layer-1",
         className
       )}
       {...props}

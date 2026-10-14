@@ -79,9 +79,10 @@ export const StateDelete = observer(function StateDelete(props: TStateDelete) {
       />
 
       <button
+        aria-label="Delete state"
         type="button"
         className={cn(
-          "flex h-5 w-5 flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-sm transition-colors focus:outline-none",
+          "flex h-5 w-5 flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-sm transition-colors focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
           isDeleteDisabled ? "bg-surface-2 text-secondary" : "text-danger-primary hover:bg-layer-1"
         )}
         disabled={isDeleteDisabled}

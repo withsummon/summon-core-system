@@ -23,8 +23,8 @@ export function ComicBoxButton({ label, icon, title, description, onClick, disab
         {icon}
         <span className="leading-4">{label}</span>
         <span className="relative size-2" aria-hidden="true">
-          <span className="bg-blue-300 absolute right-0 size-2.5 animate-ping rounded-full motion-reduce:animate-none" />
-          <span className="bg-blue-400/40 absolute right-0 mt-0.5 mr-0.5 size-1.5 rounded-full" />
+          <span className="absolute right-0 size-2.5 animate-ping rounded-full bg-accent-primary motion-reduce:animate-none" />
+          <span className="absolute right-0 mt-0.5 mr-0.5 size-1.5 rounded-full bg-accent-primary/40" />
         </span>
       </Button>
     </Tooltip>

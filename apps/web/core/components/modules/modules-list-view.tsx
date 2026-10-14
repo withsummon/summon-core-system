@@ -96,7 +96,7 @@ export const ModulesListView = observer(function ModulesListView() {
               peekModule
                 ? "3xl:grid-cols-3 lg:grid-cols-1 xl:grid-cols-2"
                 : "3xl:grid-cols-4 lg:grid-cols-2 xl:grid-cols-3"
-            } vertical-scrollbar scrollbar-lg auto-rows-max transition-all`}
+            } vertical-scrollbar scrollbar-lg auto-rows-max`}
           >
             {filteredModuleIds.map((moduleId) => (
               <ModuleCardItem key={moduleId} moduleId={moduleId} />

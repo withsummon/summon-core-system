@@ -14,7 +14,7 @@
     "back_to_integrations": "Kembali ke integrasi",
     "select_state": "Pilih Status",
     "set_state": "Set Status",
-    "choose_project": "Pilih Projek...",
+    "choose_project": "Pilih Projek…",
     "skip_backward_state_movement": "Cegah item berpindah ke status sebelumnya karena pembaruan PR"
   },
   "github_integration": {
@@ -62,7 +62,7 @@
     "ISSUE_CLOSED": "Issue Ditutup",
     "save": "Simpan",
     "start_sync": "Mulai Sinkronisasi",
-    "choose_repository": "Pilih Repositori..."
+    "choose_repository": "Pilih Repositori…"
   },
   "gitlab_integration": {
     "name": "Gitlab",
@@ -103,7 +103,7 @@
     "ISSUE_CLOSED": "Masalah Tertutup",
     "save": "Simpan",
     "start_sync": "Mulai Sinkronisasi",
-    "choose_repository": "Pilih Repositori..."
+    "choose_repository": "Pilih Repositori…"
   },
   "gitlab_enterprise_integration": {
     "name": "Gitlab Enterprise",
@@ -186,7 +186,7 @@
       "add_new_state_mapping": "Tambahkan pemetaan status baru",
       "empty_state": "Tidak ada pemetaan status yang dikonfigurasi. Buat pemetaan pertama Anda untuk menyinkronkan status insiden Sentry dengan status proyek Anda.",
       "failed_loading_state_mappings": "Kami tidak dapat memuat pemetaan status Anda. Ini mungkin disebabkan oleh masalah jaringan atau masalah dengan integrasi.",
-      "loading_project_states": "Memuat status proyek...",
+      "loading_project_states": "Memuat status proyek…",
       "error_loading_states": "Kesalahan memuat status",
       "no_states_available": "Tidak ada status yang tersedia",
       "no_permission_states": "Anda tidak memiliki izin untuk mengakses status untuk proyek ini",
@@ -205,7 +205,7 @@
     "connected": "Terhubung",
     "connect": "Hubungkan",
     "uninstall": "Copot pemasangan",
-    "uninstalling": "Mencopot...",
+    "uninstalling": "Mencopot…",
     "install_success": "OAuth Bridge berhasil dipasang.",
     "install_error": "Gagal memasang OAuth Bridge.",
     "uninstall_success": "OAuth Bridge dicopot.",
@@ -260,7 +260,7 @@
       "rate_limit_placeholder": "120/minute",
       "rate_limit_description": "Pembatasan permintaan sebagai jumlah/periode (mis. 120/minute). Kosongkan untuk batas laju default.",
       "enable_provider": "Aktifkan penyedia ini",
-      "saving": "Menyimpan...",
+      "saving": "Menyimpan…",
       "update": "Perbarui"
     }
   },
@@ -296,7 +296,7 @@
     "webhook_secret_error": "Rahasia webhook diperlukan",
     "private_key_title": "Kunci Pribadi (Base64 encoded)",
     "private_key_description": "Kunci pribadi aplikasi yang Anda buat di organisasi GitHub Enterprise Anda.",
-    "private_key_placeholder": "e.g., \"MIIEpAIBAAKCAQEA...",
+    "private_key_placeholder": "e.g., \"MIIEpAIBAAKCAQEA…",
     "private_key_error": "Kunci pribadi diperlukan",
     "connect_app": "Hubungkan Aplikasi"
   },

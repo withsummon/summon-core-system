@@ -27,7 +27,12 @@ const Separator = React.forwardRef(function Separator(
       data-slot="separator"
       data-orientation={orientation}
       {...props}
-      className={cn("bg-subtle-1", "shrink-0", orientation === "horizontal" ? "h-px w-full" : "h-full w-px", className)}
+      className={cn(
+        "bg-(--border-color-subtle-1)",
+        "shrink-0",
+        orientation === "horizontal" ? "h-px w-full" : "h-full w-px",
+        className
+      )}
     />
   );
 });

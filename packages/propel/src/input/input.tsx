@@ -39,7 +39,7 @@ const Input = React.forwardRef(function Input(props: InputProps, ref: React.Forw
         "block rounded-lg bg-layer-2 text-13 text-primary placeholder:text-placeholder focus-visible:outline-none",
         {
           [FIELD_CLASSNAME]: mode === "primary",
-          "rounded-sm border-none bg-transparent ring-0 transition-all focus:ring-1 focus:ring-accent-strong":
+          "rounded-sm border-none bg-transparent ring-0 transition-shadow focus-visible:ring-1 focus-visible:ring-accent-strong":
             mode === "transparent",
           "rounded-sm border-none bg-transparent ring-0": mode === "true-transparent",
           "border-danger-strong": hasError,

@@ -309,7 +309,7 @@ function FilterChip(props: { active: boolean; onClick: () => void; label: string
       type="button"
       aria-pressed={props.active}
       onClick={props.onClick}
-      className={`inline-flex h-10 flex-none items-center gap-2 rounded-lg px-3 text-12 font-medium transition-[background-color,color,scale] duration-150 focus-visible:outline-2 focus-visible:outline-accent-strong active:scale-[0.96] motion-reduce:transition-none ${props.active ? "bg-layer-3 text-primary ring-1 ring-strong" : "text-secondary hover:bg-layer-2 hover:text-primary"}`}
+      className={`inline-flex h-10 flex-none items-center gap-2 rounded-lg px-3 text-12 font-medium transition-[background-color,color,scale] duration-150 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid active:scale-[0.96] motion-reduce:transition-none ${props.active ? "bg-layer-3 text-primary ring-1 ring-strong" : "text-secondary hover:bg-layer-2 hover:text-primary"}`}
     >
       {props.dot ? <span aria-hidden className={`size-2 rounded-full ${props.dot}`} /> : null}
       {props.label}
@@ -336,7 +336,7 @@ function OpportunityRow(props: {
         href={props.href}
         scroll={false}
         aria-current={props.selected ? "true" : undefined}
-        className={`group relative flex gap-3 px-4 py-3 transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong motion-reduce:transition-none ${props.selected ? "bg-accent-subtle/60" : "hover:bg-layer-1"}`}
+        className={`group relative flex gap-3 px-4 py-3 transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong focus-visible:outline-solid motion-reduce:transition-none ${props.selected ? "bg-accent-subtle/60" : "hover:bg-layer-1"}`}
       >
         {props.selected ? (
           <span aria-hidden className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-accent-primary" />
@@ -346,7 +346,9 @@ function OpportunityRow(props: {
           className={`mt-1.5 size-2 flex-none rounded-full ${OPPORTUNITY_STAGE_TONE[opportunity.stage].dot}`}
         />
         <span className="min-w-0 flex-1">
-          <span className="line-clamp-2 text-13 leading-snug font-medium text-primary">{opportunity.title}</span>
+          <span className="line-clamp-2 text-13 leading-snug font-medium text-primary" title={opportunity.title}>
+            {opportunity.title}
+          </span>
           <span className="mt-1 flex flex-wrap items-center gap-x-1.5 text-12 text-secondary">
             <span className="truncate">{props.clientName || "No client"}</span>
             {closeDate ? (

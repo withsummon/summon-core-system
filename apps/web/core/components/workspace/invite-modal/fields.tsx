@@ -111,6 +111,7 @@ export const InvitationFields = observer(function InvitationFields(props: TInvit
             {fields.length > 1 && (
               <div className="flex-item flex w-6">
                 <button
+                  aria-label="Remove"
                   type="button"
                   className="place-items-center self-center rounded-sm"
                   onClick={() => remove(index)}
