@@ -58,17 +58,21 @@ const jsonResult = (value: unknown, isError: boolean) =>
     isError,
   });
 
-/** The caller of the current MCP request; the route middleware has already rejected anyone else. */
-const currentCaller = (auth: Auth["Service"]) =>
-  Effect.gen(function* () {
-    const request = yield* Effect.serviceOption(HttpServerRequest.HttpServerRequest);
-    if (Option.isNone(request)) {
-      return yield* new McpSchema.InternalError({ message: "MCP tools are only served over HTTP" });
-    }
-    return yield* auth
-      .apiKey(request.value)
-      .pipe(Effect.mapError(() => new McpSchema.InternalError({ message: "The API key is no longer accepted." })));
-  });
+/** The API key's caller, which `RequireApiKey` checked before the request reached the MCP server. */
+class McpCaller extends Context.Service<McpCaller, ApiKeyCaller>()("@plane/ai/McpCaller") {}
+
+/**
+ * The request's caller, read at runtime: tool handlers run in the request fiber, but `addTool` types them as
+ * needing only `McpRequestContext`, so the service can't be a typed requirement.
+ */
+const currentCaller = Effect.serviceOption(McpCaller).pipe(
+  Effect.flatMap(
+    Option.match({
+      onNone: () => Effect.fail(new McpSchema.InternalError({ message: "MCP tools are only served over HTTP" })),
+      onSome: Effect.succeed,
+    })
+  )
+);
 
 const annotationsFor = (operation: SummonOperation): McpSchema.ToolAnnotations => ({
   readOnlyHint: operation.tool === "read",
@@ -98,7 +102,6 @@ const SummonTools = (surface: Surface) =>
     Effect.gen(function* () {
       const server = yield* McpServer.McpServer;
       const django = yield* Django;
-      const auth = yield* Auth;
       for (const [name, operation] of Object.entries(allOperations)) {
         if (surface.toolset && operation.toolset !== surface.toolset) continue;
         if (surface.readOnly && operation.tool !== "read") continue;
@@ -113,7 +116,7 @@ const SummonTools = (surface: Surface) =>
           annotations: Context.empty(),
           handle: (input: Readonly<Record<string, unknown>>) =>
             Effect.gen(function* () {
-              const caller: ApiKeyCaller = yield* currentCaller(auth);
+              const caller = yield* currentCaller;
               const result = yield* django
                 .call(caller, caller.workspaceSlug, operation, input ?? {})
                 .pipe(
@@ -135,7 +138,6 @@ const PlaneTools = (surface: Surface) =>
       if (surface.toolset && surface.toolset !== PLANE_TOOLSET) return;
       const server = yield* McpServer.McpServer;
       const plane = yield* PlaneMcp;
-      const auth = yield* Auth;
       for (const planeTool of planeTools) {
         const writes = planeActions(planeTool).filter((action) => !isReadAction(action));
         const tool = surface.readOnly ? withoutActions(planeTool, writes) : planeTool;
@@ -161,7 +163,7 @@ const PlaneTools = (surface: Surface) =>
               if (!actions.includes(String(input?.action))) {
                 return jsonResult({ ok: false, message: `Use one of these actions: ${actions.join(", ")}.` }, true);
               }
-              const caller = yield* currentCaller(auth);
+              const caller = yield* currentCaller;
               const result = yield* plane
                 .callTool(caller, tool.name, input)
                 .pipe(
@@ -183,14 +185,13 @@ const PlaneTools = (surface: Surface) =>
   );
 
 /** Refuses MCP requests without an accepted API key before they reach the MCP session machinery. */
-const RequireApiKey = HttpRouter.middleware(
+const RequireApiKey = HttpRouter.middleware<{ provides: McpCaller }>()(
   Effect.gen(function* () {
     const auth = yield* Auth;
     return (httpEffect) =>
       Effect.gen(function* () {
-        const request = yield* HttpServerRequest.HttpServerRequest;
-        yield* auth.apiKey(request);
-        return yield* httpEffect;
+        const caller = yield* auth.apiKey(yield* HttpServerRequest.HttpServerRequest);
+        return yield* Effect.provideService(httpEffect, McpCaller, caller);
       }).pipe(
         Effect.catchTags({
           Unauthenticated: (error) =>
