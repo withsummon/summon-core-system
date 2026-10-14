@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { IWorkspaceSidebarNavigationItem } from "@plane/constants";
+import { SUMMON_ASSISTANT_NAVIGATION_ITEM, SUMMON_MODULES } from "@plane/constants";
 import { EUserWorkspaceRoles } from "@plane/types";
 import { getMobileNavigation } from "./mobile-tab-bar-items";
 
@@ -34,11 +35,14 @@ test("More is the active tab while one of its destinations is open", () => {
   );
 });
 
-test("an admin sees every destination exactly once across the tabs and the More groups", () => {
+test("an admin sees every Summon destination exactly once across the tabs and the More groups", () => {
   const nav = getMobileNavigation("acme", "/acme/summon/", asRole(EUserWorkspaceRoles.ADMIN));
   const all = [...keys(nav.tabs), ...nav.groups.flatMap((group) => keys(group.links))];
   assert.equal(new Set(all).size, all.length);
-  assert.equal(all.length, 15);
+  assert.deepEqual(
+    new Set(all),
+    new Set([...SUMMON_MODULES.map((module) => module.key), SUMMON_ASSISTANT_NAVIGATION_ITEM.key])
+  );
 });
 
 test("members never see deals, reports or settings, and guests also lose credentials", () => {

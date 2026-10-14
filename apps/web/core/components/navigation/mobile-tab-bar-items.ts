@@ -4,12 +4,19 @@
  * See the LICENSE file for details.
  */
 
-import type { IWorkspaceSidebarNavigationItem } from "@plane/constants";
+import type { IWorkspaceSidebarNavigationItem, SUMMON_MODULES } from "@plane/constants";
 import { SUMMON_ASSISTANT_NAVIGATION_ITEM, SUMMON_WORKSPACE_NAVIGATION_ITEMS } from "@plane/constants";
 import { joinUrlPath } from "@plane/utils";
 
+type TMobileNavKey = (typeof SUMMON_MODULES)[number]["key"] | "summon_assistant";
+
 /** The destinations a phone keeps one tap away; everything else lives behind More. */
-const TAB_KEYS = ["summon", "summon_projects", "summon_tasks", "summon_assistant"] as const;
+const TAB_KEYS = [
+  "summon",
+  "summon_projects",
+  "summon_tasks",
+  "summon_assistant",
+] as const satisfies readonly TMobileNavKey[];
 
 /** More groups the remaining destinations by the job they serve. */
 const MORE_GROUPS = [
@@ -29,7 +36,7 @@ const MORE_GROUPS = [
     itemKeys: ["summon_reports", "summon_automation", "summon_credentials", "summon_notifications"],
   },
   { key: "workspace", itemKeys: ["summon_settings"] },
-] as const;
+] as const satisfies readonly { key: string; itemKeys: readonly TMobileNavKey[] }[];
 
 export type TMobileNavLink = { item: IWorkspaceSidebarNavigationItem; href: string; isActive: boolean };
 export type TMobileNavGroup = { key: (typeof MORE_GROUPS)[number]["key"]; links: TMobileNavLink[] };
@@ -46,7 +53,7 @@ export function getMobileNavigation(
   pathname: string,
   canOpen: (item: IWorkspaceSidebarNavigationItem) => boolean
 ) {
-  const toLink = (key: string): TMobileNavLink[] => {
+  const toLink = (key: TMobileNavKey): TMobileNavLink[] => {
     const item = itemsByKey.get(key);
     if (!item || !canOpen(item)) return [];
     const href = joinUrlPath(slug, item.href);
