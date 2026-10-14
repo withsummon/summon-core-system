@@ -9644,7 +9644,8 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ProjectRef"
-            }
+            },
+            "readOnly": true
           }
         },
         "required": ["email", "id", "invited_at", "projects", "role"],
@@ -9678,10 +9679,12 @@
             "type": "boolean"
           },
           "is_owner": {
-            "type": "boolean"
+            "type": "boolean",
+            "readOnly": true
           },
           "is_you": {
-            "type": "boolean"
+            "type": "boolean",
+            "readOnly": true
           },
           "joined_at": {
             "type": "string",
@@ -9695,7 +9698,8 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ProjectRef"
-            }
+            },
+            "readOnly": true
           }
         },
         "required": [

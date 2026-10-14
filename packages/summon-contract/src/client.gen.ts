@@ -1938,11 +1938,11 @@ export const WorkspaceMemberRow = Schema.Struct({
   avatar_url: Schema.Union([Schema.String, Schema.Null]),
   role: Schema.Number.check(Schema.isInt().annotate({ expected: "an integer" })),
   is_active: Schema.Boolean,
-  is_owner: Schema.Boolean,
-  is_you: Schema.Boolean,
+  is_owner: Schema.Boolean.annotate({ readOnly: true }),
+  is_you: Schema.Boolean.annotate({ readOnly: true }),
   joined_at: Schema.String.annotate({ format: "date-time" }),
   last_signed_in: Schema.Union([Schema.String, Schema.Null]).annotate({ format: "date-time" }),
-  projects: Schema.Array(ProjectRef),
+  projects: Schema.Array(ProjectRef).annotate({ readOnly: true }),
 }).annotate({ identifier: "WorkspaceMemberRow" });
 export type WorkspaceInviteRow = {
   readonly id: string;
@@ -1956,7 +1956,7 @@ export const WorkspaceInviteRow = Schema.Struct({
   email: Schema.String.annotate({ format: "email" }),
   role: Schema.Number.check(Schema.isInt().annotate({ expected: "an integer" })),
   invited_at: Schema.String.annotate({ format: "date-time" }),
-  projects: Schema.Array(ProjectRef),
+  projects: Schema.Array(ProjectRef).annotate({ readOnly: true }),
 }).annotate({ identifier: "WorkspaceInviteRow" });
 export type InviteRequest = {
   readonly email: string;
