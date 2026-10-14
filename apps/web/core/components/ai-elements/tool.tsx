@@ -8,6 +8,7 @@
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@plane/utils";
+import { summonSurfaceClassName } from "@/components/summon/screen";
 
 /**
  * A proposed or finished write into Summon. Header names what will change and its state;
@@ -17,10 +18,7 @@ export function Tool(props: { className?: string; children: ReactNode; "aria-lab
   return (
     <section
       aria-label={props["aria-label"]}
-      className={cn(
-        "w-full overflow-hidden rounded-xl border border-subtle bg-surface-1 pb-3.5 shadow-xs",
-        props.className
-      )}
+      className={cn("w-full overflow-hidden pb-3.5", summonSurfaceClassName, props.className)}
     >
       {props.children}
     </section>

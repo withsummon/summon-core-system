@@ -25,10 +25,16 @@ import {
 } from "lucide-react";
 import { EPageAccess } from "@plane/constants";
 import { Button, getButtonStyling } from "@plane/propel/button";
-import { MENU_ITEM_CLASSNAME, MenuPrimitive as Menu } from "@plane/propel/menu";
+import { MenuPrimitive as Menu } from "@plane/propel/menu";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { cn } from "@plane/utils";
-import { OPTION_POPUP_CLASSNAME, OptionPopup, OptionSubmenu, isSearchable } from "@/components/summon/option-menu";
+import {
+  OPTION_POPUP_CLASSNAME,
+  OptionItem,
+  OptionMenuScope,
+  OptionPopup,
+  OptionSubmenu,
+} from "@/components/summon/option-menu";
 import { SummonRequestState } from "@/components/summon/request-state";
 import {
   SummonMetric,
@@ -38,6 +44,7 @@ import {
   SummonSectionHeader,
   SummonTableShell,
   summonErrorMessage,
+  summonSurfaceClassName,
 } from "@/components/summon/screen";
 import { SummonSearchField } from "@/components/summon/search-field";
 import { SectionTabs } from "@/components/summon/section-tabs";
@@ -86,7 +93,7 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
     error,
     isLoading,
     mutate,
-  } = useSWR(["summon-knowledge-pages", workspaceSlug], () => listAccessiblePlanePages(workspaceSlug));
+  } = useSWR(["summon-plane-pages", workspaceSlug], () => listAccessiblePlanePages(workspaceSlug));
   const { data: contexts = [] } = useSWR(["summon-knowledge-contexts", workspaceSlug], () =>
     summonService.listPageContexts(workspaceSlug)
   );
@@ -201,7 +208,10 @@ function KnowledgeOverview({ workspaceSlug, entries }: { workspaceSlug: string; 
               <li key={entry.page.id} className="min-w-0">
                 <Link
                   href={pageHref(workspaceSlug, entry)}
-                  className="flex h-full flex-col gap-3 rounded-xl border border-subtle bg-surface-1 p-3.5 shadow-xs transition-colors hover:bg-layer-1"
+                  className={cn(
+                    summonSurfaceClassName,
+                    "flex h-full flex-col gap-3 p-3.5 transition-colors hover:bg-layer-1"
+                  )}
                 >
                   <span className="grid size-8 place-items-center rounded-lg bg-layer-2 text-secondary">
                     <FileText aria-hidden className="size-4" />
@@ -397,11 +407,12 @@ function ContextFilter(props: {
       <Menu.Portal>
         <Menu.Positioner side="bottom" align="end" sideOffset={4} className="z-[120]">
           <Menu.Popup className={OPTION_POPUP_CLASSNAME}>
-            <Menu.Item className={MENU_ITEM_CLASSNAME} onClick={() => props.onChange("all")}>
-              <Layers aria-hidden className="size-4 text-secondary" />
-              <span className="flex-1">All contexts</span>
-              {props.value === "all" ? <Check aria-hidden className="size-4 text-accent-primary" /> : null}
-            </Menu.Item>
+            <OptionItem
+              label="All contexts"
+              icon={<Layers aria-hidden className="size-4 text-secondary" />}
+              selected={props.value === "all"}
+              onClick={() => props.onChange("all")}
+            />
             {CONTEXT_GROUPS.filter((item) => props.options[item.kind].length).map((item) => (
               <OptionSubmenu
                 key={item.kind}
@@ -438,26 +449,27 @@ function NewPageMenu({ workspaceSlug }: { workspaceSlug: string }) {
     }
   };
 
-  const menu = (
-    <Menu.Root>
-      <Menu.Trigger
-        render={<Button size="lg" loading={creating} disabled={!projects.length || creating} />}
-        aria-label="New page. Choose a project"
-      >
-        <Plus aria-hidden />
-        New page
-      </Menu.Trigger>
-      <Menu.Portal>
-        <Menu.Positioner side="bottom" align="end" sideOffset={4} className="z-[120]">
-          <OptionPopup
-            label="Choose a project"
-            options={projects}
-            isChecked={() => false}
-            onPick={(projectId) => void create(projectId)}
-          />
-        </Menu.Positioner>
-      </Menu.Portal>
-    </Menu.Root>
+  return (
+    <OptionMenuScope options={projects}>
+      <Menu.Root>
+        <Menu.Trigger
+          render={<Button size="lg" loading={creating} disabled={!projects.length || creating} />}
+          aria-label="New page. Choose a project"
+        >
+          <Plus aria-hidden />
+          New page
+        </Menu.Trigger>
+        <Menu.Portal>
+          <Menu.Positioner side="bottom" align="end" sideOffset={4} className="z-[120]">
+            <OptionPopup
+              label="Choose a project"
+              options={projects}
+              isChecked={() => false}
+              onPick={(projectId) => void create(projectId)}
+            />
+          </Menu.Positioner>
+        </Menu.Portal>
+      </Menu.Root>
+    </OptionMenuScope>
   );
-  return isSearchable(projects) ? <Menu.FilterProvider autoHighlight>{menu}</Menu.FilterProvider> : menu;
 }

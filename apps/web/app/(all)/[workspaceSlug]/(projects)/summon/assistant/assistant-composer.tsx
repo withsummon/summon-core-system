@@ -41,20 +41,23 @@ import {
   PromptInputTextarea,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
-import { OPTION_POPUP_CLASSNAME, OptionSubmenu } from "@/components/summon/option-menu";
+import { OPTION_POPUP_CLASSNAME, OptionItem, OptionSubmenu } from "@/components/summon/option-menu";
 import type { TOption } from "@/components/summon/option-menu";
 import { shouldSubmitAssistantComposer } from "./composer-keyboard.js";
-import { TOOL_LABELS, WORKSPACE_SCOPE, toolNeedsWorkItem } from "./assistant-model";
+import {
+  ATTACHMENT_ACCEPT,
+  ATTACHMENT_HINT,
+  MAX_ATTACHMENTS,
+  TOOL_LABELS,
+  WORKSPACE_SCOPE,
+  toolNeedsWorkItem,
+} from "./assistant-model";
 import type {
   AssistantComposerState,
   TAssistantScope,
   TAssistantScopeKind,
   TAssistantToolMode,
 } from "./assistant-model";
-
-export const MAX_ATTACHMENTS = 5;
-const ACCEPTED_FILES =
-  ".pdf,.docx,.xlsx,.pptx,.txt,.md,.csv,.mp3,.m4a,audio/mpeg,audio/mp3,audio/mp4,audio/m4a,audio/x-m4a";
 
 export const SCOPE_ICONS: Record<TAssistantScopeKind, LucideIcon> = {
   workspace: Building2,
@@ -164,7 +167,7 @@ export function AssistantComposer(props: AssistantComposerProps) {
         />
         <PromptInputFooter>
           <PromptInputTools>
-            <Tooltip tooltipContent={`Attach up to ${MAX_ATTACHMENTS} files · documents 10 MB · MP3/M4A 250 MB`}>
+            <Tooltip tooltipContent={ATTACHMENT_HINT}>
               <label
                 className={cn(
                   "grid size-7 flex-none cursor-pointer place-items-center rounded-md text-secondary focus-within:outline-2 focus-within:outline-accent-strong focus-within:outline-solid hover:bg-layer-transparent-hover hover:text-primary",
@@ -176,7 +179,7 @@ export function AssistantComposer(props: AssistantComposerProps) {
                 <input
                   type="file"
                   multiple
-                  accept={ACCEPTED_FILES}
+                  accept={ATTACHMENT_ACCEPT}
                   disabled={attachmentCount >= MAX_ATTACHMENTS}
                   onChange={(event) => {
                     props.onFiles(Array.from(event.target.files ?? []));
@@ -241,38 +244,38 @@ function ScopeMenu(props: {
       <Menu.Portal>
         <Menu.Positioner side="top" align="start" sideOffset={6} className="z-[120]">
           <Menu.Popup className={OPTION_POPUP_CLASSNAME}>
-            <Menu.Item
-              className={MENU_ITEM_CLASSNAME}
-              onClick={() => {
-                props.onScopeChange(WORKSPACE_SCOPE);
-              }}
-            >
-              <Building2 aria-hidden className="size-4 text-secondary" />
-              <span className="flex-1">Whole workspace</span>
-              {scope.kind === "workspace" ? <Check aria-hidden className="size-4 text-accent-primary" /> : null}
-            </Menu.Item>
+            <OptionItem
+              label="Whole workspace"
+              icon={<Building2 aria-hidden className="size-4 text-secondary" />}
+              selected={scope.kind === "workspace"}
+              onClick={() => props.onScopeChange(WORKSPACE_SCOPE)}
+            />
             {groups.map(({ kind, label }) => (
-              <ScopeSubmenu
+              <OptionSubmenu
                 key={kind}
-                kind={kind}
+                icon={SCOPE_ICONS[kind]}
                 label={label}
                 options={props.options[kind]}
-                selectedId={scope.kind === kind ? scope.id : ""}
-                onSelect={(id) => props.onScopeChange({ kind, id })}
+                trailing={scope.kind === kind ? <Check aria-hidden className="size-4 text-accent-primary" /> : null}
+                isChecked={(id) => scope.kind === kind && id === scope.id}
+                onPick={(id) => props.onScopeChange({ kind, id })}
               />
             ))}
             <Menu.Separator className="my-1 h-px bg-(--border-color-subtle)" />
-            <CheckSubmenu
+            <OptionSubmenu
               icon={FileText}
               label="Pin pages"
-              count={pageIds.length}
               options={props.pages.map((page) => ({ id: page.page, label: page.page_detail.name || "Untitled page" }))}
+              trailing={
+                pageIds.length ? <span className="text-12 text-tertiary tabular-nums">{pageIds.length}</span> : null
+              }
               isChecked={(id) => selectedPages.has(id)}
-              onToggle={(id) =>
+              onPick={(id) =>
                 props.onChange({
                   pageIds: selectedPages.has(id) ? pageIds.filter((item) => item !== id) : [...pageIds, id],
                 })
               }
+              multiple
             />
             <Menu.CheckboxItem
               className={MENU_ITEM_CLASSNAME}
@@ -289,46 +292,6 @@ function ScopeMenu(props: {
         </Menu.Positioner>
       </Menu.Portal>
     </Menu.Root>
-  );
-}
-
-function ScopeSubmenu(props: {
-  kind: Exclude<TAssistantScopeKind, "workspace">;
-  label: string;
-  options: TOption[];
-  selectedId: string;
-  onSelect: (id: string) => void;
-}) {
-  return (
-    <OptionSubmenu
-      icon={SCOPE_ICONS[props.kind]}
-      label={props.label}
-      options={props.options}
-      trailing={props.selectedId ? <Check aria-hidden className="size-4 text-accent-primary" /> : null}
-      isChecked={(id) => id === props.selectedId}
-      onPick={props.onSelect}
-    />
-  );
-}
-
-function CheckSubmenu(props: {
-  icon: LucideIcon;
-  label: string;
-  count: number;
-  options: TOption[];
-  isChecked: (id: string) => boolean;
-  onToggle: (id: string) => void;
-}) {
-  return (
-    <OptionSubmenu
-      icon={props.icon}
-      label={props.label}
-      options={props.options}
-      trailing={props.count ? <span className="text-12 text-tertiary tabular-nums">{props.count}</span> : null}
-      isChecked={props.isChecked}
-      onPick={props.onToggle}
-      multiple
-    />
   );
 }
 
@@ -355,14 +318,12 @@ function ToolsMenu(props: {
                 Plane MCP · writes ask before running
               </Menu.GroupLabel>
               {modes.map(([mode, label]) => (
-                <Menu.Item
+                <OptionItem
                   key={mode}
-                  className={MENU_ITEM_CLASSNAME}
+                  label={label}
+                  selected={props.mode === mode}
                   onClick={() => props.onChange({ toolMode: mode, mcpCredentialId: credentialId })}
-                >
-                  <span className="flex-1">{label}</span>
-                  {props.mode === mode ? <Check aria-hidden className="size-4 text-accent-primary" /> : null}
-                </Menu.Item>
+                />
               ))}
             </Menu.Group>
             {props.credentials.length > 1 ? (
@@ -373,16 +334,12 @@ function ToolsMenu(props: {
                     Credential
                   </Menu.GroupLabel>
                   {props.credentials.map((credential) => (
-                    <Menu.Item
+                    <OptionItem
                       key={credential.id}
-                      className={MENU_ITEM_CLASSNAME}
+                      label={credential.name}
+                      selected={credential.id === credentialId}
                       onClick={() => props.onChange({ mcpCredentialId: credential.id })}
-                    >
-                      <span className="min-w-0 flex-1 truncate">{credential.name}</span>
-                      {credential.id === credentialId ? (
-                        <Check aria-hidden className="size-4 text-accent-primary" />
-                      ) : null}
-                    </Menu.Item>
+                    />
                   ))}
                 </Menu.Group>
               </>

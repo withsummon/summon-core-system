@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ISummonAssistantCitation, ISummonAssistantMessage, ISummonAutomationJob } from "@plane/types";
+import { cn, copyTextToClipboard } from "@plane/utils";
 import {
   Message,
   MessageAction,
@@ -34,30 +35,8 @@ import {
 } from "@/components/ai-elements/message";
 import { Source, Sources } from "@/components/ai-elements/sources";
 import { SummonLogo } from "@/components/summon/brand";
-import { summonErrorMessage } from "@/components/summon/screen";
+import { summonLLMErrorMessage, summonSurfaceClassName } from "@/components/summon/screen";
 import type { AssistantWriteback, TAssistantTimelineItem } from "./assistant-model";
-
-export function assistantErrorMessage(error: unknown) {
-  const code = error && typeof error === "object" && "error_code" in error ? error.error_code : undefined;
-  switch (code) {
-    case "llm_not_configured":
-      return "Ask an instance administrator to configure an LLM, then retry.";
-    case "llm_authentication_failed":
-      return "Provider authentication failed. Ask an instance administrator to verify the key.";
-    case "llm_rate_limited":
-      return "The provider rate limit was reached. Wait briefly, then retry.";
-    case "llm_timeout":
-      return "The provider timed out. Retry with a narrower scope.";
-    case "llm_provider_unavailable":
-      return "The provider is unavailable. Wait briefly, then retry.";
-    case "llm_invalid_response":
-      return "The provider returned an invalid response. Retry or ask an administrator to check the model.";
-    case "llm_context_too_large":
-      return "The selected context is too large. Unpin pages or narrow the scope, then retry.";
-    default:
-      return summonErrorMessage(error);
-  }
-}
 
 const CITATION_ICONS: Record<ISummonAssistantCitation["kind"], LucideIcon> = {
   project: FolderKanban,
@@ -80,7 +59,7 @@ const CITATION_KINDS: Record<ISummonAssistantCitation["kind"], string> = {
 };
 
 /** A failed answer is stored as `<error_code>: <detail>`; show the person what to do instead. */
-const failureMessage = (content: string) => assistantErrorMessage({ error_code: content.split(":")[0] });
+const failureMessage = (content: string) => summonLLMErrorMessage({ error_code: content.split(":")[0] });
 
 export function AssistantIdentity() {
   return (
@@ -172,7 +151,7 @@ function AnswerMessage(props: {
   const failed = message.status === "failed";
   const degraded = message.provider === "deterministic";
   const copyAnswer = async () => {
-    await navigator.clipboard.writeText(message.content);
+    await copyTextToClipboard(message.content);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1500);
   };
@@ -267,7 +246,7 @@ function AnswerSources({ citations, messageId }: { citations: ISummonAssistantCi
 function GeneratedDocument({ job, workspaceSlug }: { job: ISummonAutomationJob; workspaceSlug: string }) {
   const files = job.artifacts.filter((artifact) => artifact.file_detail);
   return (
-    <div className="flex w-full flex-wrap items-center gap-2 rounded-xl border border-subtle bg-surface-1 px-3 py-2.5 shadow-xs">
+    <div className={cn("flex w-full flex-wrap items-center gap-2 px-3 py-2.5", summonSurfaceClassName)}>
       <FileText aria-hidden className="size-4 text-secondary" />
       <span className="mr-auto text-13 font-medium text-primary">Generated document</span>
       <Link

@@ -10,11 +10,33 @@ import type { LucideIcon } from "lucide-react";
 import { MENU_ITEM_CLASSNAME, MENU_POPUP_CLASSNAME, MenuPrimitive as Menu } from "@plane/propel/menu";
 import { cn } from "@plane/utils";
 
-export type TOption = { id: string; label: string };
+export type TOption = { id: string; label: string; icon?: ReactNode };
 
 export const OPTION_POPUP_CLASSNAME = cn(MENU_POPUP_CLASSNAME, "max-h-[min(22rem,var(--available-height))] w-64");
 const SEARCH_CLASSNAME =
   "mb-1 w-full border-b border-subtle bg-transparent px-2 pt-1 pb-2 text-13 text-primary outline-none placeholder:text-placeholder";
+
+const isSearchable = (options: TOption[]) => options.length > 6;
+
+/** Wrap a menu root or submenu whose popup is an `OptionPopup`: long lists need a filter scope for their field. */
+export function OptionMenuScope(props: { options: TOption[]; children: ReactNode }) {
+  return isSearchable(props.options) ? (
+    <Menu.FilterProvider autoHighlight>{props.children}</Menu.FilterProvider>
+  ) : (
+    <>{props.children}</>
+  );
+}
+
+/** A plain menu row: optional icon, label, and a check when it is the current choice. */
+export function OptionItem(props: { label: string; icon?: ReactNode; selected: boolean; onClick: () => void }) {
+  return (
+    <Menu.Item label={props.label} onClick={props.onClick} className={MENU_ITEM_CLASSNAME}>
+      {props.icon}
+      <span className="min-w-0 flex-1 truncate">{props.label}</span>
+      {props.selected ? <Check aria-hidden className="size-4 flex-none text-accent-primary" /> : null}
+    </Menu.Item>
+  );
+}
 
 /** A submenu row that opens an option list; long lists get a filter field. */
 export function OptionSubmenu(props: {
@@ -27,26 +49,24 @@ export function OptionSubmenu(props: {
   multiple?: boolean;
 }) {
   const { icon: Icon } = props;
-  const submenu = (
-    <Menu.SubmenuRoot>
-      <Menu.SubmenuTrigger label={props.label} className={MENU_ITEM_CLASSNAME} disabled={!props.options.length}>
-        <Icon aria-hidden className="size-4 text-secondary" />
-        <span className="flex-1">{props.label}</span>
-        {props.trailing}
-        <ChevronRight aria-hidden className="size-3.5 text-tertiary" />
-      </Menu.SubmenuTrigger>
-      <Menu.Portal>
-        <Menu.Positioner side="right" align="start" sideOffset={4} className="z-[130]">
-          <OptionPopup {...props} />
-        </Menu.Positioner>
-      </Menu.Portal>
-    </Menu.SubmenuRoot>
+  return (
+    <OptionMenuScope options={props.options}>
+      <Menu.SubmenuRoot>
+        <Menu.SubmenuTrigger label={props.label} className={MENU_ITEM_CLASSNAME} disabled={!props.options.length}>
+          <Icon aria-hidden className="size-4 text-secondary" />
+          <span className="flex-1">{props.label}</span>
+          {props.trailing}
+          <ChevronRight aria-hidden className="size-3.5 text-tertiary" />
+        </Menu.SubmenuTrigger>
+        <Menu.Portal>
+          <Menu.Positioner side="right" align="start" sideOffset={4} className="z-[130]">
+            <OptionPopup {...props} />
+          </Menu.Positioner>
+        </Menu.Portal>
+      </Menu.SubmenuRoot>
+    </OptionMenuScope>
   );
-  return isSearchable(props.options) ? <Menu.FilterProvider autoHighlight>{submenu}</Menu.FilterProvider> : submenu;
 }
-
-/** Long option lists get a filter field; wrap the menu root in `Menu.FilterProvider` when this is true. */
-export const isSearchable = (options: TOption[]) => options.length > 6;
 
 /** One option list for a menu: plain items, or check items with `multiple`. */
 export function OptionPopup(props: {
@@ -65,21 +85,20 @@ export function OptionPopup(props: {
         onCheckedChange={() => props.onPick(option.id)}
         className={MENU_ITEM_CLASSNAME}
       >
+        {option.icon}
         <span className="min-w-0 flex-1 truncate">{option.label}</span>
         <Menu.CheckboxItemIndicator className="flex-none text-accent-primary">
           <Check aria-hidden className="size-4" />
         </Menu.CheckboxItemIndicator>
       </Menu.CheckboxItem>
     ) : (
-      <Menu.Item
+      <OptionItem
         key={option.id}
         label={option.label}
+        icon={option.icon}
+        selected={props.isChecked(option.id)}
         onClick={() => props.onPick(option.id)}
-        className={MENU_ITEM_CLASSNAME}
-      >
-        <span className="min-w-0 flex-1 truncate">{option.label}</span>
-        {props.isChecked(option.id) ? <Check aria-hidden className="size-4 flex-none text-accent-primary" /> : null}
-      </Menu.Item>
+      />
     )
   );
   return (

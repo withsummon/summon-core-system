@@ -5,7 +5,6 @@
  */
 
 import { useRef, useState } from "react";
-import type { ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import useSWR, { useSWRConfig } from "swr";
 import { SquarePen } from "lucide-react";
@@ -17,23 +16,19 @@ import type {
   ISummonAssistantMessage,
   ISummonAssistantMessageRequest,
 } from "@plane/types";
-import {
-  Conversation,
-  ConversationContent,
-  ConversationEmptyState,
-  ConversationScrollButton,
-} from "@/components/ai-elements/conversation";
+import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
 import { SummonLogo } from "@/components/summon/brand";
 import { SummonRequestState } from "@/components/summon/request-state";
 import type { TOption } from "@/components/summon/option-menu";
-import { SummonCard, SummonScreen, summonErrorMessage } from "@/components/summon/screen";
+import { SummonCard, SummonScreen, summonErrorMessage, summonLLMErrorMessage } from "@/components/summon/screen";
 import { FileService } from "@/services/file.service";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
 import { AssistantActionCard } from "./assistant-action-card";
-import { AssistantComposer, MAX_ATTACHMENTS, SCOPE_ICONS, scopeLabelFor } from "./assistant-composer";
+import { AssistantComposer, SCOPE_ICONS, scopeLabelFor } from "./assistant-composer";
 import {
   EMPTY_COMPOSER,
+  MAX_ATTACHMENTS,
   attachmentProblem,
   meetingProjectFor,
   projectForScope,
@@ -46,7 +41,6 @@ import {
   toolPayload,
   toolProblem,
 } from "./assistant-model";
-import type { TScopeOptions } from "./assistant-composer";
 import type {
   AssistantComposerState,
   AssistantWriteback,
@@ -57,7 +51,7 @@ import { AssistantTemplates } from "./assistant-templates";
 import { AssistantWritebackCard } from "./assistant-writeback-card";
 import { useAssistantOptions } from "./use-assistant-options";
 import { AssistantConversationSidebar } from "./conversation-sidebar";
-import { AssistantTimeline, assistantErrorMessage } from "./message-list";
+import { AssistantTimeline } from "./message-list";
 
 const fileService = new FileService();
 
@@ -268,7 +262,7 @@ export default function SummonAssistantPage({ params }: Route.ComponentProps) {
     } catch (error) {
       // A provider failure is saved as a failed answer and explained in the timeline; only offer the retry here.
       const answered = Boolean(error && typeof error === "object" && "assistant_message" in error);
-      setSendError(answered ? "" : assistantErrorMessage(error));
+      setSendError(answered ? "" : summonLLMErrorMessage(error));
       setLastRequest(payload);
     } finally {
       await refreshActive(conversationId);
@@ -388,7 +382,24 @@ export default function SummonAssistantPage({ params }: Route.ComponentProps) {
             />
           )}
           {isEmpty ? (
-            <EmptyChat composer={composerElement} options={options.scopeOptions} onPick={pickTemplate} />
+            // A new chat: the composer centred, with Summon jobs under it.
+            <div className="flex min-h-0 flex-1 flex-col items-center overflow-y-auto px-4 py-10 sm:justify-center">
+              <div className="flex w-full max-w-2xl flex-col items-center gap-6 text-center">
+                <div className="flex flex-col items-center gap-3">
+                  <span className="grid size-10 place-items-center rounded-xl bg-layer-2 text-primary">
+                    <SummonLogo variant="mark" className="size-5" />
+                  </span>
+                  <div className="space-y-1">
+                    <h2 className="text-20 font-semibold tracking-tight text-primary">What should Summon work on?</h2>
+                    <p className="text-13 text-secondary">
+                      Pick a scope, ask anything, and turn the answer into a work item, page or document.
+                    </p>
+                  </div>
+                </div>
+                {composerElement}
+                <AssistantTemplates options={options.scopeOptions} onPick={pickTemplate} />
+              </div>
+            </div>
           ) : (
             <>
               <Conversation>
@@ -437,31 +448,6 @@ export default function SummonAssistantPage({ params }: Route.ComponentProps) {
         </SummonCard>
       </div>
     </SummonScreen>
-  );
-}
-
-/** A new chat: the composer centred, with Summon jobs under it. */
-function EmptyChat(props: {
-  composer: ReactNode;
-  options: TScopeOptions;
-  onPick: (template: TAssistantTemplate, option: TOption) => void;
-}) {
-  return (
-    <div className="flex min-h-0 flex-1 flex-col items-center overflow-y-auto px-4 py-10 sm:justify-center">
-      <ConversationEmptyState
-        className="max-w-2xl"
-        icon={
-          <span className="grid size-10 place-items-center rounded-xl bg-layer-2 text-primary">
-            <SummonLogo variant="mark" className="size-5" />
-          </span>
-        }
-        title="What should Summon work on?"
-        description="Pick a scope, ask anything, and turn the answer into a work item, page or document."
-      >
-        {props.composer}
-        <AssistantTemplates options={props.options} onPick={props.onPick} />
-      </ConversationEmptyState>
-    </div>
   );
 }
 

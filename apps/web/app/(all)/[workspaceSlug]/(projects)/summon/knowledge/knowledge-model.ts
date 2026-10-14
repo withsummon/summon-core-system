@@ -5,6 +5,7 @@
  */
 
 import type { ISummonClient, ISummonOpportunity, ISummonPageContext } from "@plane/types";
+import type { TOption } from "@/components/summon/option-menu";
 
 /** One accessible Plane page with the Summon context (client, opportunity, category) it may carry. */
 export type TKnowledgeEntry = {
@@ -22,8 +23,7 @@ export type TKnowledgeEntry = {
 /** `all`, or one record the library narrows to, written `kind:id`. */
 export type TKnowledgeContextFilter = "all" | `${"project" | "client" | "opportunity"}:${string}`;
 
-export type TKnowledgeOption = { id: string; label: string };
-export type TKnowledgeContextOptions = Record<"project" | "client" | "opportunity", TKnowledgeOption[]>;
+export type TKnowledgeContextOptions = Record<"project" | "client" | "opportunity", TOption[]>;
 
 export const ALL_CATEGORIES = "all";
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -59,7 +59,7 @@ export function knowledgeStats(entries: TKnowledgeEntry[], now: number) {
 }
 
 /** Distinct options by id, alphabetical. */
-export function uniqueOptions(options: TKnowledgeOption[]) {
+export function uniqueOptions(options: TOption[]) {
   // oxlint-disable-next-line unicorn/no-array-sort -- ES2023 toSorted is unavailable in the app's current TypeScript target.
   return [...new Map(options.map((option) => [option.id, option])).values()].sort((left, right) =>
     left.label.localeCompare(right.label)

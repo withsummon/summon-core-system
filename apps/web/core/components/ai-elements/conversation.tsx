@@ -5,7 +5,7 @@
  */
 
 // Adapted from AI Elements (https://elements.ai-sdk.dev/components/conversation) onto propel primitives.
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps } from "react";
 import { ArrowDown } from "lucide-react";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 import { IconButton } from "@plane/propel/icon-button";
@@ -30,27 +30,6 @@ export function ConversationContent({ className, ...props }: ComponentProps<type
       className={cn("mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6 sm:px-6", className)}
       {...props}
     />
-  );
-}
-
-export function ConversationEmptyState(props: {
-  title: string;
-  description?: string;
-  icon?: ReactNode;
-  children?: ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={cn("flex w-full flex-col items-center gap-6 text-center", props.className)}>
-      <div className="flex flex-col items-center gap-3">
-        {props.icon}
-        <div className="space-y-1">
-          <h2 className="text-20 font-semibold tracking-tight text-primary">{props.title}</h2>
-          {props.description ? <p className="text-13 text-secondary">{props.description}</p> : null}
-        </div>
-      </div>
-      {props.children}
-    </div>
   );
 }
 

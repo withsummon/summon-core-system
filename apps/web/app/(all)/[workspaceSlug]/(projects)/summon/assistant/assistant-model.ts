@@ -66,10 +66,6 @@ export function conversationScopePatch(
   };
 }
 
-/**
- * Request context for a scope. A meeting also carries its project so document generation and
- * work-item retrieval resolve against the right project.
- */
 /** The project a scope files into: the project itself, or the meeting's project. */
 export function projectForScope(scope: TAssistantScope, meetingProjectId?: string | null) {
   const projectByKind: Partial<Record<TAssistantScopeKind, string | null | undefined>> = {
@@ -155,9 +151,20 @@ export function toolPayload(
   }
 }
 
+export const MAX_ATTACHMENTS = 5;
 const DOCUMENT_EXTENSIONS = new Set([".pdf", ".docx", ".xlsx", ".pptx", ".txt", ".md", ".csv"]);
 const AUDIO_EXTENSIONS = new Set([".mp3", ".m4a"]);
+const MAX_DOCUMENT_MB = 10;
+const MAX_AUDIO_MB = 250;
 const MB = 1024 * 1024;
+
+/** The file picker's `accept` list: exactly the types `attachmentProblem` lets through. */
+export const ATTACHMENT_ACCEPT = [...DOCUMENT_EXTENSIONS, ...AUDIO_EXTENSIONS].join(",");
+export const ATTACHMENT_HINT = `Attach up to ${MAX_ATTACHMENTS} files · documents ${MAX_DOCUMENT_MB} MB · ${[
+  ...AUDIO_EXTENSIONS,
+]
+  .map((extension) => extension.slice(1).toUpperCase())
+  .join("/")} ${MAX_AUDIO_MB} MB`;
 
 /** Why these files can't be attached, or "" when they can: type, emptiness, size and the per-message cap. */
 export function attachmentProblem(files: Array<Pick<File, "name" | "size">>, attached: number, max: number): string {
@@ -167,7 +174,8 @@ export function attachmentProblem(files: Array<Pick<File, "name" | "size">>, att
     const isAudio = AUDIO_EXTENSIONS.has(extension);
     if ((!isAudio && !DOCUMENT_EXTENSIONS.has(extension)) || file.size <= 0)
       return `${file.name}: unsupported or empty file.`;
-    if (file.size > (isAudio ? 250 : 10) * MB) return `${file.name}: maximum size is ${isAudio ? "250 MB" : "10 MB"}.`;
+    const maxMb = isAudio ? MAX_AUDIO_MB : MAX_DOCUMENT_MB;
+    if (file.size > maxMb * MB) return `${file.name}: maximum size is ${maxMb} MB.`;
   }
   return "";
 }
