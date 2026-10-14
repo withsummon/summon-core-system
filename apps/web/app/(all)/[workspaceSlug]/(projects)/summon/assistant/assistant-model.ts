@@ -5,6 +5,7 @@
  */
 
 // Pure Assistant view model: no runtime imports, so the unit tests can load it directly.
+import type { ChatErrorCode, ChatRefusalCode } from "@plane/summon-contract/chat";
 import type {
   ISummonAssistantAction,
   ISummonAssistantAttachment,
@@ -198,6 +199,28 @@ export function openChat(
     actions: open?.actions ?? [],
     pendingAttachments: open?.attachments?.filter((attachment) => !attachment.message) ?? [],
   };
+}
+
+/** Why a streamed turn ended badly: refused before it started (nothing saved), or failed while answering. */
+export type TStreamFailure =
+  | { kind: "refused"; error_code: ChatRefusalCode }
+  | { kind: "answered"; error_code: ChatErrorCode };
+
+/**
+ * A refused request carries the AI service's JSON body (`{"error_code": …}`); an error part from a
+ * running turn carries just the code, and Django has already saved that failed reply.
+ */
+export function streamFailure(error: Error): TStreamFailure {
+  try {
+    const parsed = JSON.parse(error.message) as { error_code?: unknown };
+    // SAFETY: the AI service only refuses with `ChatRefusalCode`s (`@plane/summon-contract/chat`).
+    if (typeof parsed.error_code === "string")
+      return { kind: "refused", error_code: parsed.error_code as ChatRefusalCode };
+  } catch {
+    // Not JSON: the code from an error part.
+  }
+  // SAFETY: the stream's `error` part only carries `ChatErrorCode`s.
+  return { kind: "answered", error_code: error.message as ChatErrorCode };
 }
 
 /** A write the person started from an answer: create a work item or save a page. Lives until reload. */

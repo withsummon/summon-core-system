@@ -11,11 +11,10 @@ import { AI_BASE_URL } from "@plane/constants";
 import type { ChatRequest, SummonUIMessage } from "@plane/summon-contract/chat";
 import { chatPath } from "@plane/summon-contract/chat-route";
 import type { ISummonAssistantMessageRequest } from "@plane/types";
+import { redirectToSignIn } from "@/services/api.service";
+import { streamFailure, type TStreamFailure } from "./assistant-model";
 
-type TStreamBody = Omit<ChatRequest, "id" | "text"> & { conversationId: string };
-
-/** Why a streamed turn ended badly: refused before it started (nothing saved), or failed while answering. */
-export type TStreamFailure = { kind: "refused" | "answered"; error_code: string };
+type TStreamBody = Omit<ChatRequest, "content"> & { workspaceSlug: string; conversationId: string };
 
 type TStreamOutcome = { failure?: TStreamFailure; truncated: boolean };
 
@@ -28,12 +27,12 @@ export function useAssistantStream(workspaceSlug: string) {
     () =>
       new DefaultChatTransport<SummonUIMessage>({
         credentials: "include",
+        // The workspace and conversation come with each turn, so the transport never holds a stale one.
         prepareSendMessagesRequest: ({ messages, body }) => {
-          const { conversationId, ...rest } = body as TStreamBody;
-          const message = messages.at(-1);
-          const text = message?.parts.find((part) => part.type === "text")?.text ?? "";
-          const request: ChatRequest = { id: message?.id ?? "", text, ...rest };
-          return { api: `${AI_BASE_URL}${chatPath(workspaceSlug, conversationId)}`, body: request };
+          const { workspaceSlug: slug, conversationId, ...rest } = body as TStreamBody;
+          const content = messages.at(-1)?.parts.find((part) => part.type === "text")?.text ?? "";
+          const request: ChatRequest = { content, ...rest };
+          return { api: `${AI_BASE_URL}${chatPath(slug, conversationId)}`, body: request };
         },
       })
   );
@@ -45,6 +44,8 @@ export function useAssistantStream(workspaceSlug: string) {
     },
     onError: (error) => {
       turn.current.failure = streamFailure(error);
+      // Like every other API call: an expired session goes back to sign-in.
+      if (turn.current.failure.error_code === "unauthenticated") redirectToSignIn();
     },
   });
   const last = chat.messages.at(-1);
@@ -54,6 +55,7 @@ export function useAssistantStream(workspaceSlug: string) {
   const send = async (conversationId: string, payload: ISummonAssistantMessageRequest) => {
     turn.current = { truncated: false };
     const body: TStreamBody = {
+      workspaceSlug,
       conversationId,
       context: payload.context,
       ...(payload.attachment_ids?.length ? { attachment_ids: payload.attachment_ids } : {}),
@@ -68,18 +70,4 @@ export function useAssistantStream(workspaceSlug: string) {
     send,
     clear: () => chat.setMessages([]),
   };
-}
-
-/**
- * A refused request carries the AI service's JSON body (`{"error_code": …}`); an error part from a
- * running turn carries just the code, and Django has already saved that failed reply.
- */
-export function streamFailure(error: Error): TStreamFailure {
-  try {
-    const parsed = JSON.parse(error.message) as { error_code?: unknown };
-    if (typeof parsed.error_code === "string") return { kind: "refused", error_code: parsed.error_code };
-  } catch {
-    // Not JSON: the code from an error part.
-  }
-  return { kind: "answered", error_code: error.message };
 }
