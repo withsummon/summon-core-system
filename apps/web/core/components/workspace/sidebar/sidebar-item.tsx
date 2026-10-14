@@ -7,38 +7,41 @@
 import type { ReactNode } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
-import { useParams, usePathname } from "next/navigation";
 // plane imports
 import type { IWorkspaceSidebarNavigationItem } from "@plane/constants";
 import { EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import { joinUrlPath } from "@plane/utils";
 // components
 import { SidebarNavItem } from "@/components/sidebar/sidebar-navigation";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
-import { useUser, useUserPermissions } from "@/hooks/store/user";
-import { useWorkspaceNavigationPreferences } from "@/hooks/use-navigation-preferences";
+import { useUserPermissions } from "@/hooks/store/user";
 // plane web imports
 import { getSidebarNavigationItemIcon } from "@/components/workspace/sidebar/helper";
 
 type Props = {
   item: IWorkspaceSidebarNavigationItem;
+  slug: string;
+  href: string;
+  // isActive and isPinned are passed in rather than read through router hooks here, so a navigation
+  // re-renders only the items whose state flips.
+  isActive: boolean;
+  isPinned: boolean;
   additionalRender?: (itemKey: string, workspaceSlug: string) => ReactNode;
   additionalStaticItems?: string[];
 };
 
 export const SidebarItemBase = observer(function SidebarItemBase({
   item,
+  slug,
+  href,
+  isActive,
+  isPinned,
   additionalRender,
   additionalStaticItems,
 }: Props) {
   const { t } = useTranslation();
-  const pathname = usePathname();
-  const { workspaceSlug } = useParams();
   const { allowPermissions } = useUserPermissions();
-  const { isWorkspaceItemPinned } = useWorkspaceNavigationPreferences();
-  const { data } = useUser();
 
   const { toggleSidebar, isExtendedSidebarOpened, toggleExtendedSidebar } = useAppTheme();
 
@@ -56,24 +59,19 @@ export const SidebarItemBase = observer(function SidebarItemBase({
     "drafts",
     ...(additionalStaticItems || []),
   ];
-  const slug = workspaceSlug?.toString() || "";
-
   if (!allowPermissions(item.access, EUserPermissionsLevel.WORKSPACE, slug)) return null;
 
-  const isPinned = isWorkspaceItemPinned(item.key);
   if (!isPinned && !staticItems.includes(item.key)) return null;
 
-  const itemHref =
-    item.key === "your_work" && data?.id ? joinUrlPath(slug, item.href, data?.id) : joinUrlPath(slug, item.href);
   const icon = getSidebarNavigationItemIcon(item.key);
 
   return (
     <Link
-      href={itemHref}
+      href={href}
       onClick={handleLinkClick}
-      prefetch={additionalStaticItems?.includes(item.key) ? "render" : undefined}
+      prefetch={additionalStaticItems?.includes(item.key) ? "intent" : undefined}
     >
-      <SidebarNavItem isActive={item.highlight(pathname, itemHref)}>
+      <SidebarNavItem isActive={isActive}>
         <div className="flex items-center gap-1.5 py-[1px]">
           {icon}
           <p className="text-13 leading-5">{t(item.labelTranslationKey)}</p>

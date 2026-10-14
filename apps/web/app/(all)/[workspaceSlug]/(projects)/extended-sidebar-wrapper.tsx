@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import { EXTENDED_SIDEBAR_WIDTH, SIDEBAR_WIDTH } from "@plane/constants";
@@ -30,6 +30,10 @@ export const ExtendedSidebarWrapper = observer(function ExtendedSidebarWrapper(p
   const { sidebarCollapsed } = useAppTheme();
   // local storage
   const { storedValue } = useLocalStorage("sidebarWidth", SIDEBAR_WIDTH);
+  // Contents mount on first open and then stay, so closing still animates and an unopened panel
+  // costs nothing when the route changes.
+  const [hasOpened, setHasOpened] = useState(isExtendedSidebarOpened);
+  if (isExtendedSidebarOpened && !hasOpened) setHasOpened(true);
 
   // The panel stays mounted so it can animate out; outside clicks only matter while it is open.
   const closeIfOpen = useCallback(() => {
@@ -60,7 +64,7 @@ export const ExtendedSidebarWrapper = observer(function ExtendedSidebarWrapper(p
         width: `${EXTENDED_SIDEBAR_WIDTH}px`,
       }}
     >
-      {children}
+      {hasOpened && children}
     </div>
   );
 });

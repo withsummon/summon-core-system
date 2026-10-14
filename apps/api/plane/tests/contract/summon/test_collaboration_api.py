@@ -370,12 +370,22 @@ def test_meeting_list_query_count_does_not_grow_with_meetings(workspace):
     hidden_project = Project.objects.create(workspace=workspace, name="Hidden", identifier="HID")
     todo, _ = issue_states(project)
     hidden_todo, _ = issue_states(hidden_project)
+    author, _ = authenticated_user(workspace)
     url = f"/api/summon/workspaces/{workspace.slug}/meetings/"
 
-    def add_meeting(title):
+    def add_meeting(title, summary_project):
         meeting = Meeting.objects.create(
             workspace=workspace, project=project, organizer=actor, title=title, starts_at=timezone.now()
         )
+        # Someone else's summary page: the actor reads it only through membership of the page's project.
+        meeting.summary_page = Page.objects.create(
+            workspace=workspace,
+            owned_by=author,
+            name=f"{title} summary",
+            view_props={"summon_summary_meeting_id": str(meeting.id)},
+        )
+        meeting.save(update_fields=["summary_page"])
+        ProjectPage.objects.create(workspace=workspace, project=summary_project, page=meeting.summary_page)
         MeetingParticipant.objects.create(workspace=workspace, meeting=meeting, member=actor)
         visible = Issue.objects.create(workspace=workspace, project=project, state=todo, name=f"{title} visible")
         deleted = Issue.objects.create(workspace=workspace, project=project, state=todo, name=f"{title} deleted")
@@ -392,10 +402,11 @@ def test_meeting_list_query_count_does_not_grow_with_meetings(workspace):
         assert response.status_code == status.HTTP_200_OK
         return response, len(queries)
 
-    add_meeting("First")
+    add_meeting("First", project)
     _, single = list_meetings()
-    for index in range(3):
-        add_meeting(f"Extra {index}")
+    for index in range(2):
+        add_meeting(f"Extra {index}", project)
+    add_meeting("Hidden summary", hidden_project)
     response, many = list_meetings()
 
     assert many == single
@@ -403,3 +414,8 @@ def test_meeting_list_query_count_does_not_grow_with_meetings(workspace):
     for meeting in response.data:
         assert [participant["member"]["id"] for participant in meeting["participants"]] == [str(actor.id)]
         assert [item["issue"]["name"] for item in meeting["work_items"]] == [f"{meeting['title']} visible"]
+        summary = meeting["summary_page_detail"]
+        if meeting["title"] == "Hidden summary":
+            assert summary is None
+        else:
+            assert summary["name"] == f"{meeting['title']} summary"

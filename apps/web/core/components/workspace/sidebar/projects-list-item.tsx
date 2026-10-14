@@ -11,7 +11,7 @@ import { pointerOutsideOfPreview } from "@atlaskit/pragmatic-drag-and-drop/eleme
 import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/element/set-custom-native-drag-preview";
 import { attachInstruction, extractInstruction } from "@atlaskit/pragmatic-drag-and-drop-hitbox/tree-item";
 import { observer } from "mobx-react";
-import { useParams, useRouter } from "next/navigation";
+import type { useRouter } from "next/navigation";
 import { createRoot } from "react-dom/client";
 import scrollIntoView from "smooth-scroll-into-view-if-needed";
 import { Settings, Share2, LogOut, MoreHorizontal } from "lucide-react";
@@ -23,9 +23,11 @@ import { useTranslation } from "@plane/i18n";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { LinkIcon, ArchiveIcon, ChevronRightIcon } from "@plane/propel/icons";
 import { IconButton } from "@plane/propel/icon-button";
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
 import { CustomMenu, DropIndicator, DragHandle, ControlLink } from "@plane/ui";
-import { cn } from "@plane/utils";
+import type { TProject, TProjectNavigationMode } from "@plane/types";
+import { cn, copyUrlToClipboard, orderJoinedProjects } from "@plane/utils";
 // components
 import { DEFAULT_TAB_KEY, getTabUrl } from "@/components/navigation/tab-navigation-utils";
 import { useTabPreferences } from "@/components/navigation/use-tab-preferences";
@@ -36,21 +38,20 @@ import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
-import { useProjectNavigationPreferences } from "@/hooks/use-navigation-preferences";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // local imports
 import { HIGHLIGHT_CLASS, highlightIssueOnDrop } from "../../issues/issue-layouts/utils";
 import { ProjectNavigation } from "./project-navigation";
 import { useNavigationItems } from "@/components/navigation/use-navigation-items";
 
+// Route state (workspaceSlug, isActive, router) comes from the list, so a navigation
+// re-renders only the rows whose active state flips instead of every row.
 type Props = {
   projectId: string;
-  handleCopyText: () => void;
-  handleOnProjectDrop?: (
-    sourceId: string | undefined,
-    destinationId: string | undefined,
-    shouldDropAtEnd: boolean
-  ) => void;
+  workspaceSlug: string;
+  isActive: boolean;
+  navigationMode: TProjectNavigationMode;
+  router: ReturnType<typeof useRouter>;
   projectListType: "JOINED" | "FAVORITES";
   disableDrag?: boolean;
   disableDrop?: boolean;
@@ -61,26 +62,32 @@ type Props = {
 export const SidebarProjectsListItem = observer(function SidebarProjectsListItem(props: Props) {
   const {
     projectId,
-    handleCopyText,
+    workspaceSlug,
+    isActive,
+    navigationMode,
+    router,
     disableDrag,
     disableDrop,
     isLastChild,
-    handleOnProjectDrop,
     projectListType,
     renderInExtendedSidebar = false,
   } = props;
   // store hooks
   const { t } = useTranslation();
-  const { getPartialProjectById } = useProject();
+  const projectStore = useProject();
+  const { getPartialProjectById } = projectStore;
   const { isMobile } = usePlatformOS();
   const { allowPermissions } = useUserPermissions();
   const { getIsProjectListOpen, toggleProjectListOpen } = useCommandPalette();
-  const { preferences: projectPreferences } = useProjectNavigationPreferences();
   const { isExtendedProjectSidebarOpened, toggleExtendedProjectSidebar, toggleAnySidebarDropdown } = useAppTheme();
 
   // states
   const [leaveProjectModalOpen, setLeaveProjectModal] = useState(false);
   const [publishModalOpen, setPublishModal] = useState(false);
+  // The modals read router params, so they mount on first open and then stay (keeping the close animation)
+  // rather than re-rendering in every closed row on each navigation.
+  const [hasOpenedModal, setHasOpenedModal] = useState(false);
+  if ((publishModalOpen || leaveProjectModalOpen) && !hasOpenedModal) setHasOpenedModal(true);
   const [isMenuActive, setIsMenuActive] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const isProjectListOpen = getIsProjectListOpen(projectId);
@@ -88,15 +95,12 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
   // refs
   const projectRef = useRef<HTMLDivElement | null>(null);
   const dragHandleRef = useRef<HTMLDivElement | null>(null);
-  // router
-  const { workspaceSlug, projectId: URLProjectId } = useParams();
-  const router = useRouter();
   // derived values
   const project = getPartialProjectById(projectId);
 
   // Get available navigation items for this project
   const navigationItems = useNavigationItems({
-    workspaceSlug: workspaceSlug.toString(),
+    workspaceSlug,
     projectId,
     project,
     allowPermissions,
@@ -104,11 +108,11 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
   const availableTabKeys = navigationItems.map((item) => item.key);
 
   // Get preferences from hook
-  const { tabPreferences } = useTabPreferences(workspaceSlug.toString(), projectId);
+  const { tabPreferences } = useTabPreferences(workspaceSlug, projectId);
   const defaultTabKey = tabPreferences.defaultTab;
   // Validate that the default tab is available
   const validatedDefaultTabKey = availableTabKeys.includes(defaultTabKey) ? defaultTabKey : DEFAULT_TAB_KEY;
-  const defaultTabUrl = project ? getTabUrl(workspaceSlug.toString(), project.id, validatedDefaultTabKey) : "";
+  const defaultTabUrl = project ? getTabUrl(workspaceSlug, project.id, validatedDefaultTabKey) : "";
 
   // toggle project list open
   const setIsProjectListOpen = useCallback(
@@ -116,21 +120,47 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
     [projectId, toggleProjectListOpen]
   );
   // auth
-  const isAdmin = allowPermissions(
-    [EUserPermissions.ADMIN],
-    EUserPermissionsLevel.PROJECT,
-    workspaceSlug.toString(),
-    project?.id
-  );
+  const isAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.PROJECT, workspaceSlug, project?.id);
   const isAuthorized = allowPermissions(
     [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
     EUserPermissionsLevel.PROJECT,
-    workspaceSlug.toString(),
+    workspaceSlug,
     project?.id
   );
 
+  const handleCopyText = () => {
+    copyUrlToClipboard(`${workspaceSlug}/projects/${projectId}/issues`).then(() =>
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: t("link_copied"),
+        message: t("project_link_copied_to_clipboard"),
+      })
+    );
+  };
+
   const handleLeaveProject = () => {
     setLeaveProjectModal(true);
+  };
+
+  // Reads the store at drop time, so the drag handlers registered below never hold a stale project order.
+  const moveProject = (sourceId: string, destinationId: string, shouldDropAtEnd: boolean) => {
+    const { joinedProjectIds } = projectStore;
+    const joinedProjectsList = joinedProjectIds
+      .map((id) => getPartialProjectById(id))
+      .filter((joinedProject): joinedProject is TProject => !!joinedProject);
+    if (joinedProjectsList.length <= 0) return;
+
+    const sourceIndex = joinedProjectIds.indexOf(sourceId);
+    const destinationIndex = shouldDropAtEnd ? joinedProjectIds.length : joinedProjectIds.indexOf(destinationId);
+    const updatedSortOrder = orderJoinedProjects(sourceIndex, destinationIndex, sourceId, joinedProjectsList);
+    if (updatedSortOrder != undefined)
+      projectStore.updateProjectView(workspaceSlug, sourceId, { sort_order: updatedSortOrder }).catch(() => {
+        setToast({
+          type: TOAST_TYPE.ERROR,
+          title: t("error"),
+          message: t("something_went_wrong"),
+        });
+      });
   };
 
   useEffect(() => {
@@ -217,14 +247,15 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
           const sourceId = source?.data?.id as string | undefined;
           const destinationId = self?.data?.id as string | undefined;
 
-          handleOnProjectDrop?.(sourceId, destinationId, currentInstruction === "DRAG_BELOW");
+          if (sourceId && destinationId && sourceId !== destinationId)
+            moveProject(sourceId, destinationId, currentInstruction === "DRAG_BELOW");
 
           highlightIssueOnDrop(`sidebar-${sourceId}-${projectListType}`);
         },
       })
     );
     // oxlint-disable-next-line eslint-plugin-react-hooks/exhaustive-deps
-  }, [projectId, isLastChild, projectListType, handleOnProjectDrop]);
+  }, [projectId, isLastChild, projectListType]);
 
   useEffect(() => {
     if (isMenuActive) toggleAnySidebarDropdown(true);
@@ -236,7 +267,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
-    if (URLProjectId === project?.id) {
+    if (isActive) {
       setIsProjectListOpen(true);
       // Scroll to active project
       if (projectRef.current) {
@@ -257,14 +288,14 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
         clearTimeout(timeoutId);
       }
     };
-  }, [URLProjectId, project?.id, setIsProjectListOpen]);
+  }, [isActive, setIsProjectListOpen]);
 
   if (!project) return null;
 
-  const isAccordionMode = projectPreferences.navigationMode === "ACCORDION";
+  const isAccordionMode = navigationMode === "ACCORDION";
 
   const handleItemClick = () => {
-    if (projectPreferences.navigationMode === "ACCORDION") {
+    if (isAccordionMode) {
       setIsProjectListOpen(!isProjectListOpen);
     } else {
       router.push(defaultTabUrl);
@@ -275,17 +306,21 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
     }
   };
 
-  const shouldHighlightProject = URLProjectId === project?.id && projectPreferences.navigationMode !== "ACCORDION";
+  const shouldHighlightProject = isActive && !isAccordionMode;
 
   return (
     <>
-      <PublishProjectModal isOpen={publishModalOpen} projectId={projectId} onClose={() => setPublishModal(false)} />
-      <LeaveProjectModal project={project} isOpen={leaveProjectModalOpen} onClose={() => setLeaveProjectModal(false)} />
-      <CollapsiblePrimitive.Root
-        key={`${project.id}_${URLProjectId}`}
-        open={isProjectListOpen}
-        onOpenChange={setIsProjectListOpen}
-      >
+      {hasOpenedModal && (
+        <>
+          <PublishProjectModal isOpen={publishModalOpen} projectId={projectId} onClose={() => setPublishModal(false)} />
+          <LeaveProjectModal
+            project={project}
+            isOpen={leaveProjectModalOpen}
+            onClose={() => setLeaveProjectModal(false)}
+          />
+        </>
+      )}
+      <CollapsiblePrimitive.Root key={String(isActive)} open={isProjectListOpen} onOpenChange={setIsProjectListOpen}>
         <div
           id={`sidebar-${projectId}-${projectListType}`}
           className={cn("relative", {
@@ -470,7 +505,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
               {isProjectListOpen && (
                 <CollapsiblePrimitive.Panel className="relative mt-1 mb-1.5 flex flex-col gap-0.5 pl-6">
                   <div className="absolute top-0 bottom-1 left-[15px] w-[1px] bg-layer-3" />
-                  <ProjectNavigation workspaceSlug={workspaceSlug.toString()} projectId={projectId.toString()} />
+                  <ProjectNavigation workspaceSlug={workspaceSlug} projectId={projectId.toString()} />
                 </CollapsiblePrimitive.Panel>
               )}
             </>
