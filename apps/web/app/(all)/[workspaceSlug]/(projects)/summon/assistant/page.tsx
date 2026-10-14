@@ -266,7 +266,7 @@ export default function SummonAssistantPage({ params }: Route.ComponentProps) {
         const { failure, truncated } = await stream.send(conversationId, payload);
         // A turn that failed while answering is saved and explained in the timeline, like a blocking one.
         if (failure?.kind === "refused") {
-          setSendError(assistantErrorMessage(failure));
+          setSendError(summonLLMErrorMessage(failure));
           setLastRequest(payload);
         } else setLastRequest(undefined);
         setContextTruncated(truncated);
