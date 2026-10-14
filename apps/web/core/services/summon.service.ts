@@ -30,6 +30,7 @@ import type {
   ISummonCredentialGrant,
   ISummonMeeting,
   ISummonMeetingSummaryRequest,
+  ISummonTldvImportResult,
   ISummonMeetingWorkItem,
   ISummonMCPStatus,
   ISummonHomeSummary,
@@ -179,6 +180,10 @@ export class SummonService extends APIService {
 
   createMeeting(workspaceSlug: string, payload: TPayload) {
     return this.data<ISummonMeeting>(this.post(`${this.root(workspaceSlug)}/meetings/`, payload));
+  }
+
+  importTldvMeetings(workspaceSlug: string, payload: { credential: string; project: string }) {
+    return this.data<ISummonTldvImportResult>(this.post(`${this.root(workspaceSlug)}/meetings/import/tldv/`, payload));
   }
 
   getMeeting(workspaceSlug: string, meetingId: string) {

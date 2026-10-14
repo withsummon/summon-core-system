@@ -4,42 +4,36 @@
  * See the LICENSE file for details.
  */
 
-import { useMemo, useState } from "react";
+import { useRef, useState } from "react";
 import { observer } from "mobx-react";
-import {
-  ChatTextIcon,
-  CheckSquareIcon,
-  ClockCounterClockwiseIcon,
-  FileTextIcon,
-  SparkleIcon,
-  SquaresFourIcon,
-} from "@phosphor-icons/react";
+import { ChatTextIcon, NotePencilIcon } from "@phosphor-icons/react";
 import Link from "next/link";
 import {
+  ArrowUpRight,
   CalendarDays,
-  ChevronDown,
+  ChevronLeft,
   Clock3,
-  Download,
-  Ellipsis,
-  FolderKanban,
-  MapPin,
-  Share2,
+  ExternalLink,
+  Link2,
+  LoaderCircle,
+  PlayCircle,
   Upload,
-  UserPlus,
-  Users,
+  Video,
 } from "lucide-react";
 import type { ISummonMeeting } from "@plane/types";
-import { Avatar } from "@plane/ui";
 import { getButtonStyling } from "@plane/propel/button";
-import { SummonPanel } from "@/components/summon/screen";
+import { Popover } from "@plane/propel/popover";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { AvatarGroup, Avatar } from "@plane/ui";
 import { copyUrlToClipboard } from "@plane/utils";
 import { PageHead } from "@/components/core/page-title";
+import { ProjectDropdown } from "@/components/dropdowns/project/dropdown";
 import { SectionTabs } from "@/components/summon/section-tabs";
 import type { TSectionTab } from "@/components/summon/section-tabs";
-import { MeetingDetailMeta } from "./meeting-detail-meta";
-import { MeetingDetailRail } from "./meeting-detail-rail";
-import { SummonSearchField } from "@/components/summon/search-field";
+import { StatusBadge } from "@/components/summon/status-badge";
+import type { TSeek } from "./meeting-media";
+import { MeetingNotes } from "./meeting-notes";
+import { MeetingTranscript } from "./meeting-transcript";
 
 type Props = {
   data: ISummonMeeting;
@@ -48,22 +42,111 @@ type Props = {
   summaryError: string;
   uploadingRecording: boolean;
   onUploadRecording: (file: File) => void;
+  onMoveToProject: (projectId: string) => void;
   onRegenerate: () => void;
 };
 
-const tabs: TSectionTab<string>[] = [
-  { value: "overview", label: "Overview", icon: SquaresFourIcon, href: "#overview" },
-  { value: "transcript", label: "Transcript", icon: ChatTextIcon, href: "#transcript" },
-  { value: "ai-summary", label: "AI Summary", icon: SparkleIcon, href: "#ai-summary" },
-  { value: "documents", label: "Documents", icon: FileTextIcon, href: "#documents" },
-  { value: "tasks", label: "Tasks", icon: CheckSquareIcon, href: "#tasks" },
-  { value: "activity", label: "Activity", icon: ClockCounterClockwiseIcon, href: "#activity" },
+type TPane = "notes" | "transcript";
+
+/** Below xl the two panes share the space as tabs; from xl they sit side by side. */
+const PANES: TSectionTab<TPane>[] = [
+  { value: "notes", label: "Notes", icon: NotePencilIcon },
+  { value: "transcript", label: "Transcript", icon: ChatTextIcon },
 ];
 
-const DATE_FORMATTER = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
+const DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+});
 const TIME_FORMATTER = new Intl.DateTimeFormat(undefined, { timeStyle: "short" });
-const date = (value: string) => DATE_FORMATTER.format(new Date(value));
-const time = (value: string) => TIME_FORMATTER.format(new Date(value));
+const AUDIO_TYPES = "audio/mpeg,audio/mp4,audio/x-m4a,audio/wav,audio/x-wav,audio/webm,audio/ogg";
+
+function durationLabel(startsAt: string, endsAt: string | null) {
+  if (!endsAt) return null;
+  const minutes = Math.round((new Date(endsAt).getTime() - new Date(startsAt).getTime()) / 60000);
+  if (minutes <= 0) return null;
+  if (minutes < 60) return `${minutes} min`;
+  return minutes % 60 ? `${Math.floor(minutes / 60)} h ${minutes % 60} min` : `${minutes / 60} h`;
+}
+
+/** Who was in the meeting: the importer's invite list when there is one, else the linked members. */
+function MeetingPeople({ data }: { data: ISummonMeeting }) {
+  const people = data.attendees.length
+    ? data.attendees.map((attendee) => ({
+        key: attendee.email,
+        name: attendee.name || attendee.email,
+        email: attendee.email,
+      }))
+    : data.participants.map((participant) => ({
+        key: participant.id,
+        name: participant.member.display_name,
+        email: "",
+      }));
+  if (!people.length) return null;
+  return (
+    <Popover>
+      <Popover.Button className="inline-flex items-center gap-1.5 rounded-md hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong">
+        <AvatarGroup size="sm" max={4} showTooltip={false}>
+          {people.map((person) => (
+            <Avatar key={person.key} name={person.name} />
+          ))}
+        </AvatarGroup>
+        {people.length} {people.length === 1 ? "person" : "people"}
+      </Popover.Button>
+      <Popover.Panel
+        placement="bottom-start"
+        sideOffset={6}
+        positionerClassName="z-[110]"
+        className="max-h-80 w-[min(20rem,calc(100vw-2rem))] overflow-y-auto rounded-lg border border-subtle bg-surface-1 p-1.5 shadow-overlay-100"
+      >
+        <ul aria-label="People in this meeting">
+          {people.map((person) => (
+            <li key={person.key} className="flex items-center gap-2.5 rounded-md px-2 py-1.5">
+              <Avatar name={person.name} size="base" showTooltip={false} />
+              <span className="min-w-0">
+                <span className="block truncate text-13 text-primary">{person.name}</span>
+                {person.email && person.email !== person.name ? (
+                  <span className="block truncate text-11 text-tertiary">{person.email}</span>
+                ) : null}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </Popover.Panel>
+    </Popover>
+  );
+}
+
+function UploadRecording({
+  uploading,
+  onUpload,
+  children,
+  className,
+}: {
+  uploading: boolean;
+  onUpload: (file: File) => void;
+  children: React.ReactNode;
+  className: string;
+}) {
+  return (
+    <label className={`cursor-pointer has-[:disabled]:cursor-progress ${className}`}>
+      {children}
+      <input
+        type="file"
+        accept={AUDIO_TYPES}
+        disabled={uploading}
+        className="sr-only"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) onUpload(file);
+          event.target.value = "";
+        }}
+      />
+    </label>
+  );
+}
 
 export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
   data,
@@ -72,35 +155,31 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
   summaryError,
   uploadingRecording,
   onUploadRecording,
+  onMoveToProject,
   onRegenerate,
 }: Props) {
-  const [section, setSection] = useState("overview");
-  const [search, setSearch] = useState("");
-  const [showAllTranscript, setShowAllTranscript] = useState(false);
-  const organizer = data.participants.find(({ member }) => member.id === data.organizer)?.member.display_name;
-  const transcript = useMemo(() => {
-    const occurrences = new Map<string, number>();
+  const [pane, setPane] = useState<TPane>("notes");
+  const [playhead, setPlayhead] = useState<number | null>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const recordingUrl = data.recording_asset_detail?.url;
+  const transcribing = data.summary_error === "transcribing";
+  const duration = durationLabel(data.starts_at, data.ends_at);
+  const startsAt = new Date(data.starts_at);
 
-    return data.transcript_text
-      .split(/\n+/)
-      .map((line) => line.trim())
-      .filter((line) => line && line.toLowerCase().includes(search.trim().toLowerCase()))
-      .map((line) => {
-        const occurrence = (occurrences.get(line) ?? 0) + 1;
-        occurrences.set(line, occurrence);
-        return { id: `${line}-${occurrence}`, line };
-      });
-  }, [data.transcript_text, search]);
-  const formattedTimes = useMemo(
-    () => ({
-      startDate: date(data.starts_at),
-      startTime: time(data.starts_at),
-      endTime: data.ends_at ? time(data.ends_at) : null,
-      createdAt: `${date(data.created_at)}, ${time(data.created_at)}`,
-    }),
-    [data.starts_at, data.ends_at, data.created_at]
-  );
-  const visibleTranscript = showAllTranscript ? transcript : transcript.slice(0, 6);
+  // A moment plays from Summon's own recording; an imported meeting opens tl;dv, which keeps the video, at that moment.
+  let seek: TSeek;
+  if (recordingUrl) {
+    seek = (seconds) => {
+      const audio = audioRef.current;
+      if (!audio) return;
+      audio.currentTime = seconds;
+      void audio.play();
+      setPane("transcript");
+    };
+  } else if (data.external_url) {
+    seek = (seconds) => window.open(`${data.external_url}?t=${Math.floor(seconds)}`, "_blank", "noopener");
+  }
+
   const share = async () => {
     try {
       await copyUrlToClipboard(window.location.pathname);
@@ -113,210 +192,192 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
   return (
     <>
       <PageHead title={`${data.title} · Summon Core`} />
-      <main id="overview" className="mx-auto min-h-full w-full max-w-[1680px] bg-surface-2">
-        <header className="border-b border-subtle bg-surface-1 px-5 pt-4 lg:px-8">
-          <div className="flex items-center gap-2 text-12 font-medium text-secondary">
-            <Link href={`/${workspaceSlug}/summon/meetings/`} className="hover:text-primary">
-              Meetings
-            </Link>
-            <span>›</span>
-            <span className="text-primary">Meeting Workspace</span>
-          </div>
-          <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <h1 className="text-20 font-semibold tracking-tight text-primary">{data.title}</h1>
-                <span className="rounded-md bg-accent-subtle px-2 py-1 text-12 font-semibold text-accent-primary capitalize">
-                  {data.status}
+      <div className="flex min-h-full flex-col bg-surface-1 xl:h-full">
+        <header className="border-b border-subtle px-4 pt-3 sm:px-6 lg:px-8">
+          <Link
+            href={`/${workspaceSlug}/summon/meetings/`}
+            className="inline-flex items-center gap-1 text-12 font-medium text-tertiary hover:text-primary"
+          >
+            <ChevronLeft className="size-3.5" aria-hidden="true" /> Meetings
+          </Link>
+          <div className="mt-2 flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+            <div className="min-w-0 flex-1 basis-80">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-20 font-semibold tracking-tight break-words text-primary">{data.title}</h1>
+                <StatusBadge status={data.status} />
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-12 text-secondary">
+                <span className="inline-flex items-center gap-1.5">
+                  <CalendarDays className="size-3.5 text-tertiary" aria-hidden="true" />
+                  <time dateTime={data.starts_at}>{DATE_FORMATTER.format(startsAt)}</time>
                 </span>
-              </div>
-              <div className="mt-2 flex items-center gap-1.5 text-xs font-medium text-secondary">
-                <FolderKanban className="size-3.5" />
-                {data.project_detail ? (
-                  <Link
-                    href={`/${workspaceSlug}/summon/projects/${data.project_detail.id}/`}
-                    className="hover:text-accent-primary"
-                  >
-                    {data.project_detail.name}
-                  </Link>
-                ) : (
-                  "Workspace meeting"
-                )}
-              </div>
-              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-12 text-secondary">
-                <Meta icon={CalendarDays}>{formattedTimes.startDate}</Meta>
-                <Meta icon={Clock3}>
-                  {formattedTimes.startTime}
-                  {formattedTimes.endTime ? ` – ${formattedTimes.endTime}` : ""}
-                </Meta>
-                <Meta icon={MapPin}>{data.location || "Location not supplied"}</Meta>
-                <Meta icon={Users}>{data.participants.length} Participants</Meta>
+                <span className="inline-flex items-center gap-1.5 tabular-nums">
+                  <Clock3 className="size-3.5 text-tertiary" aria-hidden="true" />
+                  {TIME_FORMATTER.format(startsAt)}
+                  {data.ends_at ? `–${TIME_FORMATTER.format(new Date(data.ends_at))}` : ""}
+                  {duration ? <span className="text-tertiary">· {duration}</span> : null}
+                </span>
+                <span className="-ml-1.5 inline-flex items-center">
+                  <ProjectDropdown
+                    value={data.project}
+                    onChange={(projectId) => {
+                      if (projectId !== data.project) onMoveToProject(projectId);
+                    }}
+                    multiple={false}
+                    buttonVariant="transparent-with-text"
+                    buttonClassName="h-6 px-1.5 text-12 text-secondary"
+                    placeholder="No project"
+                    dropdownArrow
+                  />
+                  {data.project_detail ? (
+                    <Link
+                      href={`/${workspaceSlug}/summon/projects/${data.project_detail.id}/`}
+                      aria-label={`Open ${data.project_detail.name}`}
+                      className="ml-1 grid size-5 place-items-center rounded-sm text-tertiary hover:bg-layer-1 hover:text-primary"
+                    >
+                      <ArrowUpRight className="size-3.5" aria-hidden="true" />
+                    </Link>
+                  ) : null}
+                </span>
+                <MeetingPeople data={data} />
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Link
-                href={`/${workspaceSlug}/settings/members/`}
-                className="inline-flex h-9 items-center gap-2 rounded-lg border border-subtle bg-surface-1 px-3 text-xs font-semibold text-primary shadow-xs hover:bg-layer-1"
-              >
-                <UserPlus className="size-3.5" /> Invite People
-              </Link>
-              <details className="relative">
-                <summary
-                  aria-label="More meeting actions"
-                  className="grid size-9 cursor-pointer list-none place-items-center rounded-lg border border-subtle bg-surface-1 text-secondary shadow-xs hover:bg-layer-1"
+              {data.meeting_url ? (
+                <a
+                  href={data.meeting_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={getButtonStyling("secondary", "base")}
                 >
-                  <Ellipsis className="size-4" aria-hidden="true" />
-                </summary>
-                <div className="absolute right-0 z-20 mt-1 w-44 rounded-lg border border-subtle bg-surface-1 p-1 shadow-lg">
-                  {data.meeting_url ? (
-                    <a
-                      href={data.meeting_url}
-                      className="block rounded-md px-3 py-2 text-xs text-primary hover:bg-layer-1"
-                    >
-                      Open meeting link
-                    </a>
-                  ) : null}
-                  <Link
-                    href={`/${workspaceSlug}/summon/meetings/`}
-                    className="block rounded-md px-3 py-2 text-xs text-primary hover:bg-layer-1"
-                  >
-                    All meetings
-                  </Link>
-                </div>
-              </details>
-              <button
-                type="button"
-                onClick={() => void share()}
-                className="inline-flex h-9 items-center gap-2 rounded-lg bg-accent-primary px-4 text-xs font-semibold text-white shadow-sm hover:bg-accent-primary/90"
-              >
-                <Share2 className="size-3.5" /> Share
+                  <Link2 className="size-3.5" aria-hidden="true" /> Meeting link
+                </a>
+              ) : null}
+              {data.external_url ? (
+                <a
+                  href={data.external_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={getButtonStyling("secondary", "base")}
+                >
+                  <ExternalLink className="size-3.5" aria-hidden="true" /> Open in tl;dv
+                </a>
+              ) : null}
+              <button type="button" onClick={() => void share()} className={getButtonStyling("primary", "base")}>
+                Share
               </button>
             </div>
           </div>
           <SectionTabs
-            items={tabs}
-            value={section}
-            onValueChange={setSection}
-            label="Meeting detail sections"
-            className="mt-4 border-b-0"
+            items={PANES}
+            value={pane}
+            onValueChange={setPane}
+            label="Meeting panes"
+            className="mt-3 border-b-0 xl:hidden"
           />
+          <div className="h-3 max-xl:hidden" />
         </header>
 
-        <div className="grid grid-cols-1 items-start gap-4 p-4 lg:p-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(23rem,0.95fr)]">
-          <div className="space-y-4">
-            <SummonPanel
-              title="Recording"
-              action={
-                <div className="flex items-center gap-2">
-                  {data.recording_asset_detail?.url ? (
-                    <a
-                      href={data.recording_asset_detail.url}
-                      download
-                      className={getButtonStyling("secondary", "base")}
-                    >
-                      <Download className="size-3.5" /> Download
-                    </a>
-                  ) : null}
-                  <label className={`${getButtonStyling("secondary", "base")} cursor-pointer`}>
-                    <Upload className="size-3.5" /> {uploadingRecording ? "Uploading…" : "Upload audio"}
-                    <input
-                      type="file"
-                      accept="audio/mpeg,audio/mp4,audio/x-m4a,audio/wav,audio/x-wav,audio/webm,audio/ogg"
-                      disabled={uploadingRecording}
-                      className="sr-only"
-                      onChange={(event) => {
-                        const file = event.target.files?.[0];
-                        if (file) onUploadRecording(file);
-                        event.target.value = "";
-                      }}
-                    />
-                  </label>
+        <div className="grid min-h-0 flex-1 xl:grid-cols-[minmax(0,1fr)_minmax(26rem,0.85fr)]">
+          <section
+            aria-label="Notes"
+            className={`${pane === "notes" ? "" : "max-xl:hidden"} min-h-0 px-4 py-6 sm:px-6 lg:px-8 xl:overflow-y-auto`}
+          >
+            <div className="mx-auto max-w-3xl">
+              <MeetingNotes
+                data={data}
+                workspaceSlug={workspaceSlug}
+                onSeek={seek}
+                summarizing={summarizing}
+                summaryError={summaryError}
+                onRegenerate={onRegenerate}
+              />
+            </div>
+          </section>
+
+          <section
+            aria-label="Recording and transcript"
+            className={`${pane === "transcript" ? "flex" : "max-xl:hidden xl:flex"} min-h-0 flex-col border-subtle bg-surface-2 xl:border-l`}
+          >
+            <div className="border-b border-subtle p-4">
+              {recordingUrl ? (
+                <div className="space-y-2">
+                  <audio
+                    ref={audioRef}
+                    controls
+                    preload="metadata"
+                    src={recordingUrl}
+                    className="h-10 w-full"
+                    onTimeUpdate={(event) => setPlayhead(event.currentTarget.currentTime)}
+                  >
+                    <track kind="captions" />
+                  </audio>
+                  <UploadRecording
+                    uploading={uploadingRecording}
+                    onUpload={onUploadRecording}
+                    className="inline-flex items-center gap-1.5 text-12 text-tertiary hover:text-primary"
+                  >
+                    <Upload className="size-3.5" aria-hidden="true" />
+                    {uploadingRecording ? "Uploading…" : "Replace recording"}
+                  </UploadRecording>
                 </div>
-              }
-            >
-              {data.recording_asset_detail?.url ? (
-                <audio controls preload="metadata" className="h-10 w-full" src={data.recording_asset_detail.url}>
-                  <track kind="captions" />
-                </audio>
+              ) : data.external_url ? (
+                <div className="flex items-center gap-3 rounded-lg border border-subtle bg-surface-1 p-3">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-md bg-layer-1 text-secondary">
+                    <Video className="size-4" aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-13 font-medium text-primary">Recording in tl;dv</p>
+                    <p className="text-12 text-tertiary">Timestamps open the video at that moment.</p>
+                  </div>
+                  <a
+                    href={data.external_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={getButtonStyling("secondary", "sm")}
+                  >
+                    <PlayCircle className="size-3.5" aria-hidden="true" /> Watch
+                  </a>
+                </div>
+              ) : transcribing ? (
+                <p className="flex items-center gap-2 text-13 text-secondary" role="status">
+                  <LoaderCircle className="size-4 animate-spin text-accent-primary" aria-hidden="true" />
+                  Transcribing the recording…
+                </p>
               ) : (
-                <p className="text-xs text-tertiary">
-                  {data.summary_error === "transcribing" ? "Transcribing audio…" : "No recording attached."}
+                <UploadRecording
+                  uploading={uploadingRecording}
+                  onUpload={onUploadRecording}
+                  className="flex items-center gap-3 rounded-lg border border-dashed border-strong bg-surface-1 p-3 focus-within:outline-2 focus-within:outline-accent-strong hover:bg-layer-transparent-hover"
+                >
+                  <span className="grid size-9 shrink-0 place-items-center rounded-md bg-accent-subtle text-accent-primary">
+                    {uploadingRecording ? (
+                      <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Upload className="size-4" aria-hidden="true" />
+                    )}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-13 font-medium text-primary">
+                      {uploadingRecording ? "Uploading…" : "Upload the recording"}
+                    </span>
+                    <span className="block text-12 text-tertiary">Audio is transcribed with timestamps.</span>
+                  </span>
+                </UploadRecording>
+              )}
+            </div>
+            <div className="min-h-0 flex-1 p-4 xl:overflow-y-auto">
+              {data.transcript_segments.length ? (
+                <MeetingTranscript segments={data.transcript_segments} onSeek={seek} playhead={playhead} />
+              ) : (
+                <p className="py-10 text-center text-12 text-tertiary">
+                  {transcribing ? "The transcript appears here when transcription finishes." : "No transcript yet."}
                 </p>
               )}
-            </SummonPanel>
-
-            <SummonPanel
-              id="transcript"
-              title="Transcript"
-              action={
-                <div className="flex items-center gap-2">
-                  <SummonSearchField
-                    label="Search transcript"
-                    placeholder="Search in transcript…"
-                    value={search}
-                    onValueChange={setSearch}
-                    size="base"
-                    className="hidden w-56 sm:block"
-                  />
-                  <button
-                    type="button"
-                    disabled
-                    title="Speaker labels are not available for this transcript"
-                    className="inline-flex h-8 cursor-not-allowed items-center gap-2 rounded-lg border border-subtle px-3 text-12 text-secondary opacity-60"
-                  >
-                    All Speakers <ChevronDown className="size-3" />
-                  </button>
-                </div>
-              }
-            >
-              {visibleTranscript.length ? (
-                <div className="divide-y divide-subtle">
-                  {visibleTranscript.map(({ id, line }) => (
-                    <div key={id} className="grid gap-3 py-3 first:pt-0 sm:grid-cols-[10rem_1fr]">
-                      <div className="flex items-center gap-2.5">
-                        <Avatar size={28} name="Transcript" />
-                        <div>
-                          <p className="text-12 font-semibold text-primary">Transcript</p>
-                          <p className="text-12 text-tertiary">Speaker not identified</p>
-                        </div>
-                      </div>
-                      <p className="text-xs leading-5 text-secondary">{line}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="py-3 text-xs text-tertiary">No matching transcript text.</p>
-              )}
-              {transcript.length > 6 ? (
-                <button
-                  type="button"
-                  onClick={() => setShowAllTranscript((value) => !value)}
-                  className="mx-auto mt-3 flex items-center gap-1 text-12 font-semibold text-secondary"
-                >
-                  {showAllTranscript ? "Show Less" : "Show More"} <ChevronDown className="size-3" />
-                </button>
-              ) : null}
-            </SummonPanel>
-
-            <MeetingDetailMeta data={data} organizer={organizer} createdAt={formattedTimes.createdAt} />
-          </div>
-          <MeetingDetailRail
-            data={data}
-            workspaceSlug={workspaceSlug}
-            summarizing={summarizing}
-            summaryError={summaryError}
-            onRegenerate={onRegenerate}
-          />
+            </div>
+          </section>
         </div>
-      </main>
+      </div>
     </>
   );
 });
-
-function Meta({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      <Icon className="size-3.5 text-tertiary" /> {children}
-    </span>
-  );
-}

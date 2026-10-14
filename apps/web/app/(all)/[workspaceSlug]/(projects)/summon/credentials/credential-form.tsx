@@ -51,6 +51,7 @@ export function CredentialForm(props: {
                 { value: "database", label: "Database" },
                 { value: "github", label: "GitHub" },
                 { value: "figma", label: "Figma" },
+                { value: "tldv", label: "tl;dv API key" },
                 { value: "other", label: "Other" },
               ]}
             />

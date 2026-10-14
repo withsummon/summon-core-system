@@ -6,10 +6,11 @@
 
 import { useState } from "react";
 import useSWR from "swr";
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { EFileAssetType } from "@plane/types";
 import { MeetingDetailWorkspace } from "@/components/summon/meetings/meeting-detail-workspace";
 import { SummonRequestState } from "@/components/summon/request-state";
-import { summonLLMErrorMessage } from "@/components/summon/screen";
+import { summonErrorMessage, summonLLMErrorMessage } from "@/components/summon/screen";
 import { FileService } from "@/services/file.service";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
@@ -48,6 +49,14 @@ export default function SummonMeetingDetailPage({ params }: Route.ComponentProps
     }
   };
 
+  const moveToProject = async (project: string) => {
+    try {
+      await mutate(summonService.updateMeeting(workspaceSlug, meetingId, { project }), { revalidate: false });
+    } catch (requestError) {
+      setToast({ type: TOAST_TYPE.ERROR, title: "Project not changed", message: summonErrorMessage(requestError) });
+    }
+  };
+
   const regenerateSummary = async () => {
     if (!data) return;
     setSummarizing(true);
@@ -75,6 +84,7 @@ export default function SummonMeetingDetailPage({ params }: Route.ComponentProps
       summaryError={summaryError}
       uploadingRecording={uploadingRecording}
       onUploadRecording={(file) => void uploadRecording(file)}
+      onMoveToProject={(project) => void moveToProject(project)}
       onRegenerate={() => void regenerateSummary()}
     />
   );

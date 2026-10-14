@@ -171,6 +171,13 @@ export interface ISummonMeeting {
   transcript_asset: string | null;
   transcript_asset_detail: { id: string; name: string; url: string | null } | null;
   transcript_text: string;
+  /** Speaker turns in seconds; speaker is empty when the source has no diarization. */
+  transcript_segments: Array<{ start: number | null; end: number | null; speaker: string; text: string }>;
+  /** "tldv" for imported meetings, whose recording stays at `external_url`. */
+  external_source: string | null;
+  external_url: string;
+  /** Everyone an importer saw on the invite, workspace members or not; members are also in `participants`. */
+  attendees: Array<{ name: string; email: string }>;
   summary_page: string | null;
   summary_page_detail: {
     id: string;
@@ -203,6 +210,11 @@ export interface ISummonMeeting {
   work_items: ISummonMeetingWorkItem[];
   created_at: string;
   updated_at: string;
+}
+
+export interface ISummonTldvImportResult {
+  meetings: ISummonMeeting[];
+  remaining: number;
 }
 
 export interface ISummonMeetingSummaryRequest {
