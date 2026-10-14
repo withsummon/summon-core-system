@@ -26,11 +26,18 @@ const viewportAlign = {
   left: "justify-start",
 } satisfies Record<TDrawerSide, string>;
 
+/** The bottom sheet's surface. The dialog shares it, since it rises as a bottom sheet on a phone. */
+export const BOTTOM_SHEET_CLASSNAME = "max-h-[85dvh] w-full rounded-t-2xl border-t pb-safe";
+
+/** Sheet motion, timed by the open/close states Base UI sets on both drawer and dialog popups. */
+export const SHEET_TRANSITION_CLASSNAME =
+  "transition-[translate,opacity] duration-300 ease-spring-sheet data-[ending-style]:duration-[360ms] data-[ending-style]:ease-[cubic-bezier(0.45,0,0.55,1)]";
+
 /** Side drawers fill the height; top and bottom sheets cap theirs. */
 const popupEdge = {
   top: "max-h-[85dvh] w-full rounded-b-xl border-b",
   right: "h-full w-full max-w-lg border-l",
-  bottom: "max-h-[85dvh] w-full rounded-t-2xl border-t pb-safe",
+  bottom: BOTTOM_SHEET_CLASSNAME,
   left: "h-full w-full max-w-lg border-r",
 } satisfies Record<TDrawerSide, string>;
 
@@ -106,7 +113,8 @@ export const DrawerContent = React.forwardRef(function DrawerContent(
           data-side={side}
           className={cn(
             "pointer-events-auto relative flex flex-col overflow-hidden border-subtle bg-surface-1 text-primary shadow-overlay-200 outline-none",
-            "transition-[translate,opacity] duration-300 ease-spring-sheet data-[ending-style]:duration-[360ms] data-[ending-style]:ease-[cubic-bezier(0.45,0,0.55,1)] data-[swiping]:transition-none",
+            SHEET_TRANSITION_CLASSNAME,
+            "data-[swiping]:transition-none",
             "data-[swipe-direction=left]:translate-x-(--drawer-swipe-movement-x) data-[swipe-direction=right]:translate-x-(--drawer-swipe-movement-x)",
             "data-[swipe-direction=down]:translate-y-(--drawer-swipe-movement-y) data-[swipe-direction=up]:translate-y-(--drawer-swipe-movement-y)",
             "data-[swipe-direction=right]:data-[ending-style]:translate-x-full data-[swipe-direction=right]:data-[starting-style]:translate-x-full",
