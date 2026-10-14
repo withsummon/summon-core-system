@@ -15,16 +15,10 @@ import {
 } from "@phosphor-icons/react";
 import { ArrowRight, Circle, FileText, FolderKanban, Sparkles } from "lucide-react";
 import type { ISummonClientDetail, ISummonProjectOverview } from "@plane/types";
+import { formatSummonDate } from "@/components/summon/date";
 import { SectionTabs } from "@/components/summon/section-tabs";
 import { StatusBadge } from "@/components/summon/status-badge";
 import { EmptyLine, IconTile, Info, InfoRow, PreviewCard, ProjectMark } from "./home-parts";
-
-const DATE_FORMATTER = new Intl.DateTimeFormat("en", { day: "2-digit", month: "short", year: "numeric" });
-
-const formatDate = (value?: string | null) => {
-  if (!value) return "Not set";
-  return DATE_FORMATTER.format(new Date(value));
-};
 
 type THomeProjectPreviewProps = {
   workspaceSlug: string;
@@ -119,7 +113,7 @@ function PreviewSummaryCards(
   const startDateValue = selectedProject.profile?.start_date;
   const targetDateValue = selectedProject.profile?.target_date;
   const { startDate, targetDate } = useMemo(
-    () => ({ startDate: formatDate(startDateValue), targetDate: formatDate(targetDateValue) }),
+    () => ({ startDate: formatSummonDate(startDateValue), targetDate: formatSummonDate(targetDateValue) }),
     [startDateValue, targetDateValue]
   );
 

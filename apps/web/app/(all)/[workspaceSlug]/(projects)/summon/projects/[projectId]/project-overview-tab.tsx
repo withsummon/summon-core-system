@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { Activity, ArrowUpRight, Circle, CheckCircle2, AlertCircle, Flag } from "lucide-react";
 import type { ISummonProjectOverview } from "@plane/types";
-import { capitalizeFirstLetter, renderFormattedDate, replaceUnderscoreIfSnakeCase } from "@plane/utils";
+import { capitalizeFirstLetter, replaceUnderscoreIfSnakeCase } from "@plane/utils";
+import { formatSummonDate } from "@/components/summon/date";
 import { ProjectPeopleSection } from "@/components/summon/projects/project-people";
 import { useSummonAccess } from "@/components/summon/use-summon-access";
 import { useWorkspaceMoney } from "@/components/summon/use-workspace-money";
-
-const formatDate = (value?: string | null) => renderFormattedDate(value) ?? "No date";
 
 export function ProjectOverviewTab({
   overview,
@@ -89,7 +88,7 @@ function MilestonesSection({ overview }: TOverviewProps) {
                 <Flag aria-hidden="true" className="size-4 shrink-0 text-secondary" />
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm break-words text-primary">{milestone.name}</span>
-                  <span className="text-xs text-secondary">{formatDate(milestone.target_date)}</span>
+                  <span className="text-xs text-secondary">{formatSummonDate(milestone.target_date, "No date")}</span>
                 </span>
                 <span className="text-xs text-secondary tabular-nums">{milestone.completion}%</span>
               </Link>
@@ -120,7 +119,7 @@ function ActivitySection({ overview }: TOverviewProps) {
                 <Activity aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-secondary" />
                 <span className="min-w-0">
                   <span className="block text-sm break-words text-primary">{item.label}</span>
-                  <span className="text-xs text-secondary">{formatDate(item.created_at)}</span>
+                  <span className="text-xs text-secondary">{formatSummonDate(item.created_at, "No date")}</span>
                 </span>
               </Link>
             </li>
@@ -158,7 +157,7 @@ function PropertiesSection({ overview, workspaceSlug }: TOverviewProps & { works
           {capitalizeFirstLetter(replaceUnderscoreIfSnakeCase(overview.profile?.delivery_status || "not_assessed"))}
         </Property>
         <Property label="Phase">{overview.profile?.phase || "Not set"}</Property>
-        <Property label="Start date">{formatDate(overview.profile?.start_date)}</Property>
+        <Property label="Start date">{formatSummonDate(overview.profile?.start_date, "No date")}</Property>
         {showBudget ? (
           <Property label="Budget">
             <span className="tabular-nums">{money(overview.profile?.budget) || "Not set"}</span>

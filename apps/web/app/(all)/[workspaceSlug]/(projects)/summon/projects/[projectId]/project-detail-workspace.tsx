@@ -21,9 +21,7 @@ import { PROJECT_TABS, ProjectDetailTab } from "./project-detail-tabs";
 import type { TProjectTab } from "./project-detail-tabs";
 import { ProjectOverviewTab } from "./project-overview-tab";
 import { ProjectProfileEditor } from "./project-profile-editor";
-import { renderFormattedDate } from "@plane/utils";
-
-const formatDate = (value?: string | null) => (value ? renderFormattedDate(new Date(value)) : undefined) ?? "Not set";
+import { formatSummonDate } from "@/components/summon/date";
 
 export const ProjectDetailWorkspace = observer(function ProjectDetailWorkspace(props: {
   overview: ISummonProjectOverview;
@@ -134,7 +132,7 @@ export const ProjectDetailWorkspace = observer(function ProjectDetailWorkspace(p
             />
           )}
           <Meta label="Lead" value={leadDetails?.display_name || "Not assigned"} />
-          <Meta label="Target" value={formatDate(overview.profile?.target_date)} />
+          <Meta label="Target" value={formatSummonDate(overview.profile?.target_date)} />
         </div>
       </header>
       <main className="min-w-0 px-4 py-4 sm:px-6">

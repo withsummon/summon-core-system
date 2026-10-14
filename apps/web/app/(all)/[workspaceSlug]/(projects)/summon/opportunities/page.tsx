@@ -32,6 +32,7 @@ import {
   stageCounts,
 } from "@/components/summon/opportunities/opportunity-pipeline";
 import { SummonRequestState } from "@/components/summon/request-state";
+import { formatSummonDate } from "@/components/summon/date";
 import { SummonPageHeader, summonErrorMessage, summonPageClassName, ViewPanel } from "@/components/summon/screen";
 import { useMember } from "@/hooks/store/use-member";
 import { summonService } from "@/services/summon.service";
@@ -41,10 +42,6 @@ import type { Route } from "./+types/page";
 import { Dialog, EDialogWidth } from "@plane/propel/dialog";
 import { DatePicker } from "@plane/propel/date-picker";
 import { SummonSearchField } from "@/components/summon/search-field";
-import { renderFormattedDate } from "@plane/utils";
-
-const formatShortDate = (value?: string | null) =>
-  (value ? renderFormattedDate(new Date(value), "MMM d") : undefined) ?? null;
 
 export default function SummonOpportunitiesPage(props: Route.ComponentProps) {
   return (
@@ -402,7 +399,7 @@ function OpportunityRow(props: {
   const { getUserDetails } = useMember();
   const money = useWorkspaceMoney(props.workspaceSlug);
   const owner = opportunity.owner ? getUserDetails(opportunity.owner)?.display_name : undefined;
-  const closeDate = formatShortDate(opportunity.expected_close_date);
+  const closeDate = formatSummonDate(opportunity.expected_close_date, "", "MMM d");
   return (
     <li className="border-b border-subtle last:border-b-0">
       <Link

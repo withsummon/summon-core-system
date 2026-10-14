@@ -13,24 +13,17 @@ import {
   UsersThreeIcon,
 } from "@phosphor-icons/react";
 import { Clock3, Copy, Eye, Pencil, Server, ShieldCheck, Trash2, UserRoundPlus } from "lucide-react";
+import { Badge } from "@plane/propel/badge";
 import type { ISummonCredential, ISummonCredentialAudit, ISummonCredentialGrant, IUserLite } from "@plane/types";
+import { capitalizeFirstLetter } from "@plane/utils";
 import { SummonDrawer } from "@/components/summon/drawer";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SectionTabs } from "@/components/summon/section-tabs";
 import type { TSectionTab } from "@/components/summon/section-tabs";
+import { formatSummonDate } from "@/components/summon/date";
 import { ViewPanel } from "@/components/summon/screen";
-import {
-  Action,
-  Badge,
-  credentialTags,
-  Detail,
-  formatDate,
-  formatRelative,
-  MiniDetail,
-  PanelList,
-  Status,
-  textMetadata,
-} from "./credential-shared";
+import { StatusBadge } from "@/components/summon/status-badge";
+import { Action, credentialTags, Detail, MiniDetail, PanelList, textMetadata } from "./credential-shared";
 
 const tabs = ["Overview", "Access", "Activity Log", "Attachments", "Notes"] as const;
 type TCredentialTab = (typeof tabs)[number];
@@ -78,13 +71,13 @@ export function CredentialDetailDrawer(props: {
                 <h3 className="truncate text-lg font-semibold text-primary" title={selected.name}>
                   {selected.name}
                 </h3>
-                <Status value={selected.status} />
+                <StatusBadge status={selected.status} />
               </div>
               <p className="mt-1 text-xs text-secondary capitalize">
                 {selected.provider.replaceAll("_", " ")} · {textMetadata(selected, "environment")}
               </p>
               <p className="mt-2 text-12 text-tertiary">
-                Last used {formatRelative(lastUsed)} · Created {formatDate(selected.created_at)}
+                Last used {formatSummonDate(lastUsed, "Never")} · Created {formatSummonDate(selected.created_at)}
               </p>
             </div>
           </div>
@@ -148,7 +141,7 @@ function CredentialTabContent(props: {
           accessData?.grants.map((grant) => ({
             id: grant.id,
             title: getUserDetails(grant.member)?.display_name || grant.member,
-            detail: `${grant.permission} access${grant.expires_at ? ` · expires ${formatDate(grant.expires_at)}` : ""}`,
+            detail: `${grant.permission} access${grant.expires_at ? ` · expires ${formatSummonDate(grant.expires_at)}` : ""}`,
           })) ?? []
         }
       />
@@ -163,7 +156,7 @@ function CredentialTabContent(props: {
           accessData?.audit.map((audit) => ({
             id: audit.id,
             title: audit.action.replaceAll("_", " "),
-            detail: `${formatDate(audit.created_at)}${audit.member ? ` · ${getUserDetails(audit.member)?.display_name || audit.member}` : ""}`,
+            detail: `${formatSummonDate(audit.created_at)}${audit.member ? ` · ${getUserDetails(audit.member)?.display_name || audit.member}` : ""}`,
           })) ?? []
         }
       />
@@ -213,8 +206,8 @@ function CredentialOverview(props: {
               <div className="flex flex-wrap gap-1.5">
                 {credentialTags(selected).length
                   ? credentialTags(selected).map((tag) => (
-                      <Badge key={tag} tone="blue">
-                        {tag}
+                      <Badge key={tag} variant="brand" size="lg">
+                        {capitalizeFirstLetter(tag)}
                       </Badge>
                     ))
                   : "Not set"}
@@ -225,7 +218,14 @@ function CredentialOverview(props: {
             label="Project"
             value={selected.project ? props.projectNames.get(selected.project) || "Linked project" : "Not set"}
           />
-          <Detail label="Environment" value={<Badge tone="green">{textMetadata(selected, "environment")}</Badge>} />
+          <Detail
+            label="Environment"
+            value={
+              <Badge variant="success" size="lg">
+                {capitalizeFirstLetter(textMetadata(selected, "environment"))}
+              </Badge>
+            }
+          />
           <Detail label="Created By" value={selectedOwner?.display_name || "Not available"} />
         </dl>
       </div>
@@ -251,7 +251,7 @@ function CredentialOverview(props: {
           <dl className="mt-3 grid gap-3">
             <MiniDetail label="Owner" value={selectedOwner?.display_name || "Not available"} />
             <MiniDetail label="Users with access" value={String(props.accessData?.grants.length ?? 0)} />
-            <MiniDetail label="Last accessed" value={formatRelative(props.lastUsed)} />
+            <MiniDetail label="Last accessed" value={formatSummonDate(props.lastUsed, "Never")} />
           </dl>
         </div>
       </div>

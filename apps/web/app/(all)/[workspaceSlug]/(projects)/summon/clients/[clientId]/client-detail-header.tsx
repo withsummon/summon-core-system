@@ -9,7 +9,7 @@ import { ChevronDown, ChevronRight, CircleEllipsis, Pencil, Plus } from "lucide-
 import type { ISummonClientDetail } from "@plane/types";
 import { capitalizeFirstLetter, replaceUnderscoreIfSnakeCase } from "@plane/utils";
 import { opportunityCreateHref } from "@/components/summon/opportunities/delivery-handoff";
-import { formatDate } from "./client-detail-shared";
+import { formatSummonDate } from "@/components/summon/date";
 
 export function ClientDetailHeader(props: {
   workspaceSlug: string;
@@ -40,7 +40,7 @@ export function ClientDetailHeader(props: {
                 {capitalizeFirstLetter(replaceUnderscoreIfSnakeCase(data.status))} Client
               </span>
               <span>•</span>
-              <span>Since {formatDate(data.relationship_started_at)}</span>
+              <span>Since {formatSummonDate(data.relationship_started_at)}</span>
               <span>•</span>
               <span>{data.industry || "Industry not set"}</span>
             </div>

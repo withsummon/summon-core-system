@@ -14,10 +14,10 @@ import { EmptyStateCompact } from "@plane/propel/empty-state";
 import type { CompactAssetType } from "@plane/propel/empty-state";
 import type { TSelectableIcon } from "@plane/propel/icons";
 import type { ISummonProjectOverview } from "@plane/types";
+import { formatSummonDate } from "@/components/summon/date";
 import { SummonSectionHeader } from "@/components/summon/screen";
 import { filterProjectResources } from "@/components/summon/projects/project-workspace";
 import { StatusBadge } from "@/components/summon/status-badge";
-import { renderFormattedDate } from "@plane/utils";
 
 export type TProjectTab =
   | "overview"
@@ -39,8 +39,6 @@ export const PROJECT_TABS: Array<{ id: TProjectTab; label: string; icon: TSelect
   { id: "activity", label: "Activity", icon: ClockCounterClockwiseIcon },
   { id: "files", label: "Files", icon: FolderIcon },
 ];
-
-const formatDate = (value?: string | null) => (value ? renderFormattedDate(new Date(value)) : undefined) ?? "Not set";
 
 export function ProjectDetailTab(props: {
   tab: Exclude<TProjectTab, "overview">;
@@ -99,7 +97,7 @@ function MilestonesTab({ overview, workspaceSlug, projectId }: TTabProps) {
           key={item.id}
           href={item.href}
           title={item.name}
-          detail={`Target ${formatDate(item.target_date)}`}
+          detail={`Target ${formatSummonDate(item.target_date)}`}
           badge={<span className="text-12 text-secondary tabular-nums">{item.completion}%</span>}
         />
       ))}
@@ -144,7 +142,7 @@ function ActivityTab({ overview }: TTabProps) {
   return (
     <TabPanel title="Activity">
       {overview.activity.map((item) => (
-        <Row key={item.id} href={item.href} title={item.label} detail={formatDate(item.created_at)} />
+        <Row key={item.id} href={item.href} title={item.label} detail={formatSummonDate(item.created_at)} />
       ))}
       {!overview.activity.length && <Empty asset="update" text="No recent project activity." />}
     </TabPanel>
@@ -165,7 +163,7 @@ function FilesTab({ overview }: TTabProps) {
           <span className="min-w-0 flex-1">
             <strong className="block text-sm font-medium break-words text-primary">{file.name}</strong>
             <small className="text-xs text-secondary">
-              {file.content_type || file.entity_type} · {formatBytes(file.size)} · {formatDate(file.created_at)}
+              {file.content_type || file.entity_type} · {formatBytes(file.size)} · {formatSummonDate(file.created_at)}
             </small>
           </span>
           <Download className="size-4 text-secondary" />

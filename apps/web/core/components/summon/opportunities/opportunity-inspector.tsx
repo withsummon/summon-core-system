@@ -18,6 +18,7 @@ import { Button } from "@plane/propel/button";
 import { Input } from "@plane/ui";
 import type { ISummonOpportunityDetail, TSummonOpportunityStage } from "@plane/types";
 import { SummonField } from "@/components/summon/forms";
+import { formatSummonDate } from "@/components/summon/date";
 import { summonErrorMessage, SummonPanel } from "@/components/summon/screen";
 import { useMember } from "@/hooks/store/use-member";
 import { useWorkspaceMoney } from "@/components/summon/use-workspace-money";
@@ -25,9 +26,6 @@ import { summonService } from "@/services/summon.service";
 import { DeliveryHandoffCard } from "./delivery-handoff-card";
 import { OPPORTUNITY_STAGES, OPPORTUNITY_STAGE_LABEL, OPPORTUNITY_STAGE_TONE } from "./opportunity-pipeline";
 import { Select } from "@plane/propel/select";
-
-const DATE_FORMATTER = new Intl.DateTimeFormat("en", { day: "2-digit", month: "short", year: "numeric" });
-const formatDate = (value?: string | null) => (value ? DATE_FORMATTER.format(new Date(value)) : "Not set");
 
 export const initials = (value: string) =>
   value
@@ -60,7 +58,7 @@ export const OpportunityInspector = observer(function OpportunityInspector(props
   const { getUserDetails } = useMember();
   const money = useWorkspaceMoney(workspaceSlug);
   const owner = detail.owner ? getUserDetails(detail.owner)?.display_name : undefined;
-  const expectedCloseDate = useMemo(() => formatDate(detail.expected_close_date), [detail.expected_close_date]);
+  const expectedCloseDate = useMemo(() => formatSummonDate(detail.expected_close_date), [detail.expected_close_date]);
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
@@ -110,7 +108,7 @@ export const OpportunityInspector = observer(function OpportunityInspector(props
 });
 
 function OpportunityHeader({ workspaceSlug, detail }: { workspaceSlug: string; detail: ISummonOpportunityDetail }) {
-  const updatedAt = useMemo(() => formatDate(detail.updated_at), [detail.updated_at]);
+  const updatedAt = useMemo(() => formatSummonDate(detail.updated_at), [detail.updated_at]);
   return (
     <header className="flex flex-wrap items-start gap-3">
       <span
@@ -146,7 +144,7 @@ function OpportunityHeader({ workspaceSlug, detail }: { workspaceSlug: string; d
 
 function AboutPanel({ detail }: { detail: ISummonOpportunityDetail }) {
   const primaryContact = detail.contacts.find((contact) => contact.is_primary) ?? detail.contacts[0];
-  const createdAt = useMemo(() => formatDate(detail.created_at), [detail.created_at]);
+  const createdAt = useMemo(() => formatSummonDate(detail.created_at), [detail.created_at]);
   return (
     <SummonPanel as="h3" title="About">
       <p className="text-12 leading-5 text-pretty text-secondary">{detail.description || "No description yet."}</p>
@@ -235,7 +233,7 @@ function ActionItemsPanel({ workspaceSlug, detail }: { workspaceSlug: string; de
 function PagesAndMeetingsPanel({ workspaceSlug, detail }: { workspaceSlug: string; detail: ISummonOpportunityDetail }) {
   const meetings = detail.meetings.slice(0, 4);
   const meetingDates = useMemo(
-    () => new Map(detail.meetings.map((meeting) => [meeting.id, formatDate(meeting.starts_at)])),
+    () => new Map(detail.meetings.map((meeting) => [meeting.id, formatSummonDate(meeting.starts_at)])),
     [detail.meetings]
   );
   return (
@@ -289,7 +287,7 @@ function PagesAndMeetingsPanel({ workspaceSlug, detail }: { workspaceSlug: strin
 function RecentActivityPanel({ detail }: { detail: ISummonOpportunityDetail }) {
   const activities = detail.recent_activity.slice(0, 5);
   const activityDates = useMemo(
-    () => new Map(detail.recent_activity.map((activity) => [activity.id, formatDate(activity.created_at)])),
+    () => new Map(detail.recent_activity.map((activity) => [activity.id, formatSummonDate(activity.created_at)])),
     [detail.recent_activity]
   );
   return (

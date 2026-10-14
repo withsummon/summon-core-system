@@ -7,7 +7,6 @@
 import { Copy } from "lucide-react";
 import type { Eye } from "lucide-react";
 import type { ISummonCredential } from "@plane/types";
-import { renderFormattedDate } from "@plane/utils";
 import { SummonRequestState } from "@/components/summon/request-state";
 
 export const textMetadata = (credential: ISummonCredential, key: string) => {
@@ -19,43 +18,6 @@ export const credentialTags = (credential: ISummonCredential) => {
   const tags = credential.metadata.tags;
   return Array.isArray(tags) ? tags.filter((tag): tag is string => typeof tag === "string") : [];
 };
-
-// Pass a Date: renderFormattedDate reads strings as date-only, which would drop the local-time conversion.
-export const formatDate = (value?: string | null) =>
-  (value ? renderFormattedDate(new Date(value)) : undefined) ?? "Not set";
-
-export const formatRelative = (value?: string | null) => {
-  if (!value) return "Never";
-  return formatDate(value);
-};
-
-export function Badge({
-  children,
-  tone = "neutral",
-}: {
-  children: React.ReactNode;
-  tone?: "neutral" | "blue" | "green";
-}) {
-  const tones = {
-    neutral: "bg-layer-2 text-secondary",
-    blue: "bg-label-indigo-bg text-label-indigo-text",
-    green: "bg-label-emerald-bg text-label-emerald-text",
-  };
-  return (
-    <span className={`inline-flex rounded-md px-2 py-1 text-12 font-medium capitalize ${tones[tone]}`}>{children}</span>
-  );
-}
-
-export function Status({ value }: { value: ISummonCredential["status"] }) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-12 font-medium capitalize ${value === "active" ? "bg-success-subtle text-success-primary" : "bg-danger-subtle text-danger-primary"}`}
-    >
-      <span className="size-1.5 rounded-full bg-current" />
-      {value}
-    </span>
-  );
-}
 
 export function Detail({
   label,

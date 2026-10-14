@@ -5,10 +5,14 @@
  */
 
 import { Server } from "lucide-react";
+import { Badge } from "@plane/propel/badge";
 import { Select } from "@plane/propel/select";
 import type { ISummonCredential } from "@plane/types";
+import { capitalizeFirstLetter, replaceUnderscoreIfSnakeCase } from "@plane/utils";
 import { SummonRequestState } from "@/components/summon/request-state";
-import { Badge, formatRelative, Status, textMetadata } from "./credential-shared";
+import { formatSummonDate } from "@/components/summon/date";
+import { StatusBadge } from "@/components/summon/status-badge";
+import { textMetadata } from "./credential-shared";
 
 /** Column labels: the desktop header and the phone row label read from the same entry. */
 const CREDENTIAL_COLUMNS = {
@@ -102,19 +106,19 @@ export function CredentialTable(props: {
                     </button>
                   </td>
                   <td data-label={CREDENTIAL_COLUMNS.type} className="px-3 py-3">
-                    <Badge>{credential.provider.replaceAll("_", " ")}</Badge>
+                    <Badge size="lg">{capitalizeFirstLetter(replaceUnderscoreIfSnakeCase(credential.provider))}</Badge>
                   </td>
                   <td data-label={CREDENTIAL_COLUMNS.project} className="px-3 py-3 text-secondary">
                     {credential.project ? projectNames.get(credential.project) || "Linked project" : "—"}
                   </td>
                   <td data-label={CREDENTIAL_COLUMNS.environment} className="px-3 py-3">
-                    <Badge tone="green">{textMetadata(credential, "environment")}</Badge>
+                    <Badge variant="success" size="lg">
+                      {capitalizeFirstLetter(textMetadata(credential, "environment"))}
+                    </Badge>
                   </td>
-                  <td data-label={CREDENTIAL_COLUMNS.lastUsed} className="px-3 py-3 text-secondary">
-                    {formatRelative(credential.updated_at)}
-                  </td>
+                  <td data-label={CREDENTIAL_COLUMNS.lastUsed} className="px-3 py-3 text-secondary">{formatSummonDate(credential.updated_at, "Never")}</td>
                   <td data-label={CREDENTIAL_COLUMNS.status} className="px-3 py-3">
-                    <Status value={credential.status} />
+                    <StatusBadge status={credential.status} />
                   </td>
                 </tr>
               ))}

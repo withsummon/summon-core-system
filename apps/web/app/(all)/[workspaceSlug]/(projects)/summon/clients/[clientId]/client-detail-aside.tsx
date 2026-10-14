@@ -6,8 +6,9 @@
 
 import { ExternalLink, FileText } from "lucide-react";
 import type { ISummonClientDetail } from "@plane/types";
+import { formatSummonDate } from "@/components/summon/date";
 import { SummonPanel } from "@/components/summon/screen";
-import { Detail, formatDate, HealthRow } from "./client-detail-shared";
+import { Detail, HealthRow } from "./client-detail-shared";
 import type { TPanelLink } from "./client-detail-shared";
 
 export function ClientOverviewAside(props: {
@@ -53,7 +54,7 @@ export function ClientOverviewAside(props: {
             </dd>
           </div>
           <Detail label="Head Office" value={data.head_office || "Not set"} />
-          <Detail label="Client Since" value={formatDate(data.relationship_started_at)} />
+          <Detail label="Client Since" value={formatSummonDate(data.relationship_started_at)} />
           <Detail label="Account Manager" value={ownerName || "Not assigned"} />
         </dl>
       </SummonPanel>
@@ -69,7 +70,7 @@ export function ClientOverviewAside(props: {
                 <p className="truncate text-12 font-semibold text-primary">
                   {context.page_detail.name || "Untitled page"}
                 </p>
-                <p className="mt-1 text-12 text-secondary">{formatDate(context.updated_at)}</p>
+                <p className="mt-1 text-12 text-secondary">{formatSummonDate(context.updated_at)}</p>
               </div>
             </div>
           ))}

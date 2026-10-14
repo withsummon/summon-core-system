@@ -5,22 +5,15 @@
  */
 
 import Link from "next/link";
-import {
-  Building2,
-  CalendarDays,
-  CheckCircle2,
-  FileText,
-  FolderKanban,
-  Mail,
-  Pencil,
-  Phone,
-  Target,
-} from "lucide-react";
+import { CheckCircle2, FileText, Mail, Pencil, Phone } from "lucide-react";
+import { Badge } from "@plane/propel/badge";
 import { Button } from "@plane/propel/button";
 import type { ISummonClientDetail, IUserLite } from "@plane/types";
 import { capitalizeFirstLetter, replaceUnderscoreIfSnakeCase } from "@plane/utils";
-import { SummonPanel } from "@/components/summon/screen";
-import { Badge, ClientMetric, Detail, formatDate } from "./client-detail-shared";
+import { formatSummonDate } from "@/components/summon/date";
+import { SummonMetric, SummonMetricStrip, SummonPanel } from "@/components/summon/screen";
+import { StatusBadge } from "@/components/summon/status-badge";
+import { Detail } from "./client-detail-shared";
 import type { TPanelLink } from "./client-detail-shared";
 
 /** Column labels: the desktop header and the phone row label read from the same entry. */
@@ -49,36 +42,23 @@ export function ClientOverviewMetrics(props: { data: ISummonClientDetail }) {
   const deals = data.opportunities;
   const lastInteraction = data.recent_activity[0];
   return (
-    <section
-      className={`grid overflow-hidden rounded-xl border border-subtle bg-surface-1 sm:grid-cols-2 ${deals ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}
-    >
+    <SummonMetricStrip>
       {deals ? (
-        <ClientMetric
-          icon={<Target className="size-4.5" />}
+        <SummonMetric
           label="Active Opportunities"
           value={deals.filter(({ stage }) => stage !== "won" && stage !== "lost").length}
-          detail="View opportunities"
+          href="#opportunities"
         />
       ) : null}
-      <ClientMetric
-        icon={<FolderKanban className="size-4.5" />}
-        label="Active Projects"
-        value={data.projects.length}
-        detail="View projects"
-      />
-      <ClientMetric
-        icon={<Building2 className="size-4.5" />}
-        label="Total Projects"
-        value={data.projects.length}
-        detail="Projects you can see"
-      />
-      <ClientMetric
-        icon={<CalendarDays className="size-4.5" />}
+      <SummonMetric label="Active Projects" value={data.projects.length} href="#projects" />
+      <SummonMetric label="Total Projects" value={data.projects.length} detail="Projects you can see" />
+      <SummonMetric
         label="Last Interaction"
-        value={lastInteraction ? formatDate(lastInteraction.created_at) : "No activity"}
+        value={lastInteraction ? formatSummonDate(lastInteraction.created_at) : "No activity"}
         detail={lastInteraction?.label || "Nothing recorded"}
+        href="#activity"
       />
-    </section>
+    </SummonMetricStrip>
   );
 }
 
@@ -118,17 +98,11 @@ export function ClientOpportunitiesPanel(props: {
                     <p className="mt-1 text-tertiary">{opportunity.product || "Product not set"}</p>
                   </td>
                   <td data-label={DEAL_COLUMNS.stage} className="px-4 py-3">
-                    <Badge>{capitalizeFirstLetter(replaceUnderscoreIfSnakeCase(opportunity.stage))}</Badge>
+                    <StatusBadge status={opportunity.stage} />
                   </td>
-                  <td data-label={DEAL_COLUMNS.owner} className="px-4 py-3 text-primary">
-                    {opportunityOwner?.display_name || "Not assigned"}
-                  </td>
-                  <td data-label={DEAL_COLUMNS.value} className="px-4 py-3 text-primary tabular-nums">
-                    {money(opportunity.value) || "—"}
-                  </td>
-                  <td data-label={DEAL_COLUMNS.closeDate} className="px-4 py-3 text-primary">
-                    {formatDate(opportunity.expected_close_date)}
-                  </td>
+                  <td data-label={DEAL_COLUMNS.owner} className="px-4 py-3 text-primary">{opportunityOwner?.display_name || "Not assigned"}</td>
+                  <td data-label={DEAL_COLUMNS.value} className="px-4 py-3 text-primary tabular-nums">{money(opportunity.value) || "—"}</td>
+                  <td data-label={DEAL_COLUMNS.closeDate} className="px-4 py-3 text-primary">{formatSummonDate(opportunity.expected_close_date)}</td>
                   <td data-label={DEAL_COLUMNS.progress} className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-accent-primary">{opportunity.probability}%</span>
@@ -189,7 +163,9 @@ export function ClientProjectsPanel(props: {
                   <p className="mt-1 text-tertiary">{project.identifier}</p>
                 </td>
                 <td data-label={PROJECT_COLUMNS.type} className="px-4 py-3">
-                  <Badge>Project</Badge>
+                  <Badge variant="brand" size="lg">
+                    Project
+                  </Badge>
                 </td>
                 <td data-label={PROJECT_COLUMNS.status} className="px-4 py-3">
                   <span className="inline-flex items-center gap-1 rounded-full bg-success-subtle px-2 py-1 text-success-primary">
@@ -278,7 +254,7 @@ export function ClientActivityPanel(props: { activity: ISummonClientDetail["rece
             <span className="min-w-0">
               <span className="block truncate text-12 font-semibold text-primary">{item.label}</span>
               <time className="mt-1 block text-12 text-secondary" dateTime={item.created_at}>
-                {formatDate(item.created_at)}
+                {formatSummonDate(item.created_at)}
               </time>
             </span>
           </Link>
@@ -311,7 +287,7 @@ export function ClientPagesPanel(props: {
               </p>
               <p className="mt-1 text-12 text-secondary">
                 {capitalizeFirstLetter(replaceUnderscoreIfSnakeCase(context.category || "page"))} ·{" "}
-                {formatDate(context.updated_at)}
+                {formatSummonDate(context.updated_at)}
               </p>
             </div>
           </article>

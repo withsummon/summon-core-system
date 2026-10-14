@@ -7,7 +7,6 @@
 import { BookOpenIcon, FileTextIcon, PresentationIcon, TableIcon } from "@phosphor-icons/react";
 import { BookOpen, FileCheck2, FileSpreadsheet, FileText, Presentation } from "lucide-react";
 import type { TSelectableIcon } from "@plane/propel/icons";
-import { renderFormattedDate } from "@plane/utils";
 import type { ISummonAutomationJob, ISummonAutomationTemplate, ISummonGeneratedArtifact } from "@plane/types";
 
 export const OUTPUT_FORMAT_LABELS: Record<ISummonGeneratedArtifact["format"], string> = {
@@ -55,9 +54,6 @@ export const outputFormats = (type?: string) => {
   if (["usage_cost", "cost_projection", "timeline", "bug_report"].includes(type ?? "")) return ["xlsx", "pdf"] as const;
   return ["docx", "pdf"] as const;
 };
-
-// Pass a Date (not the ISO string) so the day is resolved in the viewer's timezone, as before.
-export const formatDate = (value: string) => renderFormattedDate(new Date(value)) ?? "";
 
 export const jobStatus = (job: ISummonAutomationJob) => {
   if (job.status === "completed")
