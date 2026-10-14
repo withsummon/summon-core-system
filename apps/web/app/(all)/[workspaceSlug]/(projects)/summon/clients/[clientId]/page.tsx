@@ -78,6 +78,25 @@ const CLIENT_TABS: TSectionTab<TClientTab>[] = [
   { value: "settings", label: "Settings", icon: GearSixIcon },
 ];
 
+/** Column labels: the desktop header and the phone row label read from the same entry. */
+const DEAL_COLUMNS = {
+  opportunity: "Opportunity",
+  stage: "Stage",
+  owner: "Owner",
+  value: "Value (IDR)",
+  closeDate: "Close Date",
+  progress: "Progress",
+} as const;
+
+const PROJECT_COLUMNS = {
+  project: "Project",
+  type: "Type",
+  status: "Status",
+  owner: "Owner",
+  startDate: "Start Date",
+  endDate: "End Date",
+} as const;
+
 export default function SummonClientDetailPage({ params }: Route.ComponentProps) {
   const { workspaceSlug, clientId } = params;
   const { getUserDetails } = useMember();
@@ -247,7 +266,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                   <table className="table-stack w-full text-left text-12 md:min-w-[720px]">
                     <thead className="border-y border-subtle bg-layer-1/40 text-secondary">
                       <tr>
-                        {["Opportunity", "Stage", "Owner", "Value (IDR)", "Close Date", "Progress"].map((label) => (
+                        {Object.values(DEAL_COLUMNS).map((label) => (
                           <th key={label} className="px-4 py-3 font-medium">
                             {label}
                           </th>
@@ -268,19 +287,19 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                               </Link>
                               <p className="mt-1 text-tertiary">{opportunity.product || "Product not set"}</p>
                             </td>
-                            <td data-label="Stage" className="px-4 py-3">
+                            <td data-label={DEAL_COLUMNS.stage} className="px-4 py-3">
                               <Badge>{capitalizeFirstLetter(replaceUnderscoreIfSnakeCase(opportunity.stage))}</Badge>
                             </td>
-                            <td data-label="Owner" className="px-4 py-3 text-primary">
+                            <td data-label={DEAL_COLUMNS.owner} className="px-4 py-3 text-primary">
                               {opportunityOwner?.display_name || "Not assigned"}
                             </td>
-                            <td data-label="Value (IDR)" className="px-4 py-3 text-primary tabular-nums">
+                            <td data-label={DEAL_COLUMNS.value} className="px-4 py-3 text-primary tabular-nums">
                               {money(opportunity.value) || "—"}
                             </td>
-                            <td data-label="Close date" className="px-4 py-3 text-primary">
+                            <td data-label={DEAL_COLUMNS.closeDate} className="px-4 py-3 text-primary">
                               {formatDate(opportunity.expected_close_date)}
                             </td>
-                            <td data-label="Progress" className="px-4 py-3">
+                            <td data-label={DEAL_COLUMNS.progress} className="px-4 py-3">
                               <div className="flex items-center gap-2">
                                 <span className="font-medium text-accent-primary">{opportunity.probability}%</span>
                                 <div className="h-1.5 w-20 overflow-hidden rounded-full bg-layer-2">
@@ -313,7 +332,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                   <table className="table-stack w-full text-left text-12 md:min-w-[680px]">
                     <thead className="border-y border-subtle bg-layer-1/40 text-secondary">
                       <tr>
-                        {["Project", "Type", "Status", "Owner", "Start Date", "End Date"].map((label) => (
+                        {Object.values(PROJECT_COLUMNS).map((label) => (
                           <th key={label} className="px-4 py-3 font-medium">
                             {label}
                           </th>
@@ -332,21 +351,21 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                             </Link>
                             <p className="mt-1 text-tertiary">{project.identifier}</p>
                           </td>
-                          <td data-label="Type" className="px-4 py-3">
+                          <td data-label={PROJECT_COLUMNS.type} className="px-4 py-3">
                             <Badge>Project</Badge>
                           </td>
-                          <td data-label="Status" className="px-4 py-3">
+                          <td data-label={PROJECT_COLUMNS.status} className="px-4 py-3">
                             <span className="inline-flex items-center gap-1 rounded-full bg-success-subtle px-2 py-1 text-success-primary">
                               <CheckCircle2 className="size-3" /> Linked
                             </span>
                           </td>
-                          <td data-label="Owner" className="px-4 py-3 text-tertiary">
+                          <td data-label={PROJECT_COLUMNS.owner} className="px-4 py-3 text-tertiary">
                             Not available
                           </td>
-                          <td data-label="Start date" className="px-4 py-3 text-tertiary">
+                          <td data-label={PROJECT_COLUMNS.startDate} className="px-4 py-3 text-tertiary">
                             Not available
                           </td>
-                          <td data-label="End date" className="px-4 py-3 text-tertiary">
+                          <td data-label={PROJECT_COLUMNS.endDate} className="px-4 py-3 text-tertiary">
                             Not available
                           </td>
                         </tr>

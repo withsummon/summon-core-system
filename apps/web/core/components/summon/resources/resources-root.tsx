@@ -36,6 +36,15 @@ interface IResourcesRootProps {
   workspaceSlug: string;
 }
 
+/** Column labels: the desktop header and the phone row label read from the same entry. */
+const RESOURCE_COLUMNS = {
+  name: "Name",
+  project: "Project",
+  type: "Type",
+  lastUpdated: "Last updated",
+  updatedBy: "Updated by",
+} as const;
+
 function formatRelativeTime(dateString: string): string {
   try {
     const date = new Date(dateString);
@@ -259,11 +268,11 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
                 <table className="table-stack w-full text-left text-13">
                   <thead>
                     <tr className="border-b border-subtle text-12 whitespace-nowrap text-tertiary">
-                      <th className="px-3.5 py-2 font-medium">Name</th>
-                      <th className="px-3.5 py-2 font-medium">Project</th>
-                      <th className="px-3.5 py-2 font-medium">Type</th>
-                      <th className="px-3.5 py-2 font-medium">Last updated</th>
-                      <th className="px-3.5 py-2 font-medium">Updated by</th>
+                      <th className="px-3.5 py-2 font-medium">{RESOURCE_COLUMNS.name}</th>
+                      <th className="px-3.5 py-2 font-medium">{RESOURCE_COLUMNS.project}</th>
+                      <th className="px-3.5 py-2 font-medium">{RESOURCE_COLUMNS.type}</th>
+                      <th className="px-3.5 py-2 font-medium">{RESOURCE_COLUMNS.lastUpdated}</th>
+                      <th className="px-3.5 py-2 font-medium">{RESOURCE_COLUMNS.updatedBy}</th>
                       <th className="px-3.5 py-2">
                         <span className="sr-only">Actions</span>
                       </th>
@@ -296,16 +305,22 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
                                 </span>
                               </a>
                             </td>
-                            <td data-label="Project" className="truncate px-3.5 py-2.5 text-secondary md:max-w-36">
+                            <td
+                              data-label={RESOURCE_COLUMNS.project}
+                              className="truncate px-3.5 py-2.5 text-secondary md:max-w-36"
+                            >
                               {projectName}
                             </td>
-                            <td data-label="Type" className="px-3.5 py-2.5">
+                            <td data-label={RESOURCE_COLUMNS.type} className="px-3.5 py-2.5">
                               <ResourceBadge category={item.category} />
                             </td>
-                            <td data-label="Last updated" className="px-3.5 py-2.5 whitespace-nowrap text-secondary">
+                            <td
+                              data-label={RESOURCE_COLUMNS.lastUpdated}
+                              className="px-3.5 py-2.5 whitespace-nowrap text-secondary"
+                            >
                               {formatRelativeTime(item.updated_at)}
                             </td>
-                            <td data-label="Updated by" className="px-3.5 py-2.5">
+                            <td data-label={RESOURCE_COLUMNS.updatedBy} className="px-3.5 py-2.5">
                               <span className="flex items-center gap-2 whitespace-nowrap text-primary">
                                 <span
                                   aria-hidden="true"

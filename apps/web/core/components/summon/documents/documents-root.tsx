@@ -23,6 +23,13 @@ import {
 } from "@/components/summon/screen";
 import { SummonSearchField } from "@/components/summon/search-field";
 
+/** Column labels: the desktop header and the phone row label read from the same entry. */
+const DOCUMENT_COLUMNS = {
+  title: "Document Title",
+  project: "Project",
+  action: "Action",
+} as const;
+
 interface IDocumentsRootProps {
   workspaceSlug: string;
 }
@@ -175,9 +182,9 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
           <table className="table-stack w-full text-left text-xs">
             <thead>
               <tr className="border-b border-subtle bg-layer-1 text-12 font-medium text-tertiary">
-                <th className="px-5 py-3.5">Document Title</th>
-                <th className="px-5 py-3.5">Project</th>
-                <th className="px-5 py-3.5 text-right">Action</th>
+                <th className="px-5 py-3.5">{DOCUMENT_COLUMNS.title}</th>
+                <th className="px-5 py-3.5">{DOCUMENT_COLUMNS.project}</th>
+                <th className="px-5 py-3.5 text-right">{DOCUMENT_COLUMNS.action}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-subtle">
@@ -191,7 +198,7 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
                       {page.name || "Untitled Document"}
                     </Link>
                   </td>
-                  <td data-label="Project" className="px-5 py-3.5 text-secondary">
+                  <td data-label={DOCUMENT_COLUMNS.project} className="px-5 py-3.5 text-secondary">
                     {project.name}
                   </td>
                   <td className="px-5 py-3.5 text-right max-md:justify-end">
