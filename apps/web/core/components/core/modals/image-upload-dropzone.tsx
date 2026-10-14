@@ -9,8 +9,8 @@ import { useDropzone } from "react-dropzone";
 import { ACCEPTED_AVATAR_IMAGE_MIME_TYPES_FOR_REACT_DROPZONE, MAX_FILE_SIZE } from "@plane/constants";
 import { UserCirclePropertyIcon } from "@plane/propel/icons";
 import { getFileURL } from "@plane/utils";
-// local
-import { useObjectUrl } from "../use-object-url";
+// hooks
+import { useObjectUrl } from "@/hooks/use-object-url";
 
 type Props = {
   image: File | null;

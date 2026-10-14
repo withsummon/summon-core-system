@@ -23,10 +23,9 @@ import { Input, Loader } from "@plane/ui";
 import { STATIC_COVER_IMAGES, getCoverImageDisplayURL } from "@/helpers/cover-image.helper";
 // hooks
 import { useInstance } from "@/hooks/store/use-instance";
+import { useObjectUrl } from "@/hooks/use-object-url";
 // services
 import { FileService } from "@/services/file.service";
-// local
-import { useObjectUrl } from "./use-object-url";
 
 type TTabOption = {
   key: string;
@@ -215,6 +214,7 @@ function UploadTab({ value, image, setImage, isProfileCover, projectId, onUpload
       .then((res) => {
         onUploaded(res.asset_url);
         setImage(null);
+        return;
       })
       .catch((error) => {
         console.error(`Error uploading ${isProfileCover ? "user" : "project"} cover image:`, error);
