@@ -339,12 +339,6 @@ svg.lucide {
 }
 
 @layer base {
-  /* An implicit grid column sizes to its widest content, so one long value can widen a phone page past the
-     screen. Implicit columns share the width instead; explicit grid-cols-* templates are unaffected. */
-  .grid {
-    grid-auto-columns: minmax(0, 1fr);
-  }
-
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
