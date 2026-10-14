@@ -6,7 +6,7 @@
 
 import { HocuspocusProvider } from "@hocuspocus/provider";
 // react
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 // indexeddb
 import { IndexeddbPersistence } from "y-indexeddb";
 // yjs
@@ -32,10 +32,17 @@ type UseYjsSetupArgs = {
 };
 
 const DEFAULT_MAX_RETRIES = 3;
+const INITIAL_STAGE: CollabStage = { kind: "initial" };
+
+const toCollaborationState = (stage: CollabStage): CollaborationState => ({
+  stage,
+  isServerSynced: stage.kind === "synced",
+  isServerDisconnected: stage.kind === "disconnected",
+});
 
 export const useYjsSetup = ({ docId, serverUrl, authToken, onStateChange }: UseYjsSetupArgs) => {
   // Current collaboration stage
-  const [stage, setStage] = useState<CollabStage>({ kind: "initial" });
+  const [stage, setStage] = useState<CollabStage>(INITIAL_STAGE);
 
   // Cache readiness state
   const [hasCachedContent, setHasCachedContent] = useState(false);
@@ -50,6 +57,23 @@ export const useYjsSetup = ({ docId, serverUrl, authToken, onStateChange }: UseY
   const isDisposedRef = useRef(false);
   const stageRef = useRef<CollabStage>({ kind: "initial" });
   const lastReconnectTimeRef = useRef(0);
+
+  // Notify state changes callback (use ref to avoid dependency on handler)
+  const stateChangeCallbackRef = useRef(onStateChange);
+  useLayoutEffect(() => {
+    stateChangeCallbackRef.current = onStateChange;
+  });
+
+  // Every stage transition goes through here so the callback fires with the transition, not a render later.
+  const updateStage = useCallback((newStage: CollabStage) => {
+    setStage(newStage);
+    stateChangeCallbackRef.current?.(toCollaborationState(newStage));
+  }, []);
+
+  // Report the initial stage once on mount
+  useEffect(() => {
+    stateChangeCallbackRef.current?.(toCollaborationState(INITIAL_STAGE));
+  }, []);
 
   // Create/destroy provider in effect (not during render)
   useEffect(() => {
@@ -68,7 +92,7 @@ export const useYjsSetup = ({ docId, serverUrl, authToken, onStateChange }: UseY
         const error: CollaborationError = { type: "auth-failed", message: "Authentication failed" };
         const newStage = { kind: "disconnected" as const, error };
         stageRef.current = newStage;
-        setStage(newStage);
+        updateStage(newStage);
       },
       onConnect: () => {
         if (isDisposedRef.current) {
@@ -79,21 +103,23 @@ export const useYjsSetup = ({ docId, serverUrl, authToken, onStateChange }: UseY
         // After successful connection, transition to awaiting-sync (onSynced will move to synced)
         const newStage = { kind: "awaiting-sync" as const };
         stageRef.current = newStage;
-        setStage(newStage);
+        updateStage(newStage);
       },
       onStatus: ({ status: providerStatus }) => {
         if (isDisposedRef.current) return;
         if (providerStatus === "connecting") {
           // Derive whether this is initial connect or reconnection from retry count
           const isReconnecting = retryCountRef.current > 0;
-          setStage(isReconnecting ? { kind: "reconnecting", attempt: retryCountRef.current } : { kind: "connecting" });
+          updateStage(
+            isReconnecting ? { kind: "reconnecting", attempt: retryCountRef.current } : { kind: "connecting" }
+          );
         } else if (providerStatus === "disconnected") {
           // Do not transition here; let handleClose decide the final stage
         } else if (providerStatus === "connected") {
           // Connection succeeded, move to awaiting-sync
           const newStage = { kind: "awaiting-sync" as const };
           stageRef.current = newStage;
-          setStage(newStage);
+          updateStage(newStage);
         }
       },
       onSynced: () => {
@@ -102,7 +128,7 @@ export const useYjsSetup = ({ docId, serverUrl, authToken, onStateChange }: UseY
         // Document sync complete
         const newStage = { kind: "synced" as const };
         stageRef.current = newStage;
-        setStage(newStage);
+        updateStage(newStage);
       },
     });
 
@@ -157,7 +183,7 @@ export const useYjsSetup = ({ docId, serverUrl, authToken, onStateChange }: UseY
         };
         const newStage = { kind: "disconnected" as const, error };
         stageRef.current = newStage;
-        setStage(newStage);
+        updateStage(newStage);
 
         retryCountRef.current = 0;
         forcedCloseSignalRef.current = false;
@@ -179,14 +205,14 @@ export const useYjsSetup = ({ docId, serverUrl, authToken, onStateChange }: UseY
           };
           const newStage = { kind: "disconnected" as const, error };
           stageRef.current = newStage;
-          setStage(newStage);
+          updateStage(newStage);
 
           pauseProvider();
         } else {
           // Still have retries left, move to reconnecting
           const newStage = { kind: "reconnecting" as const, attempt: retryCountRef.current };
           stageRef.current = newStage;
-          setStage(newStage);
+          updateStage(newStage);
         }
       }
     };
@@ -228,7 +254,7 @@ export const useYjsSetup = ({ docId, serverUrl, authToken, onStateChange }: UseY
           // Move to connecting state
           const newStage = { kind: "connecting" as const };
           stageRef.current = newStage;
-          setStage(newStage);
+          updateStage(newStage);
 
           wsProvider.disconnect();
           wsProvider.connect();
@@ -265,7 +291,7 @@ export const useYjsSetup = ({ docId, serverUrl, authToken, onStateChange }: UseY
 
       permanentlyStopProvider();
     };
-  }, [docId, serverUrl, authToken]);
+  }, [docId, serverUrl, authToken, updateStage]);
 
   // IndexedDB persistence lifecycle
   useEffect(() => {
@@ -323,25 +349,6 @@ export const useYjsSetup = ({ docId, serverUrl, authToken, onStateChange }: UseY
       }
     };
   }, [yjsSession, isCacheReady]);
-
-  // Notify state changes callback (use ref to avoid dependency on handler)
-  const stateChangeCallbackRef = useRef(onStateChange);
-  stateChangeCallbackRef.current = onStateChange;
-
-  useEffect(() => {
-    if (!stateChangeCallbackRef.current) return;
-
-    const isServerSynced = stage.kind === "synced";
-    const isServerDisconnected = stage.kind === "disconnected";
-
-    const state: CollaborationState = {
-      stage,
-      isServerSynced,
-      isServerDisconnected,
-    };
-
-    stateChangeCallbackRef.current(state);
-  }, [stage]);
 
   // Derived values for convenience
   const isServerSynced = stage.kind === "synced";

@@ -33,10 +33,11 @@ type TAssigneeStatComponent = {
 export const AssigneeStatComponent = observer(function AssigneeStatComponent(props: TAssigneeStatComponent) {
   const { distribution, isEditable, selectedAssigneeIds, handleAssigneeFiltersUpdate } = props;
   const { t } = useTranslation();
+  const selectedAssigneeIdSet = new Set(selectedAssigneeIds);
   return (
     <div>
       {distribution && distribution.length > 0 ? (
-        distribution.map((assignee, index) => {
+        distribution.map((assignee) => {
           if (assignee?.id)
             return (
               <SingleProgressStats
@@ -51,14 +52,14 @@ export const AssigneeStatComponent = observer(function AssigneeStatComponent(pro
                 total={assignee?.total ?? 0}
                 {...(isEditable && {
                   onClick: () => handleAssigneeFiltersUpdate(assignee.id),
-                  selected: assignee.id ? selectedAssigneeIds.includes(assignee.id) : false,
+                  selected: assignee.id ? selectedAssigneeIdSet.has(assignee.id) : false,
                 })}
               />
             );
           else
             return (
               <SingleProgressStats
-                key={`unassigned-${index}`}
+                key="unassigned"
                 title={
                   <div className="flex items-center gap-2">
                     <div className="h-4 w-4 rounded-full border-2 border-subtle bg-layer-1">

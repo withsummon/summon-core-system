@@ -16,7 +16,7 @@ type TabsContextType = {
 
 const TabsContext = React.createContext<TabsContextType | undefined>(undefined);
 
-type TabsCompound = React.ForwardRefExoticComponent<
+export type TabsCompound = React.ForwardRefExoticComponent<
   React.ComponentProps<typeof TabsPrimitive.Root> & {
     variant?: TabsVariant;
   } & React.RefAttributes<React.ElementRef<typeof TabsPrimitive.Root>>
@@ -218,11 +218,4 @@ const TabsContent = React.forwardRef(function TabsContent(
   );
 });
 
-export const Tabs = Object.assign(TabsRoot, {
-  List: TabsList,
-  Trigger: TabsTrigger,
-  Content: TabsContent,
-  Indicator: TabsIndicator,
-}) satisfies TabsCompound;
-
-export { TabsList, TabsTrigger, TabsContent, TabsIndicator };
+export { TabsRoot, TabsList, TabsTrigger, TabsContent, TabsIndicator };

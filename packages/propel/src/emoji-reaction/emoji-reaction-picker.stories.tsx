@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { SmilePlus } from "lucide-react";
 import { stringToEmoji } from "../emoji-icon-picker";
@@ -285,10 +285,12 @@ export const CloseOnSelectDisabled: Story = {
   },
   render() {
     const [isOpen, setIsOpen] = useState(false);
-    const [selectedEmojis, setSelectedEmojis] = useState<string[]>([]);
+    const [selectedEmojis, setSelectedEmojis] = useState<{ id: number; emoji: string }[]>([]);
+    const nextSelectionId = useRef(0);
 
     const handleChange = (emoji: string) => {
-      setSelectedEmojis((prev) => [...prev, emoji]);
+      const id = nextSelectionId.current++;
+      setSelectedEmojis((prev) => [...prev, { id, emoji }]);
     };
 
     return (
@@ -316,8 +318,8 @@ export const CloseOnSelectDisabled: Story = {
           <div className="rounded-sm border border-subtle bg-layer-1 p-4 text-13">
             <div className="mb-2 font-medium">Selected ({selectedEmojis.length}):</div>
             <div className="flex flex-wrap gap-2">
-              {selectedEmojis.map((emoji, idx) => (
-                <span key={idx} className="text-18">
+              {selectedEmojis.map(({ id, emoji }) => (
+                <span key={id} className="text-18">
                   {emoji}
                 </span>
               ))}

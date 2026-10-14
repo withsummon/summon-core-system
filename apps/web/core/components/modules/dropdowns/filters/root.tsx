@@ -47,6 +47,7 @@ export const ModuleFiltersSelection = observer(function ModuleFiltersSelection(p
           <input
             type="text"
             className="w-full bg-surface-2 outline-none placeholder:text-placeholder"
+            aria-label="Search module filters"
             placeholder="Search"
             value={filtersSearchQuery}
             onChange={(e) => setFiltersSearchQuery(e.target.value)}

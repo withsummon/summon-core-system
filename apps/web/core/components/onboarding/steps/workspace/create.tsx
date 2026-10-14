@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
 import { CircleCheck } from "lucide-react";
@@ -58,6 +58,7 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
     handleSubmit,
     control,
     setValue,
+    setFocus,
     formState: { errors, isSubmitting, isValid },
   } = useForm<IWorkspace>({
     defaultValues: {
@@ -67,6 +68,11 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
     },
     mode: "onChange",
   });
+
+  // focus the workspace name once the form is shown
+  useEffect(() => {
+    if (!isWorkspaceCreationDisabled) setFocus("name");
+  }, [isWorkspaceCreationDisabled, setFocus]);
 
   const handleCreateWorkspace = async (formData: IWorkspace) => {
     if (isSubmitting) return;
@@ -167,6 +173,7 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
                     });
                   }}
                   placeholder="Enter workspace name"
+                  aria-label="Workspace name"
                   ref={ref}
                   className={cn(
                     "w-full rounded-md border border-strong bg-surface-1 px-3 py-2 text-secondary transition-[border-color,box-shadow] duration-200 placeholder:text-placeholder focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-accent-strong focus-visible:outline-none",
@@ -175,8 +182,6 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
                       "border-danger-strong": errors.name,
                     }
                   )}
-                  // eslint-disable-next-line jsx-a11y/no-autofocus
-                  autoFocus
                 />
               </div>
             )}
@@ -262,6 +267,7 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
                     const isSelected = value === size;
                     return (
                       <button
+                        type="button"
                         key={size}
                         onClick={(e) => {
                           e.preventDefault();

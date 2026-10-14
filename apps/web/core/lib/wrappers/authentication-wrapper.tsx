@@ -11,12 +11,13 @@ import useSWR from "swr";
 // components
 import { LogoSpinner } from "@/components/common/logo-spinner";
 // helpers
-import { isValidNextPath } from "@plane/utils";
 import { EPageTypes } from "@/helpers/authentication.helper";
 // hooks
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { useUser, useUserProfile, useUserSettings } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";
+// local imports
+import { getIsUserOnboard, getWorkspaceRedirectionUrl, resolveAuthRedirect } from "./authentication-redirect";
 
 type TPageType = EPageTypes;
 
@@ -24,20 +25,6 @@ type TAuthenticationWrapper = {
   children: ReactNode;
   pageType?: TPageType;
 };
-
-// Delegates to the shared isValidNextPath (@plane/utils) instead of a local
-// reimplementation. A from-scratch version here previously resolved the
-// value against location.origin and required the result to stay
-// same-origin — which has its own gap: a next_path like "http:evil.com"
-// resolves AS IF relative whenever the input's scheme happens to match the
-// real origin's own scheme, e.g. any self-hosted deployment actually
-// serving over plain http (verified directly: this bypasses the
-// location.origin-based check on an http:// origin, though not on https://,
-// since the schemes then differ). isValidNextPath closes this by requiring
-// a literal leading "/" (and rejecting "//") before any URL-based
-// comparison, so it doesn't depend on which scheme the real origin happens
-// to use.
-const isValidURL = isValidNextPath;
 
 export const AuthenticationWrapper = observer(function AuthenticationWrapper(props: TAuthenticationWrapper) {
   const pathname = usePathname();
@@ -57,37 +44,6 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
     shouldRetryOnError: false,
   });
 
-  const isUserOnboard =
-    currentUserProfile?.is_onboarded ||
-    (currentUserProfile?.onboarding_step?.profile_complete &&
-      currentUserProfile?.onboarding_step?.workspace_create &&
-      currentUserProfile?.onboarding_step?.workspace_invite &&
-      currentUserProfile?.onboarding_step?.workspace_join) ||
-    false;
-
-  const getWorkspaceRedirectionUrl = (): string => {
-    let redirectionRoute = "/create-workspace";
-
-    // validating the nextPath from the router query
-    if (nextPath && isValidURL(nextPath.toString())) {
-      redirectionRoute = nextPath.toString();
-      return redirectionRoute;
-    }
-
-    // validate the last and fallback workspace_slug
-    const currentWorkspaceSlug =
-      currentUserSettings?.workspace?.last_workspace_slug || currentUserSettings?.workspace?.fallback_workspace_slug;
-
-    // validate the current workspace_slug is available in the user's workspace list
-    const isCurrentWorkspaceValid = Object.values(workspaces || {}).findIndex(
-      (workspace) => workspace.slug === currentWorkspaceSlug
-    );
-
-    if (isCurrentWorkspaceValid >= 0) redirectionRoute = `/${currentWorkspaceSlug}`;
-
-    return redirectionRoute;
-  };
-
   if ((isUserSWRLoading || isUserLoading || workspacesLoader) && !currentUser?.id)
     return (
       <div className="relative flex h-screen w-full items-center justify-center">
@@ -95,60 +51,17 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
       </div>
     );
 
-  if (pageType === EPageTypes.PUBLIC) return <>{children}</>;
+  const decision = resolveAuthRedirect(pageType, {
+    currentUser,
+    currentUserProfile,
+    isUserOnboard: getIsUserOnboard(currentUserProfile),
+    pathname,
+    getWorkspaceRedirectUrl: () => getWorkspaceRedirectionUrl(nextPath, currentUserSettings, workspaces),
+  });
 
-  if (pageType === EPageTypes.NON_AUTHENTICATED) {
-    if (!currentUser?.id) return <>{children}</>;
-    else {
-      if (currentUserProfile?.id && isUserOnboard) {
-        const currentRedirectRoute = getWorkspaceRedirectionUrl();
-        router.push(currentRedirectRoute);
-        return <></>;
-      } else {
-        router.push("/onboarding");
-        return <></>;
-      }
-    }
-  }
+  if (decision.action === "render") return <>{children}</>;
 
-  if (pageType === EPageTypes.ONBOARDING) {
-    if (!currentUser?.id) {
-      router.push(`/${pathname ? `?next_path=${pathname}` : ``}`);
-      return <></>;
-    } else {
-      if (currentUser && currentUserProfile?.id && isUserOnboard) {
-        const currentRedirectRoute = getWorkspaceRedirectionUrl();
-        router.replace(currentRedirectRoute);
-        return <></>;
-      } else return <>{children}</>;
-    }
-  }
-
-  if (pageType === EPageTypes.SET_PASSWORD) {
-    if (!currentUser?.id) {
-      router.push(`/${pathname ? `?next_path=${pathname}` : ``}`);
-      return <></>;
-    } else {
-      if (currentUser && !currentUser?.is_password_autoset && currentUserProfile?.id && isUserOnboard) {
-        const currentRedirectRoute = getWorkspaceRedirectionUrl();
-        router.push(currentRedirectRoute);
-        return <></>;
-      } else return <>{children}</>;
-    }
-  }
-
-  if (pageType === EPageTypes.AUTHENTICATED) {
-    if (currentUser?.id) {
-      if (currentUserProfile && currentUserProfile?.id && isUserOnboard) return <>{children}</>;
-      else {
-        router.push(`/onboarding`);
-        return <></>;
-      }
-    } else {
-      router.push(`/${pathname ? `?next_path=${pathname}` : ``}`);
-      return <></>;
-    }
-  }
-
-  return <>{children}</>;
+  if (decision.action === "replace") router.replace(decision.url);
+  else router.push(decision.url);
+  return <></>;
 });

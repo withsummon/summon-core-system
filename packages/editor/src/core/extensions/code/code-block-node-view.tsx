@@ -49,6 +49,7 @@ export function CodeBlockComponent({ node }: Props) {
       <Tooltip tooltipContent="Copy code">
         <button
           type="button"
+          aria-label={copied ? "Code copied" : "Copy code"}
           className={cn(
             "group/button absolute top-2 right-2 z-10 hidden size-8 items-center justify-center rounded-md border border-subtle bg-layer-1 backdrop-blur-sm transition duration-150 ease-in-out group-hover/code:flex",
             {

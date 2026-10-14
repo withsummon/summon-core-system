@@ -40,8 +40,9 @@ export const FilterDisplayProperties = observer(function FilterDisplayProperties
 
   // Filter out "cycle" and "module" keys if cycleViewDisabled or moduleViewDisabled is true
   // Also filter out display properties that should not be rendered
+  const displayPropertyKeysToRender = new Set(displayPropertiesToRender);
   const filteredDisplayProperties = ISSUE_DISPLAY_PROPERTIES.filter((property) => {
-    if (!displayPropertiesToRender.includes(property.key)) return false;
+    if (!displayPropertyKeysToRender.has(property.key)) return false;
     switch (property.key) {
       case "cycle":
         return !cycleViewDisabled;

@@ -105,8 +105,11 @@ export function SummonUsersRoot(props: { workspaceSlug: string }) {
   const confirmAndRun = async () => {
     if (!confirm) return;
     setBusy(true);
-    await run(confirm.run, confirm.action);
-    setBusy(false);
+    try {
+      await run(confirm.run, confirm.action);
+    } finally {
+      setBusy(false);
+    }
     setConfirm(null);
   };
 

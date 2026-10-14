@@ -5,32 +5,26 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import type { EditorRefApi } from "@plane/editor";
 import { EFileAssetType } from "@plane/types";
 import type { TNameDescriptionLoader } from "@plane/types";
 // components
-import { DescriptionVersionsRoot } from "@/components/core/description-versions";
 import { DescriptionInput } from "@/components/editor/rich-text/description-input";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
-import { useMember } from "@/hooks/store/use-member";
 import { useUser } from "@/hooks/store/user";
-import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 // plane web components
 import { IssueTypeSwitcher } from "@/components/issues/issue-type-switcher";
 // plane web hooks
-// services
-import { WorkItemVersionService } from "@/services/issue";
 // local components
 import type { TIssueOperations } from "../issue-detail";
+import { WorkItemDescriptionVersions } from "../issue-detail/description-versions";
 import { IssueParentDetail } from "../issue-detail/parent";
 import { IssueReaction } from "../issue-detail/reactions";
+import { useSubmitStatusAlert } from "../issue-detail/use-submit-status-alert";
 import { IssueTitleInput } from "../title-input";
-// services init
-const workItemVersionService = new WorkItemVersionService();
 
 type Props = {
   editorRef: React.RefObject<EditorRefApi>;
@@ -52,21 +46,8 @@ export const PeekOverviewIssueDetails = observer(function PeekOverviewIssueDetai
   const {
     issue: { getIssueById },
   } = useIssueDetail();
-
-  const { getUserDetails } = useMember();
   // reload confirmation
-  const { setShowAlert } = useReloadConfirmations(isSubmitting === "submitting");
-
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>;
-    if (isSubmitting === "submitted") {
-      setShowAlert(false);
-      timer = setTimeout(() => setIsSubmitting("saved"), 2000);
-    } else if (isSubmitting === "submitting") {
-      setShowAlert(true);
-    }
-    return () => clearTimeout(timer);
-  }, [isSubmitting, setShowAlert, setIsSubmitting]);
+  useSubmitStatusAlert(isSubmitting, setIsSubmitting);
 
   // derived values
   const issue = issueId ? getIssueById(issueId) : undefined;
@@ -138,32 +119,12 @@ export const PeekOverviewIssueDetails = observer(function PeekOverviewIssueDetai
           />
         )}
         {!disabled && (
-          <DescriptionVersionsRoot
-            className="flex-shrink-0"
-            entityInformation={{
-              createdAt: issue.created_at ? new Date(issue.created_at) : new Date(),
-              createdByDisplayName: getUserDetails(issue.created_by ?? "")?.display_name ?? "",
-              id: issueId,
-              isRestoreDisabled: disabled || isArchived,
-            }}
-            fetchHandlers={{
-              listDescriptionVersions: (issueId) =>
-                workItemVersionService.listDescriptionVersions(
-                  workspaceSlug,
-                  issue.project_id?.toString() ?? "",
-                  issueId
-                ),
-              retrieveDescriptionVersion: (issueId, versionId) =>
-                workItemVersionService.retrieveDescriptionVersion(
-                  workspaceSlug,
-                  issue.project_id?.toString() ?? "",
-                  issueId,
-                  versionId
-                ),
-            }}
-            handleRestore={(descriptionHTML) => editorRef.current?.setEditorValue(descriptionHTML, true)}
-            projectId={issue.project_id}
+          <WorkItemDescriptionVersions
             workspaceSlug={workspaceSlug}
+            projectId={issue.project_id}
+            issue={issue}
+            editorRef={editorRef}
+            isRestoreDisabled={disabled || isArchived}
           />
         )}
       </div>

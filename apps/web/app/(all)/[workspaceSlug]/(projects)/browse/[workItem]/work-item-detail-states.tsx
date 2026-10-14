@@ -1,0 +1,36 @@
+/**
+ * Copyright (c) 2023-present Plane Software, Inc. and contributors
+ * SPDX-License-Identifier: AGPL-3.0-only
+ * See the LICENSE file for details.
+ */
+
+import { useTheme } from "next-themes";
+// plane imports
+import { useTranslation } from "@plane/i18n";
+// assets
+import emptyIssueDark from "@/app/assets/empty-state/search/issues-dark.webp?url";
+import emptyIssueLight from "@/app/assets/empty-state/search/issues-light.webp?url";
+// components
+import { EmptyState } from "@/components/common/empty-state";
+// hooks
+import { useAppRouter } from "@/hooks/use-app-router";
+
+export function WorkItemNotFound({ workspaceSlug }: { workspaceSlug: string }) {
+  const router = useAppRouter();
+  const { resolvedTheme } = useTheme();
+  const { t } = useTranslation();
+
+  return (
+    <EmptyState
+      image={resolvedTheme === "dark" ? emptyIssueDark : emptyIssueLight}
+      title={t("issue.empty_state.issue_detail.title")}
+      description={t("issue.empty_state.issue_detail.description")}
+      primaryButton={{
+        text: t("issue.empty_state.issue_detail.primary_button.text"),
+        onClick: () => router.push(`/${workspaceSlug}/workspace-views/all-issues/`),
+      }}
+    />
+  );
+}
+
+export { WorkItemDetailLoader } from "@/components/issues/issue-detail/detail-loader";

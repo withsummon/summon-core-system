@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Command } from "cmdk";
 import { observer } from "mobx-react";
 // plane imports
@@ -21,16 +21,6 @@ export const PowerKPreferencesThemesMenu = observer(function PowerKPreferencesTh
   const { onSelect } = props;
   // hooks
   const { t } = useTranslation();
-  // states
-  const [mounted, setMounted] = useState(false);
-
-  // useEffect only runs on the client, so now we can safely show the UI
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return null;
-
   return (
     <Command.Group>
       {THEME_OPTIONS.map((theme) => (

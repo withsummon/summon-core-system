@@ -5,7 +5,7 @@
  */
 
 import { useMemo } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { useProject } from "@/hooks/store/use-project";
 import { summonService } from "@/services/summon.service";
@@ -25,7 +25,6 @@ export default function SummonReportsPage(props: Route.ComponentProps) {
 function SummonReportsPageContent({ params }: Route.ComponentProps) {
   const { workspaceSlug } = params;
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { joinedProjectIds, getProjectById } = useProject();
   const filters = readReportFilters(searchParams);
@@ -45,7 +44,7 @@ function SummonReportsPageContent({ params }: Route.ComponentProps) {
 
   const onFilterChange = (name: TReportFilterParam, value: string) => {
     const next = updateReportFilter(searchParams, name, value);
-    router.replace(`${pathname}${next.size ? `?${next}` : ""}`);
+    router.replace(`${window.location.pathname}${next.size ? `?${next}` : ""}`);
   };
 
   return (

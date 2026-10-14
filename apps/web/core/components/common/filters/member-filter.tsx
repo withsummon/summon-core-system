@@ -7,25 +7,29 @@
 import { useMemo, useState } from "react";
 import { sortBy } from "lodash-es";
 import { observer } from "mobx-react";
-// plane ui
-import { Loader, Avatar } from "@plane/ui";
-// components
+// plane imports
+import { Avatar, Loader } from "@plane/ui";
 import { getFileURL } from "@plane/utils";
+// components
 import { FilterHeader, FilterOption } from "@/components/issues/issue-layouts/filters";
-// helpers
 // hooks
 import { useMember } from "@/hooks/store/use-member";
 import { useUser } from "@/hooks/store/user";
 
-type Props = {
+export type TMemberFilterProps = {
   appliedFilters: string[] | null;
   handleUpdate: (val: string) => void;
   memberIds: string[] | undefined;
   searchQuery: string;
 };
 
-export const FilterMentions = observer(function FilterMentions(props: Props) {
-  const { appliedFilters, handleUpdate, memberIds, searchQuery } = props;
+type Props = TMemberFilterProps & {
+  title: string;
+};
+
+/** Collapsible, searchable member checklist used by the people filters (assignee, lead, created by, ...). */
+export const MemberFilter = observer(function MemberFilter(props: Props) {
+  const { title, appliedFilters, handleUpdate, memberIds, searchQuery } = props;
   // states
   const [itemsToRender, setItemsToRender] = useState(5);
   const [previewEnabled, setPreviewEnabled] = useState(true);
@@ -34,6 +38,7 @@ export const FilterMentions = observer(function FilterMentions(props: Props) {
   const { data: currentUser } = useUser();
 
   const appliedFiltersCount = appliedFilters?.length ?? 0;
+  const appliedFilterSet = new Set(appliedFilters);
 
   const sortedOptions = useMemo(() => {
     const filteredOptions = (memberIds || []).filter((memberId) =>
@@ -58,7 +63,7 @@ export const FilterMentions = observer(function FilterMentions(props: Props) {
   return (
     <>
       <FilterHeader
-        title={`Mention${appliedFiltersCount > 0 ? ` (${appliedFiltersCount})` : ""}`}
+        title={`${title}${appliedFiltersCount > 0 ? ` (${appliedFiltersCount})` : ""}`}
         isPreviewEnabled={previewEnabled}
         handleIsPreviewEnabled={() => setPreviewEnabled(!previewEnabled)}
       />
@@ -73,15 +78,15 @@ export const FilterMentions = observer(function FilterMentions(props: Props) {
                   if (!member) return null;
                   return (
                     <FilterOption
-                      key={`mentions-${member.id}`}
-                      isChecked={appliedFilters?.includes(member.id) ? true : false}
+                      key={`member-${member.id}`}
+                      isChecked={appliedFilterSet.has(member.id)}
                       onClick={() => handleUpdate(member.id)}
                       icon={
                         <Avatar
-                          name={member?.display_name}
-                          src={getFileURL(member?.avatar_url)}
+                          name={member.display_name}
+                          src={getFileURL(member.avatar_url)}
                           showTooltip={false}
-                          size={"md"}
+                          size="md"
                         />
                       }
                       title={currentUser?.id === member.id ? "You" : member?.display_name}

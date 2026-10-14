@@ -42,19 +42,13 @@ export const CyclesViewHeader = observer(function CyclesViewHeader(props: Props)
   const handleFilters = useCallback(
     (key: keyof TCycleFilters, value: string | string[]) => {
       if (!projectId) return;
-      const newValues = currentProjectFilters?.[key] ?? [];
+      const selectedValues = new Set(currentProjectFilters?.[key] ?? []);
+      (Array.isArray(value) ? value : [value]).forEach((val) => {
+        if (selectedValues.has(val)) selectedValues.delete(val);
+        else selectedValues.add(val);
+      });
 
-      if (Array.isArray(value))
-        value.forEach((val) => {
-          if (!newValues.includes(val)) newValues.push(val);
-          else newValues.splice(newValues.indexOf(val), 1);
-        });
-      else {
-        if (currentProjectFilters?.[key]?.includes(value)) newValues.splice(newValues.indexOf(value), 1);
-        else newValues.push(value);
-      }
-
-      updateFilters(projectId, { [key]: newValues });
+      updateFilters(projectId, { [key]: Array.from(selectedValues) });
     },
     [currentProjectFilters, projectId, updateFilters]
   );
@@ -102,6 +96,7 @@ export const CyclesViewHeader = observer(function CyclesViewHeader(props: Props)
             ref={inputRef}
             className="w-full max-w-[234px] border-none bg-transparent text-13 text-primary outline-none placeholder:text-placeholder"
             placeholder="Search"
+            aria-label="Search cycles"
             value={searchQuery}
             onChange={(e) => updateSearchQuery(e.target.value)}
             onKeyDown={handleInputKeyDown}

@@ -37,6 +37,7 @@ export function WebhookOptions(props: Props) {
             <input
               id={option.key}
               type="radio"
+              name="webhook-event-type"
               value={option.key}
               checked={value == option.key}
               onChange={() => onChange(option.key)}

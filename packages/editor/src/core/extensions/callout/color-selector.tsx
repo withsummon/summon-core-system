@@ -59,6 +59,7 @@ export function CalloutBlockColorSelector(props: Props) {
                 <button
                   key={color.key}
                   type="button"
+                  aria-label={`${color.label} background color`}
                   className="size-6 flex-shrink-0 rounded-sm border-[0.5px] border-strong-1 transition-opacity hover:opacity-60"
                   style={{
                     backgroundColor: color.backgroundColor,
@@ -68,6 +69,7 @@ export function CalloutBlockColorSelector(props: Props) {
               ))}
               <button
                 type="button"
+                aria-label="Remove background color"
                 className="grid size-6 flex-shrink-0 place-items-center rounded-sm border-[0.5px] border-strong-1 text-tertiary transition-colors hover:bg-layer-1-hover"
                 onClick={() => handleColorSelect(null)}
               >

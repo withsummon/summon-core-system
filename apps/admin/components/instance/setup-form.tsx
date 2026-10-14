@@ -57,16 +57,142 @@ const defaultFromData: TFormData = {
   is_telemetry_enabled: true,
 };
 
+const EMPTY_ERROR: TError = { type: undefined, message: undefined };
+
+const getErrorData = (errorCode: string | null | undefined, errorMessage: string | null | undefined): TError => {
+  if (!errorCode || !errorMessage) return EMPTY_ERROR;
+  const type = Object.values(EErrorCodes).find((code) => code === errorCode);
+  return type ? { type, message: errorMessage } : EMPTY_ERROR;
+};
+
+type TPrefillField = "first_name" | "last_name" | "company_name" | "email";
+
+/** Keeps only the non-empty values, so empty params never overwrite what the user typed. */
+const pickFilled = (values: Record<TPrefillField, string | null | undefined>) =>
+  Object.fromEntries(Object.entries(values).filter(([, value]) => !!value)) as Partial<Pick<TFormData, TPrefillField>>;
+
+/** Waits until the retyped password is at least as long as the original while the user is still typing it. */
+const isPasswordMismatchVisible = (formData: TFormData, isRetypeFocused: boolean) => {
+  const password = formData.password ?? "";
+  const confirmPassword = formData.confirm_password ?? "";
+  if (!confirmPassword || password === confirmPassword) return false;
+  return !isRetypeFocused || confirmPassword.length >= password.length;
+};
+
+const isSetupFormComplete = (formData: TFormData) =>
+  !!formData.first_name &&
+  !!formData.email &&
+  !!formData.password &&
+  getPasswordStrength(formData.password) === E_PASSWORD_STRENGTH.STRENGTH_VALID &&
+  formData.password === formData.confirm_password;
+
+type TPasswordFieldProps = {
+  id: "password" | "confirm_password";
+  label: string;
+  placeholder: string;
+  value: string | undefined;
+  inputClassName: string;
+  hasError?: boolean;
+  isVisible: boolean;
+  onToggleVisibility: () => void;
+  onChange: (value: string) => void;
+  onFocusChange: (isFocused: boolean) => void;
+  children?: React.ReactNode;
+};
+
+function PasswordField(props: TPasswordFieldProps) {
+  const {
+    id,
+    label,
+    placeholder,
+    value,
+    inputClassName,
+    hasError,
+    isVisible,
+    onToggleVisibility,
+    onChange,
+    onFocusChange,
+    children,
+  } = props;
+  const ToggleIcon = isVisible ? EyeOff : Eye;
+
+  return (
+    <div className="w-full space-y-1">
+      <label className="text-13 font-medium text-tertiary" htmlFor={id}>
+        {label} <span className="text-danger-primary">*</span>
+      </label>
+      <div className="relative">
+        <Input
+          className={inputClassName}
+          id={id}
+          name={id}
+          type={isVisible ? "text" : "password"}
+          inputSize="md"
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          hasError={hasError}
+          onFocus={() => onFocusChange(true)}
+          onBlur={() => onFocusChange(false)}
+          autoComplete="new-password"
+        />
+        <button
+          type="button"
+          aria-label={isVisible ? "Hide password" : "Show password"}
+          className="absolute top-3.5 right-3 flex items-center justify-center text-placeholder"
+          onClick={onToggleVisibility}
+        >
+          <ToggleIcon className="h-4 w-4" />
+        </button>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+type TPersonNameFieldProps = {
+  id: "first_name" | "last_name";
+  label: string;
+  placeholder: string;
+  value: string;
+  autoFocus?: boolean;
+  onChange: (value: string) => void;
+};
+
+function PersonNameField({ id, label, placeholder, value, autoFocus, onChange }: TPersonNameFieldProps) {
+  return (
+    <div className="w-full space-y-1">
+      <label className="text-13 font-medium text-tertiary" htmlFor={id}>
+        {label} <span className="text-danger-primary">*</span>
+      </label>
+      <Input
+        className="w-full border border-subtle !bg-surface-1 placeholder:text-placeholder"
+        id={id}
+        name={id}
+        type="text"
+        inputSize="md"
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => {
+          if (validatePersonName(e.target.value) === true || e.target.value === "") onChange(e.target.value);
+        }}
+        autoComplete="off"
+        autoFocus={autoFocus}
+        maxLength={50}
+      />
+    </div>
+  );
+}
+
 export function InstanceSetupForm() {
   // search params
   const searchParams = useSearchParams();
-  const firstNameParam = searchParams?.get("first_name") || undefined;
-  const lastNameParam = searchParams?.get("last_name") || undefined;
-  const companyParam = searchParams?.get("company") || undefined;
-  const emailParam = searchParams?.get("email") || undefined;
-  const isTelemetryEnabledParam = (searchParams?.get("is_telemetry_enabled") === "True" ? true : false) || true;
-  const errorCode = searchParams?.get("error_code") || undefined;
-  const errorMessage = searchParams?.get("error_message") || undefined;
+  const firstNameParam = searchParams?.get("first_name");
+  const lastNameParam = searchParams?.get("last_name");
+  const companyParam = searchParams?.get("company");
+  const emailParam = searchParams?.get("email");
+  const errorCode = searchParams?.get("error_code");
+  const errorMessage = searchParams?.get("error_message");
   // state
   const [showPassword, setShowPassword] = useState({
     password: false,
@@ -90,51 +216,29 @@ export function InstanceSetupForm() {
   }, [csrfToken]);
 
   useEffect(() => {
-    if (firstNameParam) setFormData((prev) => ({ ...prev, first_name: firstNameParam }));
-    if (lastNameParam) setFormData((prev) => ({ ...prev, last_name: lastNameParam }));
-    if (companyParam) setFormData((prev) => ({ ...prev, company_name: companyParam }));
-    if (emailParam) setFormData((prev) => ({ ...prev, email: emailParam }));
-    if (isTelemetryEnabledParam) setFormData((prev) => ({ ...prev, is_telemetry_enabled: isTelemetryEnabledParam }));
-  }, [firstNameParam, lastNameParam, companyParam, emailParam, isTelemetryEnabledParam]);
+    setFormData((prev) => ({
+      ...prev,
+      ...pickFilled({
+        first_name: firstNameParam,
+        last_name: lastNameParam,
+        company_name: companyParam,
+        email: emailParam,
+      }),
+      // the telemetry query param has always resolved to enabled
+      is_telemetry_enabled: true,
+    }));
+  }, [firstNameParam, lastNameParam, companyParam, emailParam]);
 
   // derived values
-  const errorData: TError = useMemo(() => {
-    if (errorCode && errorMessage) {
-      switch (errorCode) {
-        case EErrorCodes.INSTANCE_NOT_CONFIGURED:
-          return { type: EErrorCodes.INSTANCE_NOT_CONFIGURED, message: errorMessage };
-        case EErrorCodes.ADMIN_ALREADY_EXIST:
-          return { type: EErrorCodes.ADMIN_ALREADY_EXIST, message: errorMessage };
-        case EErrorCodes.REQUIRED_EMAIL_PASSWORD_FIRST_NAME:
-          return { type: EErrorCodes.REQUIRED_EMAIL_PASSWORD_FIRST_NAME, message: errorMessage };
-        case EErrorCodes.INVALID_EMAIL:
-          return { type: EErrorCodes.INVALID_EMAIL, message: errorMessage };
-        case EErrorCodes.INVALID_PASSWORD:
-          return { type: EErrorCodes.INVALID_PASSWORD, message: errorMessage };
-        case EErrorCodes.USER_ALREADY_EXISTS:
-          return { type: EErrorCodes.USER_ALREADY_EXISTS, message: errorMessage };
-        default:
-          return { type: undefined, message: undefined };
-      }
-    } else return { type: undefined, message: undefined };
-  }, [errorCode, errorMessage]);
+  const errorData = useMemo(() => getErrorData(errorCode, errorMessage), [errorCode, errorMessage]);
 
-  const isButtonDisabled = useMemo(
-    () =>
-      !isSubmitting &&
-      formData.first_name &&
-      formData.email &&
-      formData.password &&
-      getPasswordStrength(formData.password) === E_PASSWORD_STRENGTH.STRENGTH_VALID &&
-      formData.password === formData.confirm_password
-        ? false
-        : true,
-    [formData.confirm_password, formData.email, formData.first_name, formData.password, isSubmitting]
-  );
+  const isButtonDisabled = isSubmitting || !isSetupFormComplete(formData);
 
-  const password = formData?.password ?? "";
-  const confirmPassword = formData?.confirm_password ?? "";
-  const renderPasswordMatchError = !isRetryPasswordInputFocused || confirmPassword.length >= password.length;
+  const isEmailError = errorData.type === EErrorCodes.INVALID_EMAIL;
+  const isPasswordError = errorData.type === EErrorCodes.INVALID_PASSWORD;
+
+  const bannerErrorMessage = isEmailError || isPasswordError ? undefined : errorData.message;
+  const showPasswordMismatch = isPasswordMismatchVisible(formData, isRetryPasswordInputFocused);
 
   return (
     <>
@@ -145,11 +249,7 @@ export function InstanceSetupForm() {
             heading="Setup your Plane Instance"
             subHeading="Post setup you will be able to manage this Plane instance."
           />
-          {errorData.type &&
-            errorData?.message &&
-            ![EErrorCodes.INVALID_EMAIL, EErrorCodes.INVALID_PASSWORD].includes(errorData.type) && (
-              <Banner type="error" message={errorData?.message} />
-            )}
+          {bannerErrorMessage && <Banner type="error" message={bannerErrorMessage} />}
           <form
             className="space-y-4"
             method="POST"
@@ -157,55 +257,25 @@ export function InstanceSetupForm() {
             onSubmit={() => setIsSubmitting(true)}
             onError={() => setIsSubmitting(false)}
           >
-            <input type="hidden" name="csrfmiddlewaretoken" value={csrfToken} />
+            <input type="hidden" name="csrfmiddlewaretoken" value={csrfToken ?? ""} />
             <input type="hidden" name="is_telemetry_enabled" value={formData.is_telemetry_enabled ? "True" : "False"} />
 
             <div className="flex flex-col items-center gap-4 sm:flex-row">
-              <div className="w-full space-y-1">
-                <label className="text-13 font-medium text-tertiary" htmlFor="first_name">
-                  First name <span className="text-danger-primary">*</span>
-                </label>
-                <Input
-                  className="w-full border border-subtle !bg-surface-1 placeholder:text-placeholder"
-                  id="first_name"
-                  name="first_name"
-                  type="text"
-                  inputSize="md"
-                  placeholder="Wilber"
-                  value={formData.first_name}
-                  onChange={(e) => {
-                    const validation = validatePersonName(e.target.value);
-                    if (validation === true || e.target.value === "") {
-                      handleFormChange("first_name", e.target.value);
-                    }
-                  }}
-                  autoComplete="off"
-                  autoFocus
-                  maxLength={50}
-                />
-              </div>
-              <div className="w-full space-y-1">
-                <label className="text-13 font-medium text-tertiary" htmlFor="last_name">
-                  Last name <span className="text-danger-primary">*</span>
-                </label>
-                <Input
-                  className="w-full border border-subtle !bg-surface-1 placeholder:text-placeholder"
-                  id="last_name"
-                  name="last_name"
-                  type="text"
-                  inputSize="md"
-                  placeholder="Wright"
-                  value={formData.last_name}
-                  onChange={(e) => {
-                    const validation = validatePersonName(e.target.value);
-                    if (validation === true || e.target.value === "") {
-                      handleFormChange("last_name", e.target.value);
-                    }
-                  }}
-                  autoComplete="off"
-                  maxLength={50}
-                />
-              </div>
+              <PersonNameField
+                id="first_name"
+                label="First name"
+                placeholder="Wilber"
+                value={formData.first_name}
+                onChange={(value) => handleFormChange("first_name", value)}
+                autoFocus
+              />
+              <PersonNameField
+                id="last_name"
+                label="Last name"
+                placeholder="Wright"
+                value={formData.last_name}
+                onChange={(value) => handleFormChange("last_name", value)}
+              />
             </div>
 
             <div className="w-full space-y-1">
@@ -221,10 +291,10 @@ export function InstanceSetupForm() {
                 placeholder="name@company.com"
                 value={formData.email}
                 onChange={(e) => handleFormChange("email", e.target.value)}
-                hasError={errorData.type && errorData.type === EErrorCodes.INVALID_EMAIL ? true : false}
+                hasError={isEmailError}
                 autoComplete="off"
               />
-              {errorData.type && errorData.type === EErrorCodes.INVALID_EMAIL && errorData.message && (
+              {isEmailError && errorData.message && (
                 <p className="px-1 text-11 text-danger-primary">{errorData.message}</p>
               )}
             </div>
@@ -251,95 +321,37 @@ export function InstanceSetupForm() {
               />
             </div>
 
-            <div className="w-full space-y-1">
-              <label className="text-13 font-medium text-tertiary" htmlFor="password">
-                Set a password <span className="text-danger-primary">*</span>
-              </label>
-              <div className="relative">
-                <Input
-                  className="w-full border border-subtle !bg-surface-1 placeholder:text-placeholder"
-                  id="password"
-                  name="password"
-                  type={showPassword.password ? "text" : "password"}
-                  inputSize="md"
-                  placeholder="New password"
-                  value={formData.password}
-                  onChange={(e) => handleFormChange("password", e.target.value)}
-                  hasError={errorData.type && errorData.type === EErrorCodes.INVALID_PASSWORD ? true : false}
-                  onFocus={() => setIsPasswordInputFocused(true)}
-                  onBlur={() => setIsPasswordInputFocused(false)}
-                  autoComplete="new-password"
-                />
-                {showPassword.password ? (
-                  <button
-                    type="button"
-                    aria-label="Hide password"
-                    className="absolute top-3.5 right-3 flex items-center justify-center text-placeholder"
-                    onClick={() => handleShowPassword("password")}
-                  >
-                    <EyeOff className="h-4 w-4" />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    aria-label="Show password"
-                    className="absolute top-3.5 right-3 flex items-center justify-center text-placeholder"
-                    onClick={() => handleShowPassword("password")}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-              {errorData.type && errorData.type === EErrorCodes.INVALID_PASSWORD && errorData.message && (
+            <PasswordField
+              id="password"
+              label="Set a password"
+              placeholder="New password"
+              value={formData.password}
+              inputClassName="w-full border border-subtle !bg-surface-1 placeholder:text-placeholder"
+              hasError={isPasswordError}
+              isVisible={showPassword.password}
+              onToggleVisibility={() => handleShowPassword("password")}
+              onChange={(value) => handleFormChange("password", value)}
+              onFocusChange={setIsPasswordInputFocused}
+            >
+              {isPasswordError && errorData.message && (
                 <p className="px-1 text-11 text-danger-primary">{errorData.message}</p>
               )}
               <PasswordStrengthIndicator password={formData.password} isFocused={isPasswordInputFocused} />
-            </div>
+            </PasswordField>
 
-            <div className="w-full space-y-1">
-              <label className="text-13 font-medium text-tertiary" htmlFor="confirm_password">
-                Confirm password <span className="text-danger-primary">*</span>
-              </label>
-              <div className="relative">
-                <Input
-                  type={showPassword.retypePassword ? "text" : "password"}
-                  id="confirm_password"
-                  name="confirm_password"
-                  inputSize="md"
-                  value={formData.confirm_password}
-                  onChange={(e) => handleFormChange("confirm_password", e.target.value)}
-                  placeholder="Confirm password"
-                  className="w-full border border-subtle !bg-surface-1 pr-12 placeholder:text-placeholder"
-                  onFocus={() => setIsRetryPasswordInputFocused(true)}
-                  onBlur={() => setIsRetryPasswordInputFocused(false)}
-                  autoComplete="new-password"
-                />
-                {showPassword.retypePassword ? (
-                  <button
-                    type="button"
-                    aria-label="Hide password"
-                    className="absolute top-3.5 right-3 flex items-center justify-center text-placeholder"
-                    onClick={() => handleShowPassword("retypePassword")}
-                  >
-                    <EyeOff className="h-4 w-4" />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    aria-label="Show password"
-                    className="absolute top-3.5 right-3 flex items-center justify-center text-placeholder"
-                    onClick={() => handleShowPassword("retypePassword")}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-              {!!formData.confirm_password &&
-                formData.password !== formData.confirm_password &&
-                renderPasswordMatchError && (
-                  <span className="text-13 text-danger-primary">Passwords don{"'"}t match</span>
-                )}
-            </div>
+            <PasswordField
+              id="confirm_password"
+              label="Confirm password"
+              placeholder="Confirm password"
+              value={formData.confirm_password}
+              inputClassName="w-full border border-subtle !bg-surface-1 pr-12 placeholder:text-placeholder"
+              isVisible={showPassword.retypePassword}
+              onToggleVisibility={() => handleShowPassword("retypePassword")}
+              onChange={(value) => handleFormChange("confirm_password", value)}
+              onFocusChange={setIsRetryPasswordInputFocused}
+            >
+              {showPasswordMismatch && <span className="text-13 text-danger-primary">Passwords don{"'"}t match</span>}
+            </PasswordField>
 
             <div className="relative flex gap-2">
               <div>

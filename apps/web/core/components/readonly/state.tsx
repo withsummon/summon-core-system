@@ -31,24 +31,20 @@ export const ReadonlyState = observer(function ReadonlyState(props: TReadonlySta
   const { t } = useTranslation();
   const { getStateById, getProjectStateIds, fetchProjectStates } = useProjectState();
   // derived values
-  const stateIds = getProjectStateIds(projectId);
   const state = getStateById(value);
 
   // fetch states if not provided
-  const fetchStates = async () => {
-    if ((stateIds === undefined || stateIds.length === 0) && projectId) {
-      setStateLoader(true);
-      try {
-        await fetchProjectStates(workspaceSlug, projectId);
-      } finally {
-        setStateLoader(false);
-      }
-    }
-  };
-
   useEffect(() => {
-    fetchStates();
-  }, [projectId, workspaceSlug]);
+    if (!projectId || (getProjectStateIds(projectId)?.length ?? 0) > 0) return;
+    let isCurrent = true;
+    setStateLoader(true);
+    fetchProjectStates(workspaceSlug, projectId).finally(() => {
+      if (isCurrent) setStateLoader(false);
+    });
+    return () => {
+      isCurrent = false;
+    };
+  }, [fetchProjectStates, getProjectStateIds, projectId, workspaceSlug]);
 
   if (stateLoader) {
     return (

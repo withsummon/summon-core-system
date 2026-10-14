@@ -95,6 +95,7 @@ export const ExtendedProjectSidebar = observer(function ExtendedProjectSidebar()
             <input
               className="w-full max-w-[234px] border-none bg-transparent text-13 outline-none placeholder:text-placeholder"
               placeholder={t("search")}
+              aria-label={t("search")}
               value={searchQuery}
               // oxlint-disable-next-line jsx_a11y/no-autofocus -- search is the first thing to use when the panel opens
               autoFocus

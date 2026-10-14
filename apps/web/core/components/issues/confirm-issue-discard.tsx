@@ -29,8 +29,11 @@ export function ConfirmIssueDiscard(props: Props) {
 
   const handleDeletion = async () => {
     setIsLoading(true);
-    await onConfirm();
-    setIsLoading(false);
+    try {
+      await onConfirm();
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

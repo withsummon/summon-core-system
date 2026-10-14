@@ -21,6 +21,43 @@ type TBreadcrumbNavigationDropdownProps = {
   isLast?: boolean;
 };
 
+type TNavigationButtonProps = {
+  selectedItem: TContextMenuItem;
+  selectedItemIcon: React.ReactNode;
+  isOpen: boolean;
+  isLast: boolean;
+  handleOnClick?: () => void;
+};
+
+function NavigationButton(props: TNavigationButtonProps) {
+  const { selectedItem, selectedItemIcon, isOpen, isLast, handleOnClick } = props;
+  return (
+    <Tooltip tooltipContent={selectedItem.title} position="bottom" disabled={isOpen}>
+      <button
+        onClick={(e) => {
+          if (!isLast) {
+            e.preventDefault();
+            e.stopPropagation();
+            handleOnClick?.();
+          }
+        }}
+        className={cn(
+          "group flex h-full cursor-pointer items-center gap-2 rounded-sm rounded-r-none px-1.5 py-1 text-13 font-medium text-tertiary",
+          {
+            "hover:bg-layer-1 hover:text-primary": !isLast,
+          }
+        )}
+      >
+        <div className="flex text-tertiary @4xl:hidden">…</div>
+        <div className="hidden items-center gap-2 @4xl:flex">
+          {selectedItemIcon && <Breadcrumbs.Icon>{selectedItemIcon}</Breadcrumbs.Icon>}
+          <Breadcrumbs.Label>{selectedItem.title}</Breadcrumbs.Label>
+        </div>
+      </button>
+    </Tooltip>
+  );
+}
+
 export function BreadcrumbNavigationDropdown(props: TBreadcrumbNavigationDropdownProps) {
   const { selectedItemKey, navigationItems, navigationDisabled = false, handleOnClick, isLast = false } = props;
   const [isOpen, setIsOpen] = React.useState(false);
@@ -33,43 +70,25 @@ export function BreadcrumbNavigationDropdown(props: TBreadcrumbNavigationDropdow
   // if no selected item, return null
   if (!selectedItem) return null;
 
-  function NavigationButton() {
-    return (
-      <Tooltip tooltipContent={selectedItem?.title} position="bottom" disabled={isOpen}>
-        <button
-          onClick={(e) => {
-            if (!isLast) {
-              e.preventDefault();
-              e.stopPropagation();
-              handleOnClick?.();
-            }
-          }}
-          className={cn(
-            "group flex h-full cursor-pointer items-center gap-2 rounded-sm rounded-r-none px-1.5 py-1 text-13 font-medium text-tertiary",
-            {
-              "hover:bg-layer-1 hover:text-primary": !isLast,
-            }
-          )}
-        >
-          <div className="flex text-tertiary @4xl:hidden">…</div>
-          <div className="hidden items-center gap-2 @4xl:flex">
-            {selectedItemIcon && <Breadcrumbs.Icon>{selectedItemIcon}</Breadcrumbs.Icon>}
-            <Breadcrumbs.Label>{selectedItem?.title}</Breadcrumbs.Label>
-          </div>
-        </button>
-      </Tooltip>
-    );
-  }
+  const navigationButton = (
+    <NavigationButton
+      selectedItem={selectedItem}
+      selectedItemIcon={selectedItemIcon}
+      isOpen={isOpen}
+      isLast={isLast}
+      handleOnClick={handleOnClick}
+    />
+  );
 
   if (navigationDisabled) {
-    return <NavigationButton />;
+    return navigationButton;
   }
 
   return (
     <CustomMenu
       customButton={
         <>
-          <NavigationButton />
+          {navigationButton}
           <Breadcrumbs.Separator
             className={cn("rounded-r-sm", {
               "bg-layer-1": isOpen && !isLast,

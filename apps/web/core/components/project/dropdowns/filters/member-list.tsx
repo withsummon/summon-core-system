@@ -51,6 +51,7 @@ const RoleFilterGroup = observer(function RoleFilterGroup({
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
   const appliedFiltersCount = appliedFilters?.length ?? 0;
+  const appliedFilterSet = new Set(appliedFilters ?? []);
   const roleOptions = memberType === "project" ? PROJECT_ROLE_OPTIONS : WORKSPACE_ROLE_OPTIONS;
 
   return (
@@ -64,7 +65,7 @@ const RoleFilterGroup = observer(function RoleFilterGroup({
       {isExpanded && (
         <div className="space-y-1">
           {roleOptions.map((role) => {
-            const isSelected = appliedFilters?.includes(role.value) ?? false;
+            const isSelected = appliedFilterSet.has(role.value);
             return (
               <FilterOption
                 key={`role-${role.value}`}

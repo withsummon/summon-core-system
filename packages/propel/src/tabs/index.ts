@@ -5,3 +5,4 @@
  */
 
 export * from "./tabs";
+export * from "./compound";

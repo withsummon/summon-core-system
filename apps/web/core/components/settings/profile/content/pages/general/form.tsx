@@ -45,6 +45,19 @@ type TUserProfileForm = {
   user_timezone: string;
 };
 
+const getProfileFormDefaultValues = (user: IUser, profile: TUserProfile): Partial<TUserProfileForm> => ({
+  avatar_url: user.avatar_url || "",
+  cover_image_asset: null,
+  cover_image_url: user.cover_image_url || "",
+  first_name: user.first_name || "",
+  last_name: user.last_name || "",
+  display_name: user.display_name || "",
+  email: user.email || "",
+  role: profile.role || "Product / Project Manager",
+  language: profile.language || "en",
+  user_timezone: user.user_timezone || "Asia/Kolkata",
+});
+
 type Props = {
   user: IUser;
   profile: TUserProfile;
@@ -67,18 +80,7 @@ export const GeneralProfileSettingsForm = observer(function GeneralProfileSettin
     setValue,
     formState: { errors },
   } = useForm<TUserProfileForm>({
-    defaultValues: {
-      avatar_url: user.avatar_url || "",
-      cover_image_asset: null,
-      cover_image_url: user.cover_image_url || "",
-      first_name: user.first_name || "",
-      last_name: user.last_name || "",
-      display_name: user.display_name || "",
-      email: user.email || "",
-      role: profile.role || "Product / Project Manager",
-      language: profile.language || "en",
-      user_timezone: user.user_timezone || "Asia/Kolkata",
-    },
+    defaultValues: getProfileFormDefaultValues(user, profile),
   });
   // derived values
   const userAvatar = watch("avatar_url");
@@ -126,39 +128,38 @@ export const GeneralProfileSettingsForm = observer(function GeneralProfileSettin
     };
 
     try {
-      const coverImagePayload = await handleCoverImageChange(user.cover_image_url, formData.cover_image_url, {
-        entityIdentifier: "",
-        entityType: EFileAssetType.USER_COVER,
-        isUserAsset: true,
-      });
+      try {
+        const coverImagePayload = await handleCoverImageChange(user.cover_image_url, formData.cover_image_url, {
+          entityIdentifier: "",
+          entityType: EFileAssetType.USER_COVER,
+          isUserAsset: true,
+        });
 
-      if (coverImagePayload) {
-        Object.assign(userPayload, coverImagePayload);
+        if (coverImagePayload) {
+          Object.assign(userPayload, coverImagePayload);
+        }
+      } catch (error) {
+        console.error("Error handling cover image:", error);
+        setToast({
+          type: TOAST_TYPE.ERROR,
+          title: t("toast.error"),
+          message: error instanceof Error ? error.message : "Failed to process cover image",
+        });
+        return;
       }
-    } catch (error) {
-      console.error("Error handling cover image:", error);
-      setToast({
-        type: TOAST_TYPE.ERROR,
-        title: t("toast.error"),
-        message: error instanceof Error ? error.message : "Failed to process cover image",
-      });
-      setIsLoading(false);
-      return;
-    }
 
-    const profilePayload: Partial<TUserProfile> = {
-      role: formData.role,
-    };
+      const profilePayload: Partial<TUserProfile> = {
+        role: formData.role,
+      };
 
-    const updateCurrentUserDetail = updateCurrentUser(userPayload);
-    const promises: Promise<IUser | TUserProfile | undefined>[] = [updateCurrentUserDetail];
-    if (profilePayload.role !== profile.role) {
-      const updateCurrentUserProfile = updateUserProfile(profilePayload);
-      promises.push(updateCurrentUserProfile);
-    }
+      const updateCurrentUserDetail = updateCurrentUser(userPayload);
+      const promises: Promise<IUser | TUserProfile | undefined>[] = [updateCurrentUserDetail];
+      if (profilePayload.role !== profile.role) {
+        const updateCurrentUserProfile = updateUserProfile(profilePayload);
+        promises.push(updateCurrentUserProfile);
+      }
 
-    const updatePromise = Promise.allSettled(promises)
-      .then((results) => {
+      const updatePromise = Promise.allSettled(promises).then((results) => {
         const rejectedResult = results.find((result) => result.status === "rejected") as
           | PromiseRejectedResult
           | undefined;
@@ -172,20 +173,26 @@ export const GeneralProfileSettingsForm = observer(function GeneralProfileSettin
           throw new Error("Failed to update profile");
         }
         return values;
-      })
-      .finally(() => setIsLoading(false));
+      });
 
-    setPromiseToast(updatePromise, {
-      loading: "Updating…",
-      success: {
-        title: "Success!",
-        message: () => `Profile updated successfully.`,
-      },
-      error: {
-        title: "Error!",
-        message: () => `There was some error in updating your profile. Please try again.`,
-      },
-    });
+      setPromiseToast(updatePromise, {
+        loading: "Updating…",
+        success: {
+          title: "Success!",
+          message: () => `Profile updated successfully.`,
+        },
+        error: {
+          title: "Error!",
+          message: () => `There was some error in updating your profile. Please try again.`,
+        },
+      });
+
+      await updatePromise;
+    } catch {
+      // update failures are surfaced by the promise toast above
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -220,7 +227,11 @@ export const GeneralProfileSettingsForm = observer(function GeneralProfileSettin
             <div className="absolute -bottom-6 left-6 flex items-end justify-between">
               <div className="flex gap-3">
                 <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-surface-2">
-                  <button type="button" onClick={() => setIsImageUploadModalOpen(true)}>
+                  <button
+                    type="button"
+                    aria-label="Change profile picture"
+                    onClick={() => setIsImageUploadModalOpen(true)}
+                  >
                     {!userAvatar || userAvatar === "" ? (
                       <div className="h-16 w-16 rounded-md bg-layer-1 p-2">
                         <CircleUserRound className="h-full w-full text-secondary" />
@@ -230,9 +241,7 @@ export const GeneralProfileSettingsForm = observer(function GeneralProfileSettin
                         <img
                           src={getFileURL(userAvatar)}
                           className="absolute top-0 left-0 h-full w-full rounded-lg object-cover"
-                          onClick={() => setIsImageUploadModalOpen(true)}
                           alt={currentUser?.display_name}
-                          role="button"
                         />
                       </div>
                     )}

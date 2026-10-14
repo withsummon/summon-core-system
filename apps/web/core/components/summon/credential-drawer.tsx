@@ -4,17 +4,27 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/ui";
-import type { ISummonCredential } from "@plane/types";
+import type { ISummonCredential, ISummonCredentialAudit, ISummonCredentialGrant } from "@plane/types";
 import { SummonField } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { summonErrorMessage } from "@/components/summon/screen";
 import { summonService } from "@/services/summon.service";
 import { Select } from "@plane/propel/select";
 import { Drawer, DrawerContent, DrawerTitle } from "@plane/propel/drawer";
+
+// Same fields as Date#toLocaleString().
+const AUDIT_TIME_FORMATTER = new Intl.DateTimeFormat(undefined, {
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  hour: "numeric",
+  minute: "numeric",
+  second: "numeric",
+});
 
 export function CredentialDrawer(props: {
   workspaceSlug: string;
@@ -48,13 +58,16 @@ export function CredentialDrawer(props: {
     { shouldRetryOnError: false }
   );
 
-  useEffect(() => {
+  // Clear typed and revealed values when a different credential opens.
+  const [prevCredentialId, setPrevCredentialId] = useState(credential?.id);
+  if (credential?.id !== prevCredentialId) {
+    setPrevCredentialId(credential?.id);
     setPassword("");
     setRevealedSecret("");
     setNewSecret("");
     setMember("");
     setError("");
-  }, [credential?.id]);
+  }
 
   useEffect(() => {
     if (!revealedSecret) return;
@@ -71,76 +84,56 @@ export function CredentialDrawer(props: {
 
   if (!credential) return null;
 
-  const reveal = async () => {
+  // Shared loading and error handling for every credential action.
+  const runAction = async (action: () => Promise<void>, onError?: () => void) => {
     setLoading(true);
     setError("");
     try {
-      setRevealedSecret((await summonService.revealCredential(workspaceSlug, credential.id, password)).secret);
+      await action();
     } catch (requestError) {
-      setRevealedSecret("");
+      onError?.();
       setError(summonErrorMessage(requestError));
     } finally {
       setLoading(false);
     }
   };
-  const rotate = async () => {
-    setLoading(true);
-    setError("");
-    try {
+  const reveal = () =>
+    runAction(
+      async () => {
+        setRevealedSecret((await summonService.revealCredential(workspaceSlug, credential.id, password)).secret);
+      },
+      () => setRevealedSecret("")
+    );
+  const rotate = () =>
+    runAction(async () => {
       await summonService.rotateCredential(workspaceSlug, credential.id, password, newSecret);
       setNewSecret("");
       setRevealedSecret("");
       onChanged();
       await mutate();
-    } catch (requestError) {
-      setError(summonErrorMessage(requestError));
-    } finally {
-      setLoading(false);
-    }
-  };
-  const grant = async () => {
-    setLoading(true);
-    setError("");
-    try {
+    });
+  const grant = () =>
+    runAction(async () => {
       await summonService.grantCredential(workspaceSlug, credential.id, { member, permission });
       setMember("");
       await mutate();
-    } catch (requestError) {
-      setError(summonErrorMessage(requestError));
-    } finally {
-      setLoading(false);
-    }
-  };
-  const revokeGrant = async (grantId: string) => {
-    setLoading(true);
-    setError("");
-    try {
+    });
+  const revokeGrant = (grantId: string) =>
+    runAction(async () => {
       await summonService.revokeCredentialGrant(workspaceSlug, credential.id, grantId);
       await mutate();
-    } catch (requestError) {
-      setError(summonErrorMessage(requestError));
-    } finally {
-      setLoading(false);
-    }
-  };
+    });
   const close = () => {
     setRevealedSecret("");
     setPassword("");
     onClose();
   };
-  const revokeCredential = async () => {
-    setLoading(true);
-    setError("");
-    try {
+  const revokeCredential = () =>
+    runAction(async () => {
       await summonService.deleteCredential(workspaceSlug, credential.id, password);
       close();
       onChanged();
-    } catch (requestError) {
-      setError(summonErrorMessage(requestError));
-    } finally {
-      setLoading(false);
-    }
-  };
+    });
 
   return (
     <Drawer side="auto" open={open} onOpenChange={(nextOpen) => !nextOpen && close()}>
@@ -214,32 +207,14 @@ export function CredentialDrawer(props: {
             Grant
           </Button>
           <SummonRequestState loading={accessLoading} error={accessError} onRetry={() => void mutate()} />
-          <div className="space-y-2">
-            {data?.grants.map((item) => (
-              <div key={item.id} className="flex items-center justify-between gap-2 text-xs">
-                <span className="truncate text-secondary">
-                  {item.member} · {item.permission}
-                </span>
-                <Button variant="ghost" size="lg" disabled={loading} onClick={() => void revokeGrant(item.id)}>
-                  Revoke
-                </Button>
-              </div>
-            ))}
-            {!accessLoading && !data?.grants.length ? <p className="text-xs text-tertiary">No active grants.</p> : null}
-          </div>
+          <CredentialGrantList
+            grants={data?.grants}
+            loading={loading}
+            accessLoading={accessLoading}
+            onRevoke={(grantId) => void revokeGrant(grantId)}
+          />
         </div>
-        <div className="mt-4 rounded-lg border border-subtle p-4">
-          <h3 className="text-sm font-semibold text-primary">Audit</h3>
-          <div className="mt-3 space-y-2">
-            {data?.audit.map((item) => (
-              <div key={item.id} className="text-xs text-secondary">
-                <span className="font-medium text-primary">{item.action}</span> ·{" "}
-                {new Date(item.created_at).toLocaleString()}
-              </div>
-            ))}
-            {!accessLoading && !data?.audit.length ? <p className="text-xs text-tertiary">No audit events.</p> : null}
-          </div>
-        </div>
+        <CredentialAuditList audit={data?.audit} accessLoading={accessLoading} />
         <div className="mt-4 rounded-lg border border-danger-subtle bg-danger-subtle/10 p-4">
           <h3 className="text-sm font-semibold text-danger-primary">Revoke credential</h3>
           <p className="mt-1 text-xs text-secondary">
@@ -258,5 +233,52 @@ export function CredentialDrawer(props: {
         </div>
       </DrawerContent>
     </Drawer>
+  );
+}
+
+function CredentialGrantList(props: {
+  grants: ISummonCredentialGrant[] | undefined;
+  loading: boolean;
+  accessLoading: boolean;
+  onRevoke: (grantId: string) => void;
+}) {
+  const { grants, loading, accessLoading, onRevoke } = props;
+  return (
+    <div className="space-y-2">
+      {grants?.map((item) => (
+        <div key={item.id} className="flex items-center justify-between gap-2 text-xs">
+          <span className="truncate text-secondary">
+            {item.member} · {item.permission}
+          </span>
+          <Button variant="ghost" size="lg" disabled={loading} onClick={() => onRevoke(item.id)}>
+            Revoke
+          </Button>
+        </div>
+      ))}
+      {!accessLoading && !grants?.length ? <p className="text-xs text-tertiary">No active grants.</p> : null}
+    </div>
+  );
+}
+
+const formatAuditTime = (value: string) => AUDIT_TIME_FORMATTER.format(new Date(value));
+
+function CredentialAuditList(props: { audit: ISummonCredentialAudit[] | undefined; accessLoading: boolean }) {
+  const { audit, accessLoading } = props;
+  const auditTimes = useMemo(
+    () => new Map((audit ?? []).map((item) => [item.id, formatAuditTime(item.created_at)])),
+    [audit]
+  );
+  return (
+    <div className="mt-4 rounded-lg border border-subtle p-4">
+      <h3 className="text-sm font-semibold text-primary">Audit</h3>
+      <div className="mt-3 space-y-2">
+        {audit?.map((item) => (
+          <div key={item.id} className="text-xs text-secondary">
+            <span className="font-medium text-primary">{item.action}</span> · {auditTimes.get(item.id)}
+          </div>
+        ))}
+        {!accessLoading && !audit?.length ? <p className="text-xs text-tertiary">No audit events.</p> : null}
+      </div>
+    </div>
   );
 }

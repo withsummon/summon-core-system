@@ -20,12 +20,13 @@ export type TActivityFilterRoot = {
 export function ActivityFilterRoot(props: TActivityFilterRoot) {
   const { selectedFilters, toggleFilter } = props;
 
+  const selectedFilterSet = new Set(selectedFilters);
   const filters: TActivityFilterOption[] = Object.entries(ACTIVITY_FILTER_TYPE_OPTIONS).map(([key, value]) => {
     const filterKey = key as TActivityFilters;
     return {
       key: filterKey,
       labelTranslationKey: value.labelTranslationKey,
-      isSelected: selectedFilters.includes(filterKey),
+      isSelected: selectedFilterSet.has(filterKey),
       onClick: () => toggleFilter(filterKey),
     };
   });

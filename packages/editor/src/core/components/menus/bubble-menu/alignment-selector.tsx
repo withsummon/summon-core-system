@@ -27,6 +27,7 @@ export function TextAlignmentSelector(props: Props) {
   const textAlignmentOptions: {
     itemKey: TEditorCommands;
     renderKey: string;
+    label: string;
     icon: LucideIcon;
     command: () => void;
     isActive: () => boolean;
@@ -34,6 +35,7 @@ export function TextAlignmentSelector(props: Props) {
     {
       itemKey: "text-align",
       renderKey: "text-align-left",
+      label: "Align left",
       icon: AlignLeft,
       command: () =>
         menuItem.command({
@@ -44,6 +46,7 @@ export function TextAlignmentSelector(props: Props) {
     {
       itemKey: "text-align",
       renderKey: "text-align-center",
+      label: "Align center",
       icon: AlignCenter,
       command: () =>
         menuItem.command({
@@ -54,6 +57,7 @@ export function TextAlignmentSelector(props: Props) {
     {
       itemKey: "text-align",
       renderKey: "text-align-right",
+      label: "Align right",
       icon: AlignRight,
       command: () =>
         menuItem.command({
@@ -70,6 +74,8 @@ export function TextAlignmentSelector(props: Props) {
         <button
           key={item.renderKey}
           type="button"
+          aria-label={item.label}
+          aria-pressed={item.isActive()}
           onClick={(e) => {
             e.stopPropagation();
             item.command();

@@ -5,6 +5,7 @@
  */
 
 import type { PageProps, Styles } from "@react-pdf/renderer";
+// react-doctor-disable-next-line prefer-dynamic-import -- this module is the PDF renderer itself; its only consumer (pages/modals/export-page-modal) is where it should be loaded on demand
 import { Document, Font, Page, StyleSheet } from "@react-pdf/renderer";
 import { Html } from "react-pdf-html";
 // assets

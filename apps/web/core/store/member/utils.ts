@@ -66,9 +66,10 @@ export const filterProjectMembersByRole = (
 ): TProjectMembership[] => {
   if (roleFilters.length === 0) return members;
 
+  const roleFilterSet = new Set(roleFilters);
   return members.filter((member) => {
     const memberRole = String(member.role ?? member.original_role ?? "");
-    return roleFilters.includes(memberRole);
+    return roleFilterSet.has(memberRole);
   });
 };
 
@@ -78,14 +79,14 @@ export const filterWorkspaceMembersByRole = <T extends { role: string | EUserPer
 ): T[] => {
   if (roleFilters.length === 0) return members;
 
+  // Check if suspended is in the role filters
+  const hasSuspendedFilter = roleFilters.includes("suspended");
+  // Get non-suspended role filters
+  const activeRoleFilters = new Set(roleFilters.filter((role) => role !== "suspended"));
+
   return members.filter((member) => {
     const memberRole = String(member.role ?? "");
     const isSuspended = member.is_active === false;
-
-    // Check if suspended is in the role filters
-    const hasSuspendedFilter = roleFilters.includes("suspended");
-    // Get non-suspended role filters
-    const activeRoleFilters = roleFilters.filter((role) => role !== "suspended");
 
     // For suspended users, include them only if suspended filter is selected
     if (isSuspended) {
@@ -93,7 +94,7 @@ export const filterWorkspaceMembersByRole = <T extends { role: string | EUserPer
     }
 
     // For active users, include them only if their role matches any active role filter
-    return activeRoleFilters.includes(memberRole);
+    return activeRoleFilters.has(memberRole);
   });
 };
 

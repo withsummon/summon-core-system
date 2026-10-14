@@ -21,7 +21,9 @@ export type InboxIssueSnoozeModalProps = {
 export function InboxIssueSnoozeModal(props: InboxIssueSnoozeModalProps) {
   const { isOpen, handleClose, value, onConfirm } = props;
   // states
-  const [date, setDate] = useState(value || new Date());
+  const [date, setDate] = useState(() => value || new Date());
+  // snoozing is only allowed from the moment the modal mounts onwards
+  const [minDate] = useState(() => new Date());
   //hooks
   const { t } = useTranslation();
 
@@ -46,7 +48,7 @@ export function InboxIssueSnoozeModal(props: InboxIssueSnoozeModalProps) {
           mode="single"
           disabled={[
             {
-              before: new Date(),
+              before: minDate,
             },
           ]}
         />

@@ -47,18 +47,21 @@ export const IssueModuleSelect = observer(function IssueModuleSelect(props: TIss
     const updatedModuleIds = xor(issue.module_ids, moduleIds);
     const modulesToAdd: string[] = [];
     const modulesToRemove: string[] = [];
+    const currentModuleIds = new Set(issue.module_ids);
 
     for (const moduleId of updatedModuleIds) {
-      if (issue.module_ids.includes(moduleId)) {
+      if (currentModuleIds.has(moduleId)) {
         modulesToRemove.push(moduleId);
       } else {
         modulesToAdd.push(moduleId);
       }
     }
 
-    await issueOperations.changeModulesInIssue?.(workspaceSlug, projectId, issueId, modulesToAdd, modulesToRemove);
-
-    setIsUpdating(false);
+    try {
+      await issueOperations.changeModulesInIssue?.(workspaceSlug, projectId, issueId, modulesToAdd, modulesToRemove);
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   return (

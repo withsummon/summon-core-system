@@ -8,6 +8,7 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 import { Clock } from "lucide-react";
 // plane imports
+import type { TNotification } from "@plane/types";
 import { Avatar, Row } from "@plane/ui";
 import { cn, calculateTimeAgo, renderFormattedDate, renderFormattedTime, getFileURL } from "@plane/utils";
 // hooks
@@ -23,6 +24,38 @@ type TNotificationItem = {
   workspaceSlug: string;
   notificationId: string;
 };
+
+function NotificationTriggeredByAvatar({ notification }: { notification: TNotification }) {
+  const triggeredBy = notification.triggered_by_details;
+  if (!triggeredBy) return null;
+  return (
+    <Avatar
+      name={triggeredBy.display_name || triggeredBy?.first_name}
+      src={getFileURL(triggeredBy.avatar_url)}
+      size={42}
+      shape="circle"
+      className="bg-layer-1 text-body-sm-medium"
+    />
+  );
+}
+
+function NotificationTimestamp({ notification }: { notification: TNotification }) {
+  if (notification?.snoozed_till)
+    return (
+      <p className="flex flex-shrink-0 items-center justify-end gap-x-1 text-tertiary">
+        <Clock className="h-4 w-4" />
+        <span>
+          Till {renderFormattedDate(notification.snoozed_till)},&nbsp;
+          {renderFormattedTime(notification.snoozed_till, "12-hour")}
+        </span>
+      </p>
+    );
+  return (
+    <p className="mt-auto flex-shrink-0 text-tertiary">
+      {notification.created_at && calculateTimeAgo(notification.created_at)}
+    </p>
+  );
+}
 
 export const NotificationItem = observer(function NotificationItem(props: TNotificationItem) {
   const { workspaceSlug, notificationId } = props;
@@ -41,7 +74,6 @@ export const NotificationItem = observer(function NotificationItem(props: TNotif
   const workspace = getWorkspaceBySlug(workspaceSlug);
 
   const notificationField = notification?.data?.issue_activity.field || undefined;
-  const notificationTriggeredBy = notification.triggered_by_details || undefined;
 
   const handleNotificationIssuePeekOverview = async () => {
     if (workspaceSlug && projectId && issueId && !isSnoozeStateModalOpen && !customSnoozeModal) {
@@ -85,15 +117,7 @@ export const NotificationItem = observer(function NotificationItem(props: TNotif
 
       <div className="relative flex w-full gap-2">
         <div className="relative flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-layer-1">
-          {notificationTriggeredBy && (
-            <Avatar
-              name={notificationTriggeredBy.display_name || notificationTriggeredBy?.first_name}
-              src={getFileURL(notificationTriggeredBy.avatar_url)}
-              size={42}
-              shape="circle"
-              className="bg-layer-1 text-body-sm-medium"
-            />
-          )}
+          <NotificationTriggeredByAvatar notification={notification} />
         </div>
 
         <div className="-mt-2 w-full space-y-1">
@@ -122,19 +146,7 @@ export const NotificationItem = observer(function NotificationItem(props: TNotif
               {notification?.data?.issue?.name}
             </div>
             <div className="flex-shrink-0">
-              {notification?.snoozed_till ? (
-                <p className="flex flex-shrink-0 items-center justify-end gap-x-1 text-tertiary">
-                  <Clock className="h-4 w-4" />
-                  <span>
-                    Till {renderFormattedDate(notification.snoozed_till)},&nbsp;
-                    {renderFormattedTime(notification.snoozed_till, "12-hour")}
-                  </span>
-                </p>
-              ) : (
-                <p className="mt-auto flex-shrink-0 text-tertiary">
-                  {notification.created_at && calculateTimeAgo(notification.created_at)}
-                </p>
-              )}
+              <NotificationTimestamp notification={notification} />
             </div>
           </div>
         </div>

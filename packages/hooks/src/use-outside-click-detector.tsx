@@ -13,14 +13,12 @@ export const useOutsideClickDetector = (
   useCapture = false,
   enabled = true
 ) => {
-  // Keep the latest callback/useCapture in refs so the document listener binds once per
+  // Keep the latest callback in a ref so the document listener binds once per
   // consumer instead of re-attaching on every render.
   const callbackRef = useRef(callback);
-  const useCaptureRef = useRef(useCapture);
 
   useLayoutEffect(() => {
     callbackRef.current = callback;
-    useCaptureRef.current = useCapture;
   });
 
   useEffect(() => {
@@ -41,10 +39,9 @@ export const useOutsideClickDetector = (
       }
     };
 
-    const capture = useCaptureRef.current;
-    document.addEventListener("mousedown", handleClick, capture);
+    document.addEventListener("mousedown", handleClick, useCapture);
     return () => {
-      document.removeEventListener("mousedown", handleClick, capture);
+      document.removeEventListener("mousedown", handleClick, useCapture);
     };
   }, [ref, enabled, useCapture]);
 };

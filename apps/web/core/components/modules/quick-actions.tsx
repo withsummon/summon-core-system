@@ -6,16 +6,15 @@
 
 import { useState } from "react";
 import { observer } from "mobx-react";
-import { MoreHorizontal } from "lucide-react";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import { IconButton } from "@plane/propel/icon-button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TContextMenuItem } from "@plane/ui";
-import { ContextMenu, CustomMenu } from "@plane/ui";
-import { copyUrlToClipboard, cn } from "@plane/utils";
+import { ContextMenu } from "@plane/ui";
+import { copyUrlToClipboard } from "@plane/utils";
 // components
 import { useModuleMenuItems } from "@/components/common/quick-actions-helper";
+import { QuickActionsMenu } from "@/components/common/quick-actions-menu";
 import { ArchiveModuleModal, CreateUpdateModuleModal, DeleteModuleModal } from "@/components/modules";
 // hooks
 import { useModule } from "@/hooks/store/use-module";
@@ -62,7 +61,7 @@ export const ModuleQuickActions = observer(function ModuleQuickActions(props: Pr
         message: "Module link copied to clipboard.",
       });
     });
-  const handleOpenInNewTab = () => window.open(`/${moduleLink}`, "_blank");
+  const handleOpenInNewTab = () => window.open(`/${moduleLink}`, "_blank", "noopener,noreferrer");
 
   const handleRestoreModule = async () => {
     try {
@@ -134,46 +133,7 @@ export const ModuleQuickActions = observer(function ModuleQuickActions(props: Pr
         </div>
       )}
       <ContextMenu parentRef={parentRef} items={CONTEXT_MENU_ITEMS} />
-      <CustomMenu
-        render={<IconButton variant="tertiary" size="lg" icon={MoreHorizontal} />}
-        placement="bottom-end"
-        closeOnSelect
-        buttonClassName={customClassName}
-      >
-        {MENU_ITEMS.map((item) => {
-          if (item.shouldRender === false) return null;
-          return (
-            <CustomMenu.MenuItem
-              key={item.key}
-              onClick={() => {
-                item.action();
-              }}
-              className={cn(
-                "flex items-center gap-2",
-                {
-                  "text-placeholder": item.disabled,
-                },
-                item.className
-              )}
-              disabled={item.disabled}
-            >
-              {item.icon && <item.icon className={cn("h-3 w-3 flex-shrink-0", item.iconClassName)} />}
-              <div>
-                <h5>{item.title}</h5>
-                {item.description && (
-                  <p
-                    className={cn("whitespace-pre-line text-tertiary", {
-                      "text-placeholder": item.disabled,
-                    })}
-                  >
-                    {item.description}
-                  </p>
-                )}
-              </div>
-            </CustomMenu.MenuItem>
-          );
-        })}
-      </CustomMenu>
+      <QuickActionsMenu items={MENU_ITEMS} customClassName={customClassName} iconClassName="h-3 w-3 flex-shrink-0" />
     </>
   );
 });

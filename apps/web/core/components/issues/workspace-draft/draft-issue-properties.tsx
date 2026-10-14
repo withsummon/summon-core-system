@@ -10,7 +10,7 @@ import { useParams } from "next/navigation";
 // icons
 import { DueDatePropertyIcon, StartDatePropertyIcon } from "@plane/propel/icons";
 // types
-import type { TIssuePriorities, TWorkspaceDraftIssue } from "@plane/types";
+import type { IIssueLabel, TIssuePriorities, TStateGroups, TWorkspaceDraftIssue } from "@plane/types";
 import { getDate, renderFormattedPayloadDate, shouldHighlightIssueDueDate } from "@plane/utils";
 // components
 import { CycleDropdown } from "@/components/dropdowns/cycle";
@@ -37,6 +37,68 @@ export interface IIssueProperties {
     | ((projectId: string | null, issueId: string, data: Partial<TWorkspaceDraftIssue>) => Promise<void>)
     | undefined;
   className: string;
+}
+
+const getDefaultLabelOptions = (labelIds: string[] | undefined, labelMap: Record<string, IIssueLabel>) =>
+  (labelIds ?? []).flatMap((id) => {
+    const label = labelMap[id];
+    return label ? [label] : [];
+  });
+
+type TDraftIssueDatePropertiesProps = {
+  issue: TWorkspaceDraftIssue;
+  stateGroup: TStateGroups | undefined;
+  isMobile: boolean;
+  onStartDateChange: (date: Date | null) => void;
+  onTargetDateChange: (date: Date | null) => void;
+};
+
+function DraftIssueDateProperties(props: TDraftIssueDatePropertiesProps) {
+  const { issue, stateGroup, isMobile, onStartDateChange, onTargetDateChange } = props;
+  const minDate = getDate(issue.start_date);
+  const maxDate = getDate(issue.target_date);
+  const isDueDateHighlighted = shouldHighlightIssueDueDate(issue.target_date || null, stateGroup);
+
+  const handleEventPropagation = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+  };
+
+  return (
+    <>
+      {/* start date */}
+      <div className="h-5" onClick={handleEventPropagation}>
+        <DateDropdown
+          value={issue.start_date ?? null}
+          onChange={onStartDateChange}
+          maxDate={maxDate}
+          placeholder="Start date"
+          icon={<StartDatePropertyIcon className="h-3 w-3 flex-shrink-0" />}
+          buttonVariant={issue.start_date ? "border-with-text" : "border-without-text"}
+          optionsClassName="z-10"
+          renderByDefault={isMobile}
+          showTooltip
+        />
+      </div>
+
+      {/* target/due date */}
+      <div className="h-5" onClick={handleEventPropagation}>
+        <DateDropdown
+          value={issue.target_date ?? null}
+          onChange={onTargetDateChange}
+          minDate={minDate}
+          placeholder="Due date"
+          icon={<DueDatePropertyIcon className="h-3 w-3 flex-shrink-0" />}
+          buttonVariant={issue.target_date ? "border-with-text" : "border-without-text"}
+          buttonClassName={isDueDateHighlighted ? "text-danger-primary" : ""}
+          clearIconClassName="!text-primary"
+          optionsClassName="z-10"
+          renderByDefault={isMobile}
+          showTooltip
+        />
+      </div>
+    </>
+  );
 }
 
 export const DraftIssueProperties = observer(function DraftIssueProperties(props: IIssueProperties) {
@@ -122,17 +184,8 @@ export const DraftIssueProperties = observer(function DraftIssueProperties(props
 
   if (!issue.project_id) return null;
 
-  const defaultLabelOptions =
-    issue?.label_ids?.flatMap((id) => {
-      const label = labelMap[id];
-      return label ? [label] : [];
-    }) || [];
-
-  const minDate = getDate(issue.start_date);
-  minDate?.setDate(minDate.getDate());
-
-  const maxDate = getDate(issue.target_date);
-  maxDate?.setDate(maxDate.getDate());
+  const defaultLabelOptions = getDefaultLabelOptions(issue.label_ids, labelMap);
+  const hasAssignees = (issue.assignee_ids?.length ?? 0) > 0;
 
   const handleEventPropagation = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -158,7 +211,7 @@ export const DraftIssueProperties = observer(function DraftIssueProperties(props
       {/* priority */}
       <div className="h-5" onClick={handleEventPropagation}>
         <PriorityDropdown
-          value={issue?.priority}
+          value={issue.priority}
           onChange={handlePriority}
           buttonVariant="border-without-text"
           buttonClassName="border"
@@ -170,7 +223,7 @@ export const DraftIssueProperties = observer(function DraftIssueProperties(props
       {/* label */}
 
       <IssuePropertyLabels
-        projectId={issue?.project_id || null}
+        projectId={issue.project_id}
         value={issue?.label_ids || null}
         defaultOptions={defaultLabelOptions}
         onChange={handleLabel}
@@ -178,50 +231,24 @@ export const DraftIssueProperties = observer(function DraftIssueProperties(props
         hideDropdownArrow
       />
 
-      {/* start date */}
-      <div className="h-5" onClick={handleEventPropagation}>
-        <DateDropdown
-          value={issue.start_date ?? null}
-          onChange={handleStartDate}
-          maxDate={maxDate}
-          placeholder="Start date"
-          icon={<StartDatePropertyIcon className="h-3 w-3 flex-shrink-0" />}
-          buttonVariant={issue.start_date ? "border-with-text" : "border-without-text"}
-          optionsClassName="z-10"
-          renderByDefault={isMobile}
-          showTooltip
-        />
-      </div>
-
-      {/* target/due date */}
-      <div className="h-5" onClick={handleEventPropagation}>
-        <DateDropdown
-          value={issue?.target_date ?? null}
-          onChange={handleTargetDate}
-          minDate={minDate}
-          placeholder="Due date"
-          icon={<DueDatePropertyIcon className="h-3 w-3 flex-shrink-0" />}
-          buttonVariant={issue.target_date ? "border-with-text" : "border-without-text"}
-          buttonClassName={
-            shouldHighlightIssueDueDate(issue?.target_date || null, stateDetails?.group) ? "text-danger-primary" : ""
-          }
-          clearIconClassName="!text-primary"
-          optionsClassName="z-10"
-          renderByDefault={isMobile}
-          showTooltip
-        />
-      </div>
+      <DraftIssueDateProperties
+        issue={issue}
+        stateGroup={stateDetails?.group}
+        isMobile={isMobile}
+        onStartDateChange={handleStartDate}
+        onTargetDateChange={handleTargetDate}
+      />
 
       {/* assignee */}
       <div className="h-5" onClick={handleEventPropagation}>
         <MemberDropdown
-          projectId={issue?.project_id}
-          value={issue?.assignee_ids}
+          projectId={issue.project_id}
+          value={issue.assignee_ids}
           onChange={handleAssignee}
           multiple
-          buttonVariant={issue.assignee_ids?.length > 0 ? "transparent-without-text" : "border-without-text"}
-          buttonClassName={issue.assignee_ids?.length > 0 ? "hover:bg-transparent px-0" : ""}
-          showTooltip={issue?.assignee_ids?.length === 0}
+          buttonVariant={hasAssignees ? "transparent-without-text" : "border-without-text"}
+          buttonClassName={hasAssignees ? "hover:bg-transparent px-0" : ""}
+          showTooltip={!hasAssignees}
           placeholder="Assignees"
           optionsClassName="z-10"
           tooltipContent=""
@@ -234,8 +261,8 @@ export const DraftIssueProperties = observer(function DraftIssueProperties(props
         <div className="h-5" onClick={handleEventPropagation}>
           <ModuleDropdown
             buttonContainerClassName="truncate max-w-40"
-            projectId={issue?.project_id}
-            value={issue?.module_ids ?? []}
+            projectId={issue.project_id}
+            value={issue.module_ids ?? []}
             onChange={handleModule}
             renderByDefault={isMobile}
             multiple
@@ -251,8 +278,8 @@ export const DraftIssueProperties = observer(function DraftIssueProperties(props
         <div className="h-5" onClick={handleEventPropagation}>
           <CycleDropdown
             buttonContainerClassName="truncate max-w-40"
-            projectId={issue?.project_id}
-            value={issue?.cycle_id || null}
+            projectId={issue.project_id}
+            value={issue.cycle_id || null}
             onChange={handleCycle}
             buttonVariant="border-with-text"
             renderByDefault={isMobile}
@@ -262,7 +289,7 @@ export const DraftIssueProperties = observer(function DraftIssueProperties(props
       )}
 
       {/* estimates */}
-      {issue.project_id && areEstimateEnabledByProjectId(issue.project_id?.toString()) && (
+      {areEstimateEnabledByProjectId(issue.project_id) && (
         <div className="h-5" onClick={handleEventPropagation}>
           <EstimateDropdown
             value={issue.estimate_point ?? undefined}

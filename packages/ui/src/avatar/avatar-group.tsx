@@ -65,8 +65,9 @@ export function AvatarGroup(props: Props) {
 
   return (
     <div className={cn("flex", sizeInfo.spacing)}>
-      {avatarsWithUpdatedProps.map((avatar, index) => (
-        <div key={index} className="rounded-full border border-subtle-1">
+      {avatarsWithUpdatedProps.map((avatar) => (
+        // Children.toArray assigns every element a unique key
+        <div key={avatar.key} className="rounded-full border border-subtle-1">
           {avatar}
         </div>
       ))}

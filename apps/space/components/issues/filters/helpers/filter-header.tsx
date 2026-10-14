@@ -21,6 +21,8 @@ export function FilterHeader({ title, isPreviewEnabled, handleIsPreviewEnabled }
       <button
         type="button"
         className="grid h-5 w-5 shrink-0 place-items-center rounded-sm hover:bg-layer-transparent-hover"
+        aria-label={`${isPreviewEnabled ? "Collapse" : "Expand"} ${title}`}
+        aria-expanded={isPreviewEnabled}
         onClick={handleIsPreviewEnabled}
       >
         {isPreviewEnabled ? <ChevronUpIcon height={14} width={14} /> : <ChevronDownIcon height={14} width={14} />}

@@ -4,30 +4,24 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
-import { draggable, dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
-import { pointerOutsideOfPreview } from "@atlaskit/pragmatic-drag-and-drop/element/pointer-outside-of-preview";
-import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/element/set-custom-native-drag-preview";
-import { attachInstruction, extractInstruction } from "@atlaskit/pragmatic-drag-and-drop-hitbox/tree-item";
+import type { MutableRefObject } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import type { useRouter } from "next/navigation";
-import { createRoot } from "react-dom/client";
 import scrollIntoView from "smooth-scroll-into-view-if-needed";
-import { Settings, Share2, LogOut, MoreHorizontal } from "lucide-react";
 import { CollapsiblePrimitive } from "@plane/propel/collapsible";
 // plane imports
-import { EUserPermissions, EUserPermissionsLevel, MEMBER_TRACKER_ELEMENTS } from "@plane/constants";
+import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useOutsideClickDetector } from "@plane/hooks";
 import { useTranslation } from "@plane/i18n";
 import { Logo } from "@plane/propel/emoji-icon-picker";
-import { LinkIcon, ArchiveIcon, ChevronRightIcon } from "@plane/propel/icons";
+import { ChevronRightIcon } from "@plane/propel/icons";
 import { IconButton } from "@plane/propel/icon-button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
-import { CustomMenu, DropIndicator, DragHandle, ControlLink } from "@plane/ui";
-import type { TProject, TProjectNavigationMode } from "@plane/types";
-import { cn, copyUrlToClipboard, orderJoinedProjects } from "@plane/utils";
+import { DropIndicator, DragHandle, ControlLink } from "@plane/ui";
+import type { TPartialProject, TProjectNavigationMode } from "@plane/types";
+import { cn, copyUrlToClipboard } from "@plane/utils";
 // components
 import { DEFAULT_TAB_KEY, getTabUrl } from "@/components/navigation/tab-navigation-utils";
 import { useTabPreferences } from "@/components/navigation/use-tab-preferences";
@@ -40,8 +34,10 @@ import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // local imports
-import { HIGHLIGHT_CLASS, highlightIssueOnDrop } from "../../issues/issue-layouts/utils";
+import { HIGHLIGHT_CLASS } from "../../issues/issue-layouts/utils";
 import { ProjectNavigation } from "./project-navigation";
+import { ProjectQuickActionsMenu } from "./project-quick-actions-menu";
+import { useMoveJoinedProject, useProjectItemDragAndDrop } from "./use-project-item-drag-and-drop";
 import { useNavigationItems } from "@/components/navigation/use-navigation-items";
 
 // Route state (workspaceSlug, isActive, router) comes from the list, so a navigation
@@ -59,6 +55,88 @@ type Props = {
   renderInExtendedSidebar?: boolean;
 };
 
+type ProjectDragHandleProps = {
+  handleRef: MutableRefObject<HTMLDivElement | null>;
+  isMobile: boolean;
+  isDragging: boolean;
+  isJoined: boolean;
+  isForcedVisible: boolean;
+};
+
+function ProjectDragHandle({ handleRef, isMobile, isDragging, isJoined, isForcedVisible }: ProjectDragHandleProps) {
+  const { t } = useTranslation();
+  return (
+    <Tooltip
+      isMobile={isMobile}
+      tooltipContent={isJoined ? t("drag_to_rearrange") : t("join_the_project_to_rearrange")}
+      position="top-end"
+      disabled={isDragging}
+    >
+      <div
+        className={cn(
+          "absolute top-1/2 -left-3 hidden -translate-y-1/2 cursor-grab items-center justify-center rounded-sm text-placeholder group-hover/project-item:flex",
+          {
+            "cursor-not-allowed opacity-60": !isJoined,
+            "cursor-grabbing": isDragging,
+            flex: isForcedVisible,
+          }
+        )}
+        ref={handleRef}
+      >
+        <DragHandle className="bg-transparent" />
+      </div>
+    </Tooltip>
+  );
+}
+
+/**
+ * True from the first time `isOpen` is true. The row's modals read router params, so they mount on first open
+ * and then stay (keeping the close animation) rather than re-rendering in every closed row on each navigation.
+ */
+function useHasOpened(isOpen: boolean) {
+  const [hasOpened, setHasOpened] = useState(false);
+  if (isOpen && !hasOpened) setHasOpened(true);
+  return hasOpened;
+}
+
+/** URL of the project's preferred default tab, falling back when that tab isn't available. */
+function useDefaultTabUrl(
+  workspaceSlug: string,
+  projectId: string,
+  project: TPartialProject | undefined,
+  allowPermissions: ReturnType<typeof useUserPermissions>["allowPermissions"]
+) {
+  const navigationItems = useNavigationItems({ workspaceSlug, projectId, project, allowPermissions });
+  const { tabPreferences } = useTabPreferences(workspaceSlug, projectId);
+  const defaultTabKey = tabPreferences.defaultTab;
+  const tabKey = navigationItems.some((item) => item.key === defaultTabKey) ? defaultTabKey : DEFAULT_TAB_KEY;
+  return project ? getTabUrl(workspaceSlug, project.id, tabKey) : "";
+}
+
+/** Opens the active project's navigation and scrolls it into view. */
+function useOpenAndScrollToActiveProject(
+  projectRef: MutableRefObject<HTMLDivElement | null>,
+  isActive: boolean,
+  setIsProjectListOpen: (value: boolean) => void
+) {
+  useEffect(() => {
+    if (!isActive) return;
+    setIsProjectListOpen(true);
+    if (!projectRef.current) return;
+    // Scroll to active project
+    const timeoutId = setTimeout(() => {
+      if (projectRef.current) {
+        scrollIntoView(projectRef.current, {
+          behavior: "smooth",
+          block: "center",
+          scrollMode: "if-needed",
+        });
+      }
+    }, 200);
+    return () => clearTimeout(timeoutId);
+  }, [isActive, projectRef, setIsProjectListOpen]);
+}
+
 export const SidebarProjectsListItem = observer(function SidebarProjectsListItem(props: Props) {
   const {
     projectId,
@@ -74,8 +152,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
   } = props;
   // store hooks
   const { t } = useTranslation();
-  const projectStore = useProject();
-  const { getPartialProjectById } = projectStore;
+  const { getPartialProjectById } = useProject();
   const { isMobile } = usePlatformOS();
   const { allowPermissions } = useUserPermissions();
   const { getIsProjectListOpen, toggleProjectListOpen } = useCommandPalette();
@@ -84,35 +161,25 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
   // states
   const [leaveProjectModalOpen, setLeaveProjectModal] = useState(false);
   const [publishModalOpen, setPublishModal] = useState(false);
-  // The modals read router params, so they mount on first open and then stay (keeping the close animation)
-  // rather than re-rendering in every closed row on each navigation.
-  const [hasOpenedModal, setHasOpenedModal] = useState(false);
-  if ((publishModalOpen || leaveProjectModalOpen) && !hasOpenedModal) setHasOpenedModal(true);
+  const hasOpenedModal = useHasOpened(publishModalOpen || leaveProjectModalOpen);
   const [isMenuActive, setIsMenuActive] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const isProjectListOpen = getIsProjectListOpen(projectId);
-  const [instruction, setInstruction] = useState<"DRAG_OVER" | "DRAG_BELOW" | undefined>(undefined);
-  // refs
-  const projectRef = useRef<HTMLDivElement | null>(null);
-  const dragHandleRef = useRef<HTMLDivElement | null>(null);
   // derived values
   const project = getPartialProjectById(projectId);
 
-  // Get available navigation items for this project
-  const navigationItems = useNavigationItems({
-    workspaceSlug,
+  const moveProject = useMoveJoinedProject(workspaceSlug);
+  // drag and drop
+  const { projectRef, dragHandleRef, isDragging, instruction } = useProjectItemDragAndDrop({
     projectId,
     project,
-    allowPermissions,
+    disableDrag,
+    disableDrop,
+    isLastChild,
+    projectListType,
+    handleOnProjectDrop: moveProject,
   });
-  const availableTabKeys = navigationItems.map((item) => item.key);
 
-  // Get preferences from hook
-  const { tabPreferences } = useTabPreferences(workspaceSlug, projectId);
-  const defaultTabKey = tabPreferences.defaultTab;
-  // Validate that the default tab is available
-  const validatedDefaultTabKey = availableTabKeys.includes(defaultTabKey) ? defaultTabKey : DEFAULT_TAB_KEY;
-  const defaultTabUrl = project ? getTabUrl(workspaceSlug, project.id, validatedDefaultTabKey) : "";
+  const defaultTabUrl = useDefaultTabUrl(workspaceSlug, projectId, project, allowPermissions);
 
   // toggle project list open
   const setIsProjectListOpen = useCallback(
@@ -142,121 +209,6 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
     setLeaveProjectModal(true);
   };
 
-  // Reads the store at drop time, so the drag handlers registered below never hold a stale project order.
-  const moveProject = (sourceId: string, destinationId: string, shouldDropAtEnd: boolean) => {
-    const { joinedProjectIds } = projectStore;
-    const joinedProjectsList = joinedProjectIds
-      .map((id) => getPartialProjectById(id))
-      .filter((joinedProject): joinedProject is TProject => !!joinedProject);
-    if (joinedProjectsList.length <= 0) return;
-
-    const sourceIndex = joinedProjectIds.indexOf(sourceId);
-    const destinationIndex = shouldDropAtEnd ? joinedProjectIds.length : joinedProjectIds.indexOf(destinationId);
-    const updatedSortOrder = orderJoinedProjects(sourceIndex, destinationIndex, sourceId, joinedProjectsList);
-    if (updatedSortOrder != undefined)
-      projectStore.updateProjectView(workspaceSlug, sourceId, { sort_order: updatedSortOrder }).catch(() => {
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: t("error"),
-          message: t("something_went_wrong"),
-        });
-      });
-  };
-
-  useEffect(() => {
-    const element = projectRef.current;
-    const dragHandleElement = dragHandleRef.current;
-
-    if (!element) return;
-
-    return combine(
-      draggable({
-        element,
-        canDrag: () => !disableDrag,
-        dragHandle: dragHandleElement ?? undefined,
-        getInitialData: () => ({ id: projectId, dragInstanceId: "PROJECTS" }),
-        onDragStart: () => {
-          setIsDragging(true);
-        },
-        onDrop: () => {
-          setIsDragging(false);
-        },
-        onGenerateDragPreview: ({ nativeSetDragImage }) => {
-          // Add a custom drag image
-          setCustomNativeDragPreview({
-            getOffset: pointerOutsideOfPreview({ x: "0px", y: "0px" }),
-            render: ({ container }) => {
-              const root = createRoot(container);
-              root.render(
-                <div className="flex items-center rounded-sm bg-surface-1 p-1 pr-2 text-13">
-                  <div className="grid size-4 flex-shrink-0 place-items-center">
-                    {project && <Logo logo={project?.logo_props} />}
-                  </div>
-                  <p className="truncate text-secondary" title={project?.name}>
-                    {project?.name}
-                  </p>
-                </div>
-              );
-              return () => root.unmount();
-            },
-            nativeSetDragImage,
-          });
-        },
-      }),
-      dropTargetForElements({
-        element,
-        canDrop: ({ source }) =>
-          !disableDrop && source?.data?.id !== projectId && source?.data?.dragInstanceId === "PROJECTS",
-        // oxlint-disable-next-line no-shadow
-        getData: ({ input, element }) => {
-          const data = { id: projectId };
-
-          // attach instruction for last in list
-          return attachInstruction(data, {
-            input,
-            element,
-            currentLevel: 0,
-            indentPerLevel: 0,
-            mode: isLastChild ? "last-in-group" : "standard",
-          });
-        },
-        onDrag: ({ self }) => {
-          const extractedInstruction = extractInstruction(self?.data)?.type;
-          // check if the highlight is to be shown above or below
-          setInstruction(
-            extractedInstruction
-              ? extractedInstruction === "reorder-below" && isLastChild
-                ? "DRAG_BELOW"
-                : "DRAG_OVER"
-              : undefined
-          );
-        },
-        onDragLeave: () => {
-          setInstruction(undefined);
-        },
-        onDrop: ({ self, source }) => {
-          setInstruction(undefined);
-          const extractedInstruction = extractInstruction(self?.data)?.type;
-          const currentInstruction = extractedInstruction
-            ? extractedInstruction === "reorder-below" && isLastChild
-              ? "DRAG_BELOW"
-              : "DRAG_OVER"
-            : undefined;
-          if (!currentInstruction) return;
-
-          const sourceId = source?.data?.id as string | undefined;
-          const destinationId = self?.data?.id as string | undefined;
-
-          if (sourceId && destinationId && sourceId !== destinationId)
-            moveProject(sourceId, destinationId, currentInstruction === "DRAG_BELOW");
-
-          highlightIssueOnDrop(`sidebar-${sourceId}-${projectListType}`);
-        },
-      })
-    );
-    // oxlint-disable-next-line eslint-plugin-react-hooks/exhaustive-deps
-  }, [projectId, isLastChild, projectListType]);
-
   useEffect(() => {
     if (isMenuActive) toggleAnySidebarDropdown(true);
     else toggleAnySidebarDropdown(false);
@@ -264,31 +216,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
 
   useOutsideClickDetector(projectRef, () => projectRef?.current?.classList?.remove(HIGHLIGHT_CLASS));
 
-  useEffect(() => {
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
-
-    if (isActive) {
-      setIsProjectListOpen(true);
-      // Scroll to active project
-      if (projectRef.current) {
-        timeoutId = setTimeout(() => {
-          if (projectRef.current) {
-            scrollIntoView(projectRef.current, {
-              behavior: "smooth",
-              block: "center",
-              scrollMode: "if-needed",
-            });
-          }
-        }, 200);
-      }
-    }
-
-    return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
-  }, [isActive, setIsProjectListOpen]);
+  useOpenAndScrollToActiveProject(projectRef, isActive, setIsProjectListOpen);
 
   if (!project) return null;
 
@@ -340,28 +268,13 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
             id={`${project?.id}`}
           >
             {!disableDrag && (
-              <Tooltip
+              <ProjectDragHandle
+                handleRef={dragHandleRef}
                 isMobile={isMobile}
-                tooltipContent={
-                  project.sort_order === null ? t("join_the_project_to_rearrange") : t("drag_to_rearrange")
-                }
-                position="top-end"
-                disabled={isDragging}
-              >
-                <div
-                  className={cn(
-                    "absolute top-1/2 -left-3 hidden -translate-y-1/2 cursor-grab items-center justify-center rounded-sm text-placeholder group-hover/project-item:flex",
-                    {
-                      "cursor-not-allowed opacity-60": project.sort_order === null,
-                      "cursor-grabbing": isDragging,
-                      flex: isMenuActive || renderInExtendedSidebar,
-                    }
-                  )}
-                  ref={dragHandleRef}
-                >
-                  <DragHandle className="bg-transparent" />
-                </div>
-              </Tooltip>
+                isDragging={isDragging}
+                isJoined={project.sort_order !== null}
+                isForcedVisible={isMenuActive || renderInExtendedSidebar}
+              />
             )}
             <>
               {isAccordionMode ? (
@@ -394,90 +307,17 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                 </ControlLink>
               )}
               <div className="flex items-center gap-1">
-                <CustomMenu
-                  customButton={<MoreHorizontal className="size-4 text-placeholder" aria-hidden="true" />}
-                  className={cn(
-                    "pointer-events-none flex-shrink-0 opacity-0 group-hover/project-item:pointer-events-auto group-hover/project-item:opacity-100",
-                    {
-                      "pointer-events-auto opacity-100": isMenuActive,
-                    }
-                  )}
-                  customButtonClassName="grid place-items-center"
-                  placement="bottom-start"
-                  ariaLabel={t("aria_labels.projects_sidebar.toggle_quick_actions_menu")}
-                  menuButtonOnClick={() => setIsMenuActive(!isMenuActive)}
-                  useCaptureForOutsideClick
-                  closeOnSelect
-                  onMenuClose={() => setIsMenuActive(false)}
-                >
-                  {/* TODO: Removed is_favorite logic due to the optimization in projects API */}
-                  {/* {isAuthorized && (
-                    <CustomMenu.MenuItem
-                      onClick={project.is_favorite ? handleRemoveFromFavorites : handleAddToFavorites}
-                    >
-                      <span className="flex items-center justify-start gap-2">
-                        <Star
-                          className={cn("h-3.5 w-3.5 ", {
-                            "fill-label-yellow-icon stroke-label-yellow-icon": project.is_favorite,
-                          })}
-                        />
-                        <span>{project.is_favorite ? t("remove_from_favorites") : t("add_to_favorites")}</span>
-                      </span>
-                    </CustomMenu.MenuItem>
-                  )} */}
-
-                  {/* publish project settings */}
-                  {isAdmin && (
-                    <CustomMenu.MenuItem onClick={() => setPublishModal(true)}>
-                      <div className="relative flex flex-shrink-0 items-center justify-start gap-2">
-                        <div className="flex h-4 w-4 cursor-pointer items-center justify-center rounded-sm text-secondary transition-colors duration-300 hover:bg-layer-1">
-                          <Share2 className="h-3.5 w-3.5 stroke-[1.5]" />
-                        </div>
-                        <div>{t("publish_project")}</div>
-                      </div>
-                    </CustomMenu.MenuItem>
-                  )}
-                  <CustomMenu.MenuItem onClick={handleCopyText}>
-                    <span className="flex items-center justify-start gap-2">
-                      <LinkIcon className="h-3.5 w-3.5 stroke-[1.5]" />
-                      <span>{t("copy_link")}</span>
-                    </span>
-                  </CustomMenu.MenuItem>
-                  {isAuthorized && (
-                    <CustomMenu.MenuItem
-                      onClick={() => {
-                        router.push(`/${workspaceSlug}/projects/${project?.id}/archives/issues`);
-                      }}
-                    >
-                      <div className="flex cursor-pointer items-center justify-start gap-2">
-                        <ArchiveIcon className="h-3.5 w-3.5 stroke-[1.5]" />
-                        <span>{t("archives")}</span>
-                      </div>
-                    </CustomMenu.MenuItem>
-                  )}
-                  <CustomMenu.MenuItem
-                    onClick={() => {
-                      router.push(`/${workspaceSlug}/settings/projects/${project?.id}`);
-                    }}
-                  >
-                    <div className="flex cursor-pointer items-center justify-start gap-2">
-                      <Settings className="h-3.5 w-3.5 stroke-[1.5]" />
-                      <span>{t("settings")}</span>
-                    </div>
-                  </CustomMenu.MenuItem>
-                  {/* leave project */}
-                  {!isAuthorized && (
-                    <CustomMenu.MenuItem
-                      onClick={handleLeaveProject}
-                      data-ph-element={MEMBER_TRACKER_ELEMENTS.SIDEBAR_PROJECT_QUICK_ACTIONS}
-                    >
-                      <div className="flex items-center justify-start gap-2">
-                        <LogOut className="h-3.5 w-3.5 stroke-[1.5]" />
-                        <span>{t("leave_project")}</span>
-                      </div>
-                    </CustomMenu.MenuItem>
-                  )}
-                </CustomMenu>
+                <ProjectQuickActionsMenu
+                  workspaceSlug={workspaceSlug}
+                  projectId={project.id}
+                  isAdmin={isAdmin}
+                  isAuthorized={isAuthorized}
+                  isMenuActive={isMenuActive}
+                  setIsMenuActive={setIsMenuActive}
+                  handleCopyText={handleCopyText}
+                  onPublish={() => setPublishModal(true)}
+                  onLeave={handleLeaveProject}
+                />
                 {isAccordionMode && (
                   <IconButton
                     variant="ghost"

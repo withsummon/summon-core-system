@@ -14,6 +14,7 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TIssue, ISearchIssueResponse, TIssueKanbanFilters, TIssueGroupByOptions } from "@plane/types";
 // ui
 import { CustomMenu } from "@plane/ui";
+import { cn } from "@plane/utils";
 // components
 import { ExistingIssuesListModal } from "@/components/core/modals/existing-issues-list-modal";
 import { CreateUpdateIssueModal } from "@/components/issues/issue-modal/modal";
@@ -108,28 +109,33 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
         />
       )}
       <div
-        className={`relative flex flex-shrink-0 gap-1 py-1.5 ${
-          verticalAlignPosition ? `w-[44px] flex-col items-center` : `w-full flex-row items-center`
-        }`}
+        className={cn("relative flex flex-shrink-0 items-center gap-1 py-1.5", {
+          "w-[44px] flex-col": verticalAlignPosition,
+          "w-full flex-row": !verticalAlignPosition,
+        })}
       >
         <div className="flex size-5 flex-shrink-0 items-center justify-center overflow-hidden rounded-xs">
           {icon ? icon : <Circle width={14} strokeWidth={2} />}
         </div>
 
         <div
-          className={`relative flex gap-1 ${
-            verticalAlignPosition ? `flex-col items-center` : `w-full flex-row items-baseline overflow-hidden`
-          }`}
+          className={cn("relative flex gap-1", {
+            "flex-col items-center": verticalAlignPosition,
+            "w-full flex-row items-baseline overflow-hidden": !verticalAlignPosition,
+          })}
         >
           <div
-            className={`line-clamp-1 inline-block truncate overflow-hidden font-medium text-primary ${
-              verticalAlignPosition ? `max-h-[400px] vertical-lr` : ``
-            }`}
+            className={cn("line-clamp-1 inline-block truncate overflow-hidden font-medium text-primary", {
+              "max-h-[400px] vertical-lr": verticalAlignPosition,
+            })}
           >
             {title}
           </div>
           <div
-            className={`flex-shrink-0 text-13 font-medium text-tertiary ${verticalAlignPosition ? `pr-0.5` : `pl-2`}`}
+            className={cn("flex-shrink-0 text-13 font-medium text-tertiary", {
+              "pr-0.5": verticalAlignPosition,
+              "pl-2": !verticalAlignPosition,
+            })}
           >
             {count || 0}
           </div>

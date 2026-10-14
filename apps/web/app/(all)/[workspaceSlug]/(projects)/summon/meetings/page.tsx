@@ -30,11 +30,11 @@ import { DatePicker } from "@plane/propel/date-picker";
 import { renderFormattedDate, renderFormattedTime } from "@plane/utils";
 
 /** "Thu 15 Oct · 14:00 WIB"; the year appears only outside the current one. en-ID names Indonesian zones (WIB/WITA/WIT). */
+const TIME_ZONE_NAME_FORMATTER = new Intl.DateTimeFormat("en-ID", { timeZoneName: "short" });
+
 const meetingTime = (value: string) => {
   const date = new Date(value);
-  const zone = new Intl.DateTimeFormat("en-ID", { timeZoneName: "short" })
-    .formatToParts(date)
-    .find((part) => part.type === "timeZoneName")?.value;
+  const zone = TIME_ZONE_NAME_FORMATTER.formatToParts(date).find((part) => part.type === "timeZoneName")?.value;
   const day = renderFormattedDate(
     date,
     date.getFullYear() === new Date().getFullYear() ? "EEE d MMM" : "EEE d MMM yyyy"

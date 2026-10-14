@@ -43,11 +43,13 @@ export const BaseKanbanLayout = observer(function BaseKanbanLayout<T extends IBa
         }
   );
 
+  const collapsedGroupIds = new Set(collapsedGroups);
+
   return (
     <div ref={containerRef} className={cn("relative flex h-full w-full gap-2 overflow-x-auto p-3", className)}>
       {groups.map((group) => {
         const itemIds = groupedItemIds[group.id] || [];
-        const isCollapsed = collapsedGroups.includes(group.id);
+        const isCollapsed = collapsedGroupIds.has(group.id);
 
         if (!showEmptyGroups && itemIds.length === 0) return null;
 

@@ -34,6 +34,26 @@ type Props = {
   isEpic?: boolean;
 };
 
+const getVisibleSections = (
+  layoutDisplayFiltersOptions: ILayoutDisplayFiltersOptions | undefined,
+  displayFilters: IIssueDisplayFilterOptions | undefined
+) => {
+  const enabledDisplayFilters = new Set(Object.keys(layoutDisplayFiltersOptions?.display_filters ?? {}));
+  return {
+    displayProperties: (layoutDisplayFiltersOptions?.display_properties?.length ?? 0) > 0,
+    groupBy: enabledDisplayFilters.has("group_by"),
+    subGroupBy:
+      enabledDisplayFilters.has("sub_group_by") &&
+      displayFilters?.group_by !== null &&
+      displayFilters?.layout === "kanban",
+    orderBy: enabledDisplayFilters.has("order_by") && !isEmpty(layoutDisplayFiltersOptions?.display_filters?.order_by),
+    extraOptions: Boolean(layoutDisplayFiltersOptions?.extra_options.access),
+    groupByOptions: layoutDisplayFiltersOptions?.display_filters.group_by ?? [],
+    subGroupByOptions: layoutDisplayFiltersOptions?.display_filters.sub_group_by ?? [],
+    orderByOptions: layoutDisplayFiltersOptions?.display_filters.order_by ?? [],
+  };
+};
+
 export const DisplayFiltersSelection = observer(function DisplayFiltersSelection(props: Props) {
   const {
     displayFilters,
@@ -47,21 +67,17 @@ export const DisplayFiltersSelection = observer(function DisplayFiltersSelection
     isEpic = false,
   } = props;
 
-  const isDisplayFilterEnabled = (displayFilter: keyof IIssueDisplayFilterOptions) =>
-    Object.keys(layoutDisplayFiltersOptions?.display_filters ?? {}).includes(displayFilter);
+  const visibleSections = getVisibleSections(layoutDisplayFiltersOptions, displayFilters);
+  const { groupByOptions, subGroupByOptions, orderByOptions } = visibleSections;
 
-  const computedIgnoreGroupedFilters: Partial<TIssueGroupByOptions>[] = [];
-  if (cycleViewDisabled) {
-    ignoreGroupedFilters.push("cycle");
-  }
-  if (moduleViewDisabled) {
-    ignoreGroupedFilters.push("module");
-  }
+  const computedIgnoreGroupedFilters: Partial<TIssueGroupByOptions>[] = [...ignoreGroupedFilters];
+  if (cycleViewDisabled) computedIgnoreGroupedFilters.push("cycle");
+  if (moduleViewDisabled) computedIgnoreGroupedFilters.push("module");
 
   return (
     <div className="vertical-scrollbar relative scrollbar-sm h-full w-full divide-y divide-subtle-1 overflow-hidden overflow-y-auto px-2.5">
       {/* display properties */}
-      {layoutDisplayFiltersOptions?.display_properties && layoutDisplayFiltersOptions.display_properties.length > 0 && (
+      {visibleSections.displayProperties && layoutDisplayFiltersOptions && (
         <div className="py-2">
           <FilterDisplayProperties
             displayProperties={displayProperties}
@@ -75,41 +91,39 @@ export const DisplayFiltersSelection = observer(function DisplayFiltersSelection
       )}
 
       {/* group by */}
-      {isDisplayFilterEnabled("group_by") && (
+      {visibleSections.groupBy && (
         <div className="py-2">
           <FilterGroupBy
             displayFilters={displayFilters}
-            groupByOptions={layoutDisplayFiltersOptions?.display_filters.group_by ?? []}
+            groupByOptions={groupByOptions}
             handleUpdate={(val) =>
               handleDisplayFiltersUpdate({
                 group_by: val,
               })
             }
-            ignoreGroupedFilters={[...ignoreGroupedFilters, ...computedIgnoreGroupedFilters]}
+            ignoreGroupedFilters={computedIgnoreGroupedFilters}
           />
         </div>
       )}
 
       {/* sub-group by */}
-      {isDisplayFilterEnabled("sub_group_by") &&
-        displayFilters?.group_by !== null &&
-        displayFilters?.layout === "kanban" && (
-          <div className="py-2">
-            <FilterSubGroupBy
-              displayFilters={displayFilters}
-              handleUpdate={(val) =>
-                handleDisplayFiltersUpdate({
-                  sub_group_by: val,
-                })
-              }
-              subGroupByOptions={layoutDisplayFiltersOptions?.display_filters.sub_group_by ?? []}
-              ignoreGroupedFilters={[...ignoreGroupedFilters, ...computedIgnoreGroupedFilters]}
-            />
-          </div>
-        )}
+      {visibleSections.subGroupBy && displayFilters && (
+        <div className="py-2">
+          <FilterSubGroupBy
+            displayFilters={displayFilters}
+            handleUpdate={(val) =>
+              handleDisplayFiltersUpdate({
+                sub_group_by: val,
+              })
+            }
+            subGroupByOptions={subGroupByOptions}
+            ignoreGroupedFilters={computedIgnoreGroupedFilters}
+          />
+        </div>
+      )}
 
       {/* order by */}
-      {isDisplayFilterEnabled("order_by") && !isEmpty(layoutDisplayFiltersOptions?.display_filters?.order_by) && (
+      {visibleSections.orderBy && (
         <div className="py-2">
           <FilterOrderBy
             selectedOrderBy={displayFilters?.order_by}
@@ -118,13 +132,13 @@ export const DisplayFiltersSelection = observer(function DisplayFiltersSelection
                 order_by: val,
               })
             }
-            orderByOptions={layoutDisplayFiltersOptions?.display_filters.order_by ?? []}
+            orderByOptions={orderByOptions}
           />
         </div>
       )}
 
       {/* Options */}
-      {layoutDisplayFiltersOptions?.extra_options.access && (
+      {visibleSections.extraOptions && layoutDisplayFiltersOptions && (
         <div className="py-2">
           <FilterExtraOptions
             selectedExtraOptions={{
@@ -136,7 +150,7 @@ export const DisplayFiltersSelection = observer(function DisplayFiltersSelection
                 [key]: val,
               })
             }
-            enabledExtraOptions={layoutDisplayFiltersOptions?.extra_options.values}
+            enabledExtraOptions={layoutDisplayFiltersOptions.extra_options.values}
           />
         </div>
       )}

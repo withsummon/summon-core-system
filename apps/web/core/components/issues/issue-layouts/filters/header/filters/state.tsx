@@ -31,6 +31,8 @@ export const FilterState = observer(function FilterState(props: Props) {
 
   const appliedFiltersCount = appliedFilters?.length ?? 0;
 
+  const appliedFilterSet = new Set(appliedFilters);
+
   const sortedOptions = useMemo(() => {
     const filteredOptions = (states ?? []).filter((s) => s.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
@@ -60,7 +62,7 @@ export const FilterState = observer(function FilterState(props: Props) {
                 {sortedOptions.slice(0, itemsToRender).map((state) => (
                   <FilterOption
                     key={state.id}
-                    isChecked={appliedFilters?.includes(state.id) ? true : false}
+                    isChecked={appliedFilterSet.has(state.id)}
                     onClick={() => handleUpdate(state.id)}
                     icon={
                       <StateGroupIcon

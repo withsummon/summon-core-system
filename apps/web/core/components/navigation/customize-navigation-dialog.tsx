@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useId, useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { GripVertical, X } from "lucide-react";
@@ -72,7 +72,8 @@ export const CustomizeNavigationDialog = observer(function CustomizeNavigationDi
   } = useWorkspaceNavigationPreferences();
 
   // local state for limited projects count input
-  const [projectCountInput, setProjectCountInput] = useState(projectPreferences.limitedProjectsCount.toString());
+  const [projectCountInput, setProjectCountInput] = useState(() => projectPreferences.limitedProjectsCount.toString());
+  const projectCountInputId = useId();
 
   // Filter personal items by feature flags
   const filteredPersonalItems = PERSONAL_ITEMS;
@@ -215,16 +216,14 @@ export const CustomizeNavigationDialog = observer(function CustomizeNavigationDi
                 render={(item) => (
                   <div className="flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors duration-200 hover:bg-surface-2">
                     <GripVertical className="size-4 cursor-grab text-placeholder transition-colors active:cursor-grabbing" />
-                    <Checkbox
-                      checked={!!personalPreferences.items[item.key]?.enabled}
-                      onCheckedChange={(checked) => togglePersonalItem(item.key, checked)}
-                    />
-                    <div className="flex flex-1 items-center gap-2">
+                    <label className="flex flex-1 cursor-pointer items-center gap-2">
+                      <Checkbox
+                        checked={!!personalPreferences.items[item.key]?.enabled}
+                        onCheckedChange={(checked) => togglePersonalItem(item.key, checked)}
+                      />
                       {getSidebarNavigationItemIcon(item.key)}
-                      <label className="flex-1 cursor-pointer text-13 text-primary">
-                        {t(item.labelTranslationKey)}
-                      </label>
-                    </div>
+                      <span className="flex-1 text-13 text-primary">{t(item.labelTranslationKey)}</span>
+                    </label>
                   </div>
                 )}
               />
@@ -320,8 +319,11 @@ export const CustomizeNavigationDialog = observer(function CustomizeNavigationDi
                     <div className="pl-8">
                       <div className="flex w-full flex-col gap-1">
                         <div className="flex w-full flex-col gap-2 pb-1.5">
-                          <label className="w-full text-11 text-secondary">{t("enter_number_of_projects")}</label>
+                          <label htmlFor={projectCountInputId} className="w-full text-11 text-secondary">
+                            {t("enter_number_of_projects")}
+                          </label>
                           <input
+                            id={projectCountInputId}
                             type="number"
                             min="1"
                             step="1"

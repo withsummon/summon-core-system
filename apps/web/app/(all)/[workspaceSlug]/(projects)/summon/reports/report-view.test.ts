@@ -43,7 +43,10 @@ test("report filters round-trip through the URL and request key", () => {
 
 test("report and CSV use the same filters without client-side money conversion or chart packages", () => {
   const page = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
-  const view = readFileSync(new URL("./report-view.tsx", import.meta.url), "utf8");
+  // The view composes its panels from report-panels.tsx; check them as one surface.
+  const view = ["./report-view.tsx", "./report-panels.tsx"]
+    .map((file) => readFileSync(new URL(file, import.meta.url), "utf8"))
+    .join("\n");
   const visuals = readFileSync(new URL("./report-visuals.tsx", import.meta.url), "utf8");
   const charts = readFileSync(new URL("./report-charts.tsx", import.meta.url), "utf8");
   const implementation = `${page}\n${view}\n${visuals}\n${charts}`;

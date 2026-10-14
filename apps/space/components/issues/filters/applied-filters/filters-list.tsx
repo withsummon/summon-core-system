@@ -57,6 +57,7 @@ export const AppliedFiltersList = observer(function AppliedFiltersList(props: Pr
               <button
                 type="button"
                 className="grid place-items-center text-tertiary hover:text-secondary"
+                aria-label={`Remove ${replaceUnderscoreIfSnakeCase(filterKey)} filter`}
                 onClick={() => handleRemoveFilter(filterKey, null)}
               >
                 <CloseIcon height={12} width={12} strokeWidth={2} />

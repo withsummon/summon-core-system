@@ -30,7 +30,7 @@ type TStatusPresentation = { icon: Icon; variant: TBadgeVariant };
 /*
  * Status vocabularies the Summon API returns: Plane state groups, opportunity stages
  * (TSummonOpportunityStage), project health / delivery status (SummonProjectProfile) and
- * meeting status (ISummonMeeting).
+ * meeting status (ISummonMeeting) and credential status (ISummonCredential).
  */
 const STATUS_PRESENTATION: Record<string, TStatusPresentation> = {
   backlog: { icon: CircleDashedIcon, variant: "neutral" },
@@ -55,6 +55,7 @@ const STATUS_PRESENTATION: Record<string, TStatusPresentation> = {
   pending: { icon: ClockIcon, variant: "warning" },
   confirmed: { icon: CircleHalfIcon, variant: "brand" },
   failed: { icon: WarningCircleIcon, variant: "danger" },
+  revoked: { icon: XCircleIcon, variant: "danger" },
 };
 
 /**

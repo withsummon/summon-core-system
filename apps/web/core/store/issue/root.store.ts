@@ -6,6 +6,7 @@
 
 import { isEmpty } from "lodash-es";
 import { autorun, makeObservable, observable } from "mobx";
+import type { IReactionDisposer } from "mobx";
 // types
 import type { ICycle, IIssueLabel, IModule, IProject, IState, IUserLite, TIssueServiceType } from "@plane/types";
 import { EIssueServiceType } from "@plane/types";
@@ -130,6 +131,8 @@ export class IssueRootStore implements IIssueRootStore {
 
   rootStore: RootStore;
   serviceType: TIssueServiceType;
+  /** Stops syncing router and lookup maps into this store. */
+  disposeRouterSync: IReactionDisposer;
 
   issues: IIssueStore;
 
@@ -199,7 +202,7 @@ export class IssueRootStore implements IIssueRootStore {
     this.serviceType = serviceType;
     this.rootStore = rootStore;
 
-    autorun(() => {
+    this.disposeRouterSync = autorun(() => {
       if (rootStore?.user?.data?.id) this.currentUserId = rootStore?.user?.data?.id;
       if (this.workspaceSlug !== rootStore.router.workspaceSlug) this.workspaceSlug = rootStore.router.workspaceSlug;
       if (this.teamspaceId !== rootStore.router.teamspaceId) this.teamspaceId = rootStore.router.teamspaceId;

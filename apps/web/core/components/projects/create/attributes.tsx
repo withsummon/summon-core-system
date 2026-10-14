@@ -14,6 +14,7 @@ import { getTabIndex } from "@plane/utils";
 // components
 import { MemberDropdown } from "@/components/dropdowns/member/dropdown";
 import { ProjectNetworkIcon } from "@/components/project/project-network-icon";
+import { ProjectNetworkOptions } from "@/components/project/project-network-options";
 
 type Props = {
   isMobile?: boolean;
@@ -55,17 +56,7 @@ function ProjectAttributes(props: Props) {
                 noChevron
                 tabIndex={getIndex("network")}
               >
-                {NETWORK_CHOICES.map((network) => (
-                  <CustomSelect.Option key={network.key} value={network.key}>
-                    <div className="flex items-start gap-2">
-                      <ProjectNetworkIcon iconKey={network.iconKey} className="h-3.5 w-3.5" />
-                      <div className="-mt-1">
-                        <p>{t(network.i18n_label)}</p>
-                        <p className="text-11 text-placeholder">{t(network.description)}</p>
-                      </div>
-                    </div>
-                  </CustomSelect.Option>
-                ))}
+                <ProjectNetworkOptions />
               </CustomSelect>
             </div>
           );

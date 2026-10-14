@@ -33,10 +33,23 @@ function ImageFullScreenModalWithoutPortal(props: Props) {
   const dragOffset = useRef({ x: 0, y: 0 });
 
   const [magnification, setMagnification] = useState<number>(1);
+  // mirrors `magnification` so rapid wheel/key events build on the latest value without an impure state updater
+  const magnificationRef = useRef(1);
   const [initialMagnification, setInitialMagnification] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
+
+  const updateMagnification = useCallback((nextMagnification: number) => {
+    magnificationRef.current = nextMagnification;
+    setMagnification(nextMagnification);
+    // Reset position when zoom matches initial magnification
+    if (nextMagnification === 1 && imgRef.current) {
+      imgRef.current.style.left = "0px";
+      imgRef.current.style.top = "0px";
+    }
+  }, []);
 
   const widthInNumber = useMemo(() => {
     if (!width) return 0;
@@ -58,42 +71,32 @@ function ImageFullScreenModalWithoutPortal(props: Props) {
       const heightRatio = viewportHeight / imageHeight;
 
       setInitialMagnification(Math.min(widthRatio, heightRatio));
-      setMagnification(1);
-
-      // Reset image position
-      node.style.left = "0px";
-      node.style.top = "0px";
+      // also resets the image position
+      updateMagnification(1);
     },
-    [isFullScreenEnabled, widthInNumber, aspectRatio]
+    [isFullScreenEnabled, widthInNumber, aspectRatio, updateMagnification]
   );
 
   const handleClose = useCallback(() => {
     if (isDragging) return;
     toggleFullScreenMode(false);
-    setMagnification(1);
+    updateMagnification(1);
     setInitialMagnification(1);
-  }, [isDragging, toggleFullScreenMode]);
+  }, [isDragging, toggleFullScreenMode, updateMagnification]);
 
-  const handleMagnification = useCallback((direction: "increase" | "decrease") => {
-    setMagnification((prev) => {
+  const handleMagnification = useCallback(
+    (direction: "increase" | "decrease") => {
+      const prev = magnificationRef.current;
       // Find the appropriate target zoom level based on current magnification
-      let targetZoom: number;
-      if (direction === "increase") {
-        targetZoom = ZOOM_STEPS.find((step) => step > prev) ?? MAX_ZOOM;
-      } else {
-        // Reverse the array to find the next lower step
-        targetZoom = [...ZOOM_STEPS].reverse().find((step) => step < prev) ?? MIN_ZOOM;
-      }
-
-      // Reset position when zoom matches initial magnification
-      if (targetZoom === 1 && imgRef.current) {
-        imgRef.current.style.left = "0px";
-        imgRef.current.style.top = "0px";
-      }
-
-      return targetZoom;
-    });
-  }, []);
+      const targetZoom =
+        direction === "increase"
+          ? (ZOOM_STEPS.find((step) => step > prev) ?? MAX_ZOOM)
+          : // Reverse the array to find the next lower step
+            ([...ZOOM_STEPS].reverse().find((step) => step < prev) ?? MIN_ZOOM);
+      updateMagnification(targetZoom);
+    },
+    [updateMagnification]
+  );
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -159,23 +162,12 @@ function ImageFullScreenModalWithoutPortal(props: Props) {
 
       // Handle pinch-to-zoom
       if (e.ctrlKey || e.metaKey) {
-        const delta = e.deltaY;
-        setMagnification((prev) => {
-          const newZoom = prev * (1 - delta * ZOOM_SPEED);
-          const clampedZoom = Math.min(Math.max(newZoom, MIN_ZOOM), MAX_ZOOM);
-
-          // Reset position when zoom matches initial magnification
-          if (clampedZoom === 1 && imgRef.current) {
-            imgRef.current.style.left = "0px";
-            imgRef.current.style.top = "0px";
-          }
-
-          return clampedZoom;
-        });
+        const newZoom = magnificationRef.current * (1 - e.deltaY * ZOOM_SPEED);
+        updateMagnification(Math.min(Math.max(newZoom, MIN_ZOOM), MAX_ZOOM));
         return;
       }
     },
-    [isFullScreenEnabled]
+    [isFullScreenEnabled, updateMagnification]
   );
 
   // Event listeners
@@ -195,22 +187,43 @@ function ImageFullScreenModalWithoutPortal(props: Props) {
     };
   }, [isFullScreenEnabled, handleKeyDown, handleMouseMove, handleMouseUp, handleWheel]);
 
+  // Open as a native modal dialog: focus is trapped inside and the rest of the page is inert.
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!isFullScreenEnabled || !dialog) return;
+    if (!dialog.open) dialog.showModal();
+    return () => {
+      if (dialog.open) dialog.close();
+    };
+  }, [isFullScreenEnabled]);
+
+  const handleContainerMouseDown = (e: React.MouseEvent) => {
+    if (e.target === modalRef.current) handleClose();
+    else if (e.target === imgRef.current) handleMouseDown(e);
+  };
+
   if (!isFullScreenEnabled) return null;
 
   return (
-    <div
-      className={cn("pointer-events-none fixed inset-0 z-50 size-full bg-black/90 opacity-0 transition-opacity", {
-        "editor-image-full-screen-modal pointer-events-auto opacity-100": isFullScreenEnabled,
-        "cursor-default": !isDragging,
-        "cursor-grabbing": isDragging,
-      })}
-      role="dialog"
-      aria-modal="true"
+    <dialog
+      ref={dialogRef}
+      className={cn(
+        "pointer-events-none fixed inset-0 z-50 m-0 size-full max-h-none max-w-none bg-black/90 p-0 opacity-0 transition-opacity",
+        {
+          "editor-image-full-screen-modal pointer-events-auto opacity-100": isFullScreenEnabled,
+          "cursor-default": !isDragging,
+          "cursor-grabbing": isDragging,
+        }
+      )}
       aria-label="Fullscreen image viewer"
+      // Escape is handled by the document keydown listener so an active drag can block closing.
+      onCancel={(e) => e.preventDefault()}
     >
+      {/* Pointer-only: backdrop click closes and dragging the image pans it; the keyboard uses the controls and Escape. */}
       <div
         ref={modalRef}
-        onMouseDown={(e) => e.target === modalRef.current && handleClose()}
+        role="presentation"
+        onMouseDown={handleContainerMouseDown}
         className="relative grid size-full place-items-center overflow-hidden"
       >
         <button
@@ -224,6 +237,7 @@ function ImageFullScreenModalWithoutPortal(props: Props) {
         <img
           ref={setImageRef}
           src={src}
+          alt="Full screen preview"
           className="read-only-image rounded-lg"
           style={{
             width: `${widthInNumber * initialMagnification}px`,
@@ -235,7 +249,6 @@ function ImageFullScreenModalWithoutPortal(props: Props) {
             transformOrigin: "center",
             transition: "width 0.2s ease, transform 0.2s ease",
           }}
-          onMouseDown={handleMouseDown}
         />
         <div className="fixed bottom-10 left-1/2 flex -translate-x-1/2 items-center justify-center gap-1 divide-x divide-subtle-1 rounded-md border border-subtle-1 bg-black py-2">
           <div className="flex items-center">
@@ -274,7 +287,7 @@ function ImageFullScreenModalWithoutPortal(props: Props) {
           {!isTouchDevice && (
             <button
               type="button"
-              onClick={() => window.open(downloadSrc, "_blank")}
+              onClick={() => window.open(downloadSrc, "_blank", "noopener,noreferrer")}
               className="grid size-8 flex-shrink-0 place-items-center text-white/60 transition-colors duration-200 hover:text-white"
               aria-label="Download image"
             >
@@ -284,7 +297,7 @@ function ImageFullScreenModalWithoutPortal(props: Props) {
           {!isTouchDevice && (
             <button
               type="button"
-              onClick={() => window.open(src, "_blank")}
+              onClick={() => window.open(src, "_blank", "noopener,noreferrer")}
               className="grid size-8 flex-shrink-0 place-items-center text-white/60 transition-colors duration-200 hover:text-white"
               aria-label="Open image in new tab"
             >
@@ -293,7 +306,7 @@ function ImageFullScreenModalWithoutPortal(props: Props) {
           )}
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }
 

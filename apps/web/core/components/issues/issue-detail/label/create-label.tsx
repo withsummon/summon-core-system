@@ -151,6 +151,7 @@ export function LabelCreate(props: ILabelCreate) {
           </button>
           <button
             type="submit"
+            aria-label="Create label"
             className="grid place-items-center rounded-sm bg-success-primary p-1"
             disabled={isSubmitting}
           >

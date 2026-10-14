@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect } from "react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
 // services
@@ -12,24 +11,15 @@ import { USER_PROFILE_ACTIVITY } from "@plane/constants";
 import { UserService } from "@/services/user.service";
 // components
 import { ActivityList } from "./activity-list";
-// fetch-keys
 
 // services
 const userService = new UserService();
 
-type Props = {
-  cursor: string;
-  perPage: number;
-  updateResultsCount: (count: number) => void;
-  updateTotalPages: (count: number) => void;
-};
-
-export function WorkspaceActivityListPage(props: Props) {
-  const { cursor, perPage, updateResultsCount, updateTotalPages } = props;
-  // router
+/** One page of the profile activity feed; pages sharing a cursor share one SWR request. */
+export function useWorkspaceActivityPage(cursor: string, perPage: number) {
   const { workspaceSlug, userId } = useParams();
 
-  const { data: userProfileActivity } = useSWR(
+  const { data } = useSWR(
     workspaceSlug && userId
       ? USER_PROFILE_ACTIVITY(workspaceSlug.toString(), userId.toString(), {
           cursor,
@@ -44,12 +34,17 @@ export function WorkspaceActivityListPage(props: Props) {
       : null
   );
 
-  useEffect(() => {
-    if (!userProfileActivity) return;
+  return data;
+}
 
-    updateTotalPages(userProfileActivity.total_pages);
-    updateResultsCount(userProfileActivity.results.length);
-  }, [updateResultsCount, updateTotalPages, userProfileActivity]);
+type Props = {
+  cursor: string;
+  perPage: number;
+};
+
+export function WorkspaceActivityListPage(props: Props) {
+  const { cursor, perPage } = props;
+  const userProfileActivity = useWorkspaceActivityPage(cursor, perPage);
 
   return <ActivityList activity={userProfileActivity} />;
 }

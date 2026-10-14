@@ -6,7 +6,7 @@
 
 import type { Editor } from "@tiptap/react";
 import type { CSSProperties } from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 // components
 import { LinkEditView, LinkPreview } from "@/components/links";
 
@@ -22,20 +22,19 @@ export type LinkViewProps = {
   closeLinkView: () => void;
 };
 
-export function LinkView(props: LinkViewProps & { style: CSSProperties }) {
+type Props = LinkViewProps & { style: CSSProperties };
+
+export function LinkView(props: Props) {
+  // Remount on a new link position so the view resets to the preview.
+  return <LinkViewContent key={props.from} {...props} />;
+}
+
+function LinkViewContent(props: Props) {
   const [currentView, setCurrentView] = useState<LinkViews>(props.view ?? "LinkPreview");
-  const [prevFrom, setPrevFrom] = useState(props.from);
 
   const switchView = (view: LinkViews) => {
     setCurrentView(view);
   };
-
-  useEffect(() => {
-    if (props.from !== prevFrom) {
-      setCurrentView("LinkPreview");
-      setPrevFrom(props.from);
-    }
-  }, [prevFrom, props.from]);
 
   return (
     <>

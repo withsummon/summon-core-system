@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useImperativeHandle, useRef, useState } from "react";
+import { useImperativeHandle, useRef, useState, useSyncExternalStore } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import type { EditorRefApi } from "@plane/editor";
@@ -18,14 +18,11 @@ import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { getPeekOutsidePressAction } from "./outside-press";
 // local imports
 import type { TIssueOperations } from "../issue-detail";
-import { IssueActivity } from "../issue-detail/issue-activity";
-import { IssueDetailWidgets } from "../issue-detail-widgets";
+import { PeekOverviewContent } from "./content";
 import { IssuePeekOverviewError } from "./error";
 import type { TPeekModes } from "./header";
 import { IssuePeekOverviewHeader } from "./header";
-import { PeekOverviewIssueDetails } from "./issue-detail";
 import { IssuePeekOverviewLoader } from "./loader";
-import { PeekOverviewProperties } from "./properties";
 
 interface IIssueView {
   workspaceSlug: string;
@@ -46,6 +43,11 @@ interface IIssueView {
 }
 
 export type TPeekCloseRequest = (open: boolean, details: TDrawerChangeEventDetails) => void;
+
+// The portal host lives in the workspace layout; read it on every render like a DOM ref, with no server value.
+const subscribeToNothing = () => () => {};
+const getFullScreenPortal = () => document.getElementById("full-screen-portal");
+const getServerPortal = () => null;
 
 export const IssueView = observer(function IssueView(props: IIssueView) {
   const {
@@ -138,7 +140,7 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
     "full-screen": "m-4 h-[calc(100%-2rem)] max-w-none rounded-lg border",
   }[peekMode];
 
-  const portalContainer = document.getElementById("full-screen-portal");
+  const portalContainer = useSyncExternalStore(subscribeToNothing, getFullScreenPortal, getServerPortal);
 
   const body = (
     <>
@@ -171,94 +173,18 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
           />
           {/* content */}
           <div className="vertical-scrollbar relative scrollbar-md h-full w-full overflow-hidden overflow-y-auto">
-            {["side-peek", "modal"].includes(peekMode) ? (
-              <div className="relative flex flex-col gap-3 space-y-3 px-8 py-5">
-                <PeekOverviewIssueDetails
-                  editorRef={editorRef}
-                  workspaceSlug={workspaceSlug}
-                  projectId={projectId}
-                  issueId={issueId}
-                  issueOperations={issueOperations}
-                  disabled={disabled}
-                  isArchived={is_archived}
-                  isSubmitting={isSubmitting}
-                  setIsSubmitting={(value) => setIsSubmitting(value)}
-                />
-
-                <div className="py-2">
-                  <IssueDetailWidgets
-                    workspaceSlug={workspaceSlug}
-                    projectId={projectId}
-                    issueId={issueId}
-                    disabled={disabled || is_archived}
-                    issueServiceType={EIssueServiceType.ISSUES}
-                  />
-                </div>
-
-                <PeekOverviewProperties
-                  workspaceSlug={workspaceSlug}
-                  projectId={projectId}
-                  issueId={issueId}
-                  issueOperations={issueOperations}
-                  disabled={disabled || is_archived}
-                />
-
-                <IssueActivity
-                  workspaceSlug={workspaceSlug}
-                  projectId={projectId}
-                  issueId={issueId}
-                  disabled={is_archived}
-                />
-              </div>
-            ) : (
-              <div className="vertical-scrollbar flex h-full w-full overflow-auto">
-                <div className="relative h-full w-full space-y-6 overflow-auto p-4 py-5">
-                  <div className="space-y-3">
-                    <PeekOverviewIssueDetails
-                      editorRef={editorRef}
-                      workspaceSlug={workspaceSlug}
-                      projectId={projectId}
-                      issueId={issueId}
-                      issueOperations={issueOperations}
-                      disabled={disabled}
-                      isArchived={is_archived}
-                      isSubmitting={isSubmitting}
-                      setIsSubmitting={(value) => setIsSubmitting(value)}
-                    />
-
-                    <div className="py-2">
-                      <IssueDetailWidgets
-                        workspaceSlug={workspaceSlug}
-                        projectId={projectId}
-                        issueId={issueId}
-                        disabled={disabled}
-                        issueServiceType={EIssueServiceType.ISSUES}
-                      />
-                    </div>
-
-                    <IssueActivity
-                      workspaceSlug={workspaceSlug}
-                      projectId={projectId}
-                      issueId={issueId}
-                      disabled={is_archived}
-                    />
-                  </div>
-                </div>
-                <div
-                  className={`vertical-scrollbar scrollbar-sm h-full !w-[400px] flex-shrink-0 overflow-hidden border-l border-subtle p-4 py-5 ${
-                    is_archived ? "pointer-events-none" : ""
-                  }`}
-                >
-                  <PeekOverviewProperties
-                    workspaceSlug={workspaceSlug}
-                    projectId={projectId}
-                    issueId={issueId}
-                    issueOperations={issueOperations}
-                    disabled={disabled || is_archived}
-                  />
-                </div>
-              </div>
-            )}
+            <PeekOverviewContent
+              peekMode={peekMode}
+              editorRef={editorRef}
+              workspaceSlug={workspaceSlug}
+              projectId={projectId}
+              issueId={issueId}
+              issueOperations={issueOperations}
+              disabled={disabled}
+              isArchived={is_archived}
+              isSubmitting={isSubmitting}
+              setIsSubmitting={setIsSubmitting}
+            />
           </div>
         </>
       )}

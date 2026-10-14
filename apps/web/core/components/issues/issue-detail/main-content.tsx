@@ -5,35 +5,30 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import type { EditorRefApi } from "@plane/editor";
 import type { TNameDescriptionLoader } from "@plane/types";
 import { EFileAssetType, EIssueServiceType } from "@plane/types";
 // components
-import { DescriptionVersionsRoot } from "@/components/core/description-versions";
 import { DescriptionInput } from "@/components/editor/rich-text/description-input";
 import { IssueTypeSwitcher } from "@/components/issues/issue-type-switcher";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
-import { useMember } from "@/hooks/store/use-member";
 import { useUser } from "@/hooks/store/user";
-import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 import useSize from "@/hooks/use-window-size";
-// services
-import { WorkItemVersionService } from "@/services/issue";
 // local imports
 import { IssueDetailWidgets } from "../issue-detail-widgets";
 import { NameDescriptionUpdateStatus } from "../issue-update-status";
 import { PeekOverviewProperties } from "../peek-overview/properties";
 import { IssueTitleInput } from "../title-input";
+import { WorkItemDescriptionVersions } from "./description-versions";
 import { IssueActivity } from "./issue-activity";
 import { IssueParentDetail } from "./parent";
 import { IssueReaction } from "./reactions";
 import type { TIssueOperations } from "./root";
-// services init
-const workItemVersionService = new WorkItemVersionService();
+import { useSubmitStatusAlert } from "./use-submit-status-alert";
 
 type Props = {
   workspaceSlug: string;
@@ -53,23 +48,14 @@ export const IssueMainContent = observer(function IssueMainContent(props: Props)
   // hooks
   const windowSize = useSize();
   const { data: currentUser } = useUser();
-  const { getUserDetails } = useMember();
   const {
     issue: { getIssueById },
     peekIssue,
   } = useIssueDetail();
-  const { setShowAlert } = useReloadConfirmations(isSubmitting === "submitting");
   // derived values
   const issue = issueId ? getIssueById(issueId) : undefined;
 
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>;
-    if (isSubmitting === "submitted") {
-      setShowAlert(false);
-      timer = setTimeout(() => setIsSubmitting("saved"), 2000);
-    } else if (isSubmitting === "submitting") setShowAlert(true);
-    return () => clearTimeout(timer);
-  }, [isSubmitting, setShowAlert, setIsSubmitting]);
+  useSubmitStatusAlert(isSubmitting, setIsSubmitting);
 
   if (!issue || !issue.project_id) return <></>;
 
@@ -140,23 +126,12 @@ export const IssueMainContent = observer(function IssueMainContent(props: Props)
             />
           )}
           {isEditable && (
-            <DescriptionVersionsRoot
-              className="flex-shrink-0"
-              entityInformation={{
-                createdAt: issue.created_at ? new Date(issue.created_at) : new Date(),
-                createdByDisplayName: getUserDetails(issue.created_by ?? "")?.display_name ?? "",
-                id: issueId,
-                isRestoreDisabled: !isEditable || isArchived,
-              }}
-              fetchHandlers={{
-                listDescriptionVersions: (issueId) =>
-                  workItemVersionService.listDescriptionVersions(workspaceSlug, projectId, issueId),
-                retrieveDescriptionVersion: (issueId, versionId) =>
-                  workItemVersionService.retrieveDescriptionVersion(workspaceSlug, projectId, issueId, versionId),
-              }}
-              handleRestore={(descriptionHTML) => editorRef.current?.setEditorValue(descriptionHTML, true)}
-              projectId={projectId}
+            <WorkItemDescriptionVersions
               workspaceSlug={workspaceSlug}
+              projectId={projectId}
+              issue={issue}
+              editorRef={editorRef}
+              isRestoreDisabled={!isEditable || isArchived}
             />
           )}
         </div>

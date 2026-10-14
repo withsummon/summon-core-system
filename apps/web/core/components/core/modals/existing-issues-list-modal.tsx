@@ -124,7 +124,8 @@ export function ExistingIssuesListModal(props: Props) {
 
   useEffect(() => {
     if (isOpen && !hasInitializedSelection.current && selectedWorkItemIds && issues.length > 0) {
-      setSelectedIssues(issues.filter((issue) => selectedWorkItemIds.includes(issue.id)));
+      const selectedIds = new Set(selectedWorkItemIds);
+      setSelectedIssues(issues.filter((issue) => selectedIds.has(issue.id)));
       hasInitializedSelection.current = true;
     }
   }, [isOpen, issues, selectedWorkItemIds]);
@@ -265,7 +266,7 @@ export function ExistingIssuesListModal(props: Props) {
                         }
                       >
                         <div className="flex items-center gap-2 truncate">
-                          <input type="checkbox" checked={selected} readOnly />
+                          <input type="checkbox" checked={selected} readOnly aria-hidden="true" tabIndex={-1} />
                           <span
                             className="block h-1.5 w-1.5 flex-shrink-0 rounded-full"
                             style={{
@@ -298,6 +299,7 @@ export function ExistingIssuesListModal(props: Props) {
                           className="relative z-1 hidden flex-shrink-0 text-secondary group-hover:block hover:text-primary"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
+                          aria-label={`Open ${issue.name} in a new tab`}
                         >
                           <Rocket className="h-4 w-4" />
                         </a>

@@ -28,6 +28,16 @@ import { useStates } from "@/hooks/store/use-state";
 // types
 import type { IIssue, IPeekMode } from "@/types/issue";
 
+const PRIORITY_CLASS_NAMES: Record<string, string> = {
+  urgent: "border-priority-urgent text-priority-urgent",
+  high: "border-priority-high text-priority-high",
+  medium: "border-priority-medium text-priority-medium",
+  low: "border-priority-low text-priority-low",
+};
+
+const getPriorityClassName = (priorityKey: string | undefined) =>
+  (priorityKey && PRIORITY_CLASS_NAMES[priorityKey]) || "border-priority-none text-priority-none";
+
 type Props = {
   issueDetails: IIssue;
   mode?: IPeekMode;
@@ -93,17 +103,7 @@ export const PeekOverviewIssueProperties = observer(function PeekOverviewIssuePr
           </div>
           <div className="w-3/4">
             <div
-              className={`inline-flex items-center gap-1.5 rounded-sm bg-layer-2 px-2.5 py-0.5 text-left text-13 capitalize ${
-                priority?.key === "urgent"
-                  ? "border-priority-urgent text-priority-urgent"
-                  : priority?.key === "high"
-                    ? "border-priority-high text-priority-high"
-                    : priority?.key === "medium"
-                      ? "border-priority-medium text-priority-medium"
-                      : priority?.key === "low"
-                        ? "border-priority-low text-priority-low"
-                        : "border-priority-none text-priority-none"
-              }`}
+              className={`inline-flex items-center gap-1.5 rounded-sm bg-layer-2 px-2.5 py-0.5 text-left text-13 capitalize ${getPriorityClassName(priority?.key)}`}
             >
               {priority && <PriorityIcon priority={priority?.key} size={12} className="flex-shrink-0" />}
               <span>{t(priority?.titleTranslationKey || "common.none")}</span>

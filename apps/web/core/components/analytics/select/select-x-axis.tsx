@@ -20,11 +20,12 @@ type Props = {
 
 export function SelectXAxis(props: Props) {
   const { value, onChange, options, hiddenOptions, allowNoValue, label } = props;
+  const hiddenOptionSet = new Set(hiddenOptions);
   return (
     <CustomSelect value={value} label={label} onChange={onChange} maxHeight="lg">
       {allowNoValue && <CustomSelect.Option value={null}>No value</CustomSelect.Option>}
       {options.map((item) => {
-        if (hiddenOptions?.includes(item.value)) return null;
+        if (hiddenOptionSet.has(item.value)) return null;
         return (
           <CustomSelect.Option key={item.value} value={item.value}>
             {item.label}

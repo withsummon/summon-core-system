@@ -23,6 +23,7 @@ type Props = {
 export const ProjectSelect = observer(function ProjectSelect(props: Props) {
   const { value, onChange, projectIds } = props;
   const { getProjectById } = useProject();
+  const selectedProjectIds = new Set(value);
 
   const options = projectIds?.map((projectId) => {
     const projectDetails = getProjectById(projectId);
@@ -58,7 +59,7 @@ export const ProjectSelect = observer(function ProjectSelect(props: Props) {
             ? `3+ projects`
             : value && value.length > 0
               ? projectIds
-                  ?.filter((p) => value.includes(p))
+                  ?.filter((p) => selectedProjectIds.has(p))
                   .map((p) => getProjectById(p)?.name)
                   .join(", ")
               : "All projects"}

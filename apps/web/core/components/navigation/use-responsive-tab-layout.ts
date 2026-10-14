@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { TNavigationItem } from "./tab-navigation-root";
 
 export type TResponsiveTabLayout = {
@@ -38,7 +38,6 @@ export const useResponsiveTabLayout = ({
 }: UseResponsiveTabLayoutProps): TResponsiveTabLayout => {
   // Refs for measuring items
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   // State for responsive behavior
   const [containerWidth, setContainerWidth] = useState<number>(0);
@@ -48,44 +47,26 @@ export const useResponsiveTabLayout = ({
   const gap = 4; // gap-1 = 4px
   const overflowButtonWidth = 40;
 
-  // Callback ref that sets up ResizeObserver when element is attached
-  const containerRef = useCallback((node: HTMLDivElement | null) => {
-    // Clean up previous observer if it exists
-    if (resizeObserverRef.current) {
-      resizeObserverRef.current.disconnect();
-      resizeObserverRef.current = null;
-    }
+  // The container node is held in state so the observer below can be set up and torn down in one effect
+  const [containerNode, containerRef] = useState<HTMLDivElement | null>(null);
 
-    // If node is null (unmounting), just clean up
-    if (!node) {
+  useEffect(() => {
+    if (!containerNode) {
       setContainerWidth(0);
       return;
     }
 
     // Set initial width immediately
-    setContainerWidth(node.offsetWidth);
+    setContainerWidth(containerNode.offsetWidth);
 
-    // Create and set up new ResizeObserver
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         setContainerWidth(entry.contentRect.width);
       }
     });
-
-    resizeObserverRef.current = resizeObserver;
-    resizeObserver.observe(node);
-  }, []); // Empty deps - callback function remains stable
-
-  // Cleanup effect to disconnect observer on component unmount
-  useEffect(
-    () => () => {
-      if (resizeObserverRef.current) {
-        resizeObserverRef.current.disconnect();
-        resizeObserverRef.current = null;
-      }
-    },
-    []
-  );
+    resizeObserver.observe(containerNode);
+    return () => resizeObserver.disconnect();
+  }, [containerNode]);
 
   // Calculate how many items can fit
   useEffect(() => {

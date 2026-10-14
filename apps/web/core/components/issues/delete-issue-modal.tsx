@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // types
@@ -42,10 +42,6 @@ export const DeleteIssueModal = observer(function DeleteIssueModal(props: Props)
 
   const { data: currentUser } = useUser();
 
-  useEffect(() => {
-    setIsDeleting(false);
-  }, [isOpen]);
-
   if (!dataId && !data) return null;
 
   // derived values
@@ -80,32 +76,35 @@ export const DeleteIssueModal = observer(function DeleteIssueModal(props: Props)
       onClose();
       return;
     }
-    if (onSubmit)
-      await onSubmit()
-        .then(() => {
-          setToast({
-            type: TOAST_TYPE.SUCCESS,
-            title: t("common.success"),
-            message: t("entity.delete.success", {
-              entity: isSubIssue ? t("common.sub_work_item") : isEpic ? t("common.epic") : t("common.work_item"),
-            }),
-          });
-          onClose();
-        })
-        .catch((errors) => {
-          const isPermissionError =
-            errors?.error ===
-            `Only admin or creator can delete the ${isSubIssue ? "sub-work item" : isEpic ? "epic" : "work item"}`;
-          const currentError = isPermissionError
-            ? PROJECT_ERROR_MESSAGES.permissionError
-            : PROJECT_ERROR_MESSAGES.issueDeleteError;
-          setToast({
-            title: t(currentError.i18n_title),
-            type: TOAST_TYPE.ERROR,
-            message: currentError.i18n_message && t(currentError.i18n_message),
-          });
-        })
-        .finally(() => onClose());
+    if (!onSubmit) {
+      setIsDeleting(false);
+      return;
+    }
+    await onSubmit()
+      .then(() => {
+        setToast({
+          type: TOAST_TYPE.SUCCESS,
+          title: t("common.success"),
+          message: t("entity.delete.success", {
+            entity: isSubIssue ? t("common.sub_work_item") : isEpic ? t("common.epic") : t("common.work_item"),
+          }),
+        });
+        onClose();
+      })
+      .catch((errors) => {
+        const isPermissionError =
+          errors?.error ===
+          `Only admin or creator can delete the ${isSubIssue ? "sub-work item" : isEpic ? "epic" : "work item"}`;
+        const currentError = isPermissionError
+          ? PROJECT_ERROR_MESSAGES.permissionError
+          : PROJECT_ERROR_MESSAGES.issueDeleteError;
+        setToast({
+          title: t(currentError.i18n_title),
+          type: TOAST_TYPE.ERROR,
+          message: currentError.i18n_message && t(currentError.i18n_message),
+        });
+      })
+      .finally(() => onClose());
   };
 
   return (

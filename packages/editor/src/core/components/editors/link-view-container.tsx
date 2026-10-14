@@ -184,12 +184,10 @@ export function LinkViewContainer({ editor, containerRef }: Props) {
   // Cleanup timeout on unmount
   useEffect(() => () => clearHoverTimeout(), [clearHoverTimeout]);
 
-  // Close link view when bubble menu opens
-  useEffect(() => {
-    if (editorState.linkExtensionStorage?.isBubbleMenuOpen && isOpen) {
-      setIsOpen(false);
-    }
-  }, [editorState.linkExtensionStorage, isOpen]);
+  // Close link view when bubble menu opens (adjusted during render so it never paints open)
+  if (editorState.linkExtensionStorage?.isBubbleMenuOpen && isOpen) {
+    setIsOpen(false);
+  }
 
   return (
     <>

@@ -64,23 +64,20 @@ export const shouldFilterProject = (
   filters: TProjectFilters
 ): boolean => {
   let fallsInFilters = true;
-  Object.keys(filters).forEach((key) => {
-    const filterKey = key as keyof TProjectFilters;
-    if (filterKey === "access" && filters.access && filters.access.length > 0)
-      fallsInFilters = fallsInFilters && filters.access.includes(`${project.network}`);
-    if (filterKey === "lead" && filters.lead && filters.lead.length > 0)
-      fallsInFilters = fallsInFilters && filters.lead.includes(`${project.project_lead}`);
-    if (filterKey === "members" && filters.members && filters.members.length > 0) {
-      const memberIds = project.members;
-      fallsInFilters = fallsInFilters && filters.members.some((memberId) => memberIds?.includes(memberId));
-    }
-    if (filterKey === "created_at" && filters.created_at && filters.created_at.length > 0) {
-      const createdDate = getDate(project.created_at);
-      filters.created_at.forEach((dateFilter) => {
-        fallsInFilters = fallsInFilters && !!createdDate && satisfiesDateFilter(createdDate, dateFilter);
-      });
-    }
-  });
+  if (filters.access && filters.access.length > 0)
+    fallsInFilters = fallsInFilters && filters.access.includes(`${project.network}`);
+  if (filters.lead && filters.lead.length > 0)
+    fallsInFilters = fallsInFilters && filters.lead.includes(`${project.project_lead}`);
+  if (filters.members && filters.members.length > 0) {
+    const memberIds = new Set(project.members);
+    fallsInFilters = fallsInFilters && filters.members.some((memberId) => memberIds.has(memberId));
+  }
+  if (filters.created_at && filters.created_at.length > 0) {
+    const createdDate = getDate(project.created_at);
+    filters.created_at.forEach((dateFilter) => {
+      fallsInFilters = fallsInFilters && !!createdDate && satisfiesDateFilter(createdDate, dateFilter);
+    });
+  }
   if (displayFilters.my_projects && !project.member_role) fallsInFilters = false;
   if (displayFilters.archived_projects && !project.archived_at) fallsInFilters = false;
   if (project.archived_at) fallsInFilters = displayFilters.archived_projects ? fallsInFilters : false;

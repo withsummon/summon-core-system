@@ -101,7 +101,7 @@ export const TopNavPowerK = observer(() => {
     return () => {
       setTopNavInputRef(null);
     };
-  }, [setTopNavInputRef]);
+  }, [inputRef, setTopNavInputRef]);
 
   const handleClear = () => {
     setSearchTerm("");
@@ -203,7 +203,7 @@ export const TopNavPowerK = observer(() => {
         return;
       }
     },
-    [searchTerm, activePage, context, shouldShowContextBasedActions, setActivePage, closePanel]
+    [searchTerm, activePage, context, shouldShowContextBasedActions, setActivePage, closePanel, isOpen, containerRef]
   );
 
   return (
@@ -215,29 +215,31 @@ export const TopNavPowerK = observer(() => {
       >
         <div
           className={cn(
-            "flex h-7 w-full items-center rounded-lg border border-subtle-1 bg-layer-2 p-2 transition-colors duration-200",
+            "flex h-7 w-full items-center rounded-lg border border-subtle-1 bg-layer-2 pr-2 transition-colors duration-200",
             {
               "bg-layer-1": isOpen,
             }
           )}
-          onClick={() => inputRef.current?.focus()}
-          role="button"
         >
-          <SearchIcon className="mr-2 size-3.5 shrink-0 text-placeholder" />
-          <input
-            ref={inputRef}
-            type="text"
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              if (!isOpen) openPanel();
-            }}
-            onMouseDown={handleMouseDown}
-            onFocus={handleFocus}
-            onKeyDown={handleKeyDown}
-            placeholder="Search commands…"
-            className="min-w-0 flex-1 bg-transparent text-13 text-primary outline-none placeholder:text-placeholder"
-          />
+          {/* the label makes the whole field (icon included) focus the input */}
+          <label className="flex h-full min-w-0 flex-1 items-center py-2 pl-2">
+            <SearchIcon className="mr-2 size-3.5 shrink-0 text-placeholder" />
+            <input
+              ref={inputRef}
+              type="text"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                if (!isOpen) openPanel();
+              }}
+              onMouseDown={handleMouseDown}
+              onFocus={handleFocus}
+              onKeyDown={handleKeyDown}
+              aria-label="Search commands"
+              placeholder="Search commands…"
+              className="min-w-0 flex-1 bg-transparent text-13 text-primary outline-none placeholder:text-placeholder"
+            />
+          </label>
           {searchTerm && (
             <button type="button" aria-label="Clear search" onClick={handleClear} className="ml-2 shrink-0">
               <CloseIcon className="size-3.5 text-placeholder hover:text-primary" />

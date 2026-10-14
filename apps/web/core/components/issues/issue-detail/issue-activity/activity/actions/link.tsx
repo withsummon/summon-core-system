@@ -13,6 +13,19 @@ import { IssueActivityBlockComponent, IssueLink } from "./";
 
 type TIssueLinkActivity = { activityId: string; showIssue?: boolean; ends: "top" | "bottom" | undefined };
 
+function ActivityLinkAnchor({ href }: { href: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+    >
+      link<span className="sr-only"> to {href}</span>
+    </a>
+  );
+}
+
 export const IssueLinkActivity = observer(function IssueLinkActivity(props: TIssueLinkActivity) {
   const { activityId, showIssue = false, ends } = props;
   // hooks
@@ -33,38 +46,17 @@ export const IssueLinkActivity = observer(function IssueLinkActivity(props: TIss
         {activity.verb === "created" ? (
           <>
             <span>added </span>
-            <a
-              href={`${activity.new_value}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
-            >
-              link
-            </a>
+            <ActivityLinkAnchor href={`${activity.new_value}`} />
           </>
         ) : activity.verb === "updated" ? (
           <>
             <span>updated the </span>
-            <a
-              href={`${activity.old_value}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
-            >
-              link
-            </a>
+            <ActivityLinkAnchor href={`${activity.old_value}`} />
           </>
         ) : (
           <>
             <span>removed this </span>
-            <a
-              href={`${activity.old_value}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
-            >
-              link
-            </a>
+            <ActivityLinkAnchor href={`${activity.old_value}`} />
           </>
         )}
         {showIssue && (activity.verb === "created" ? ` to ` : ` from `)}

@@ -99,6 +99,7 @@ export function DataTable<TData, TValue>({ columns, data, searchPlaceholder, act
               ref={inputRef}
               className="w-full max-w-[234px] border-none bg-transparent text-13 text-primary outline-none placeholder:text-placeholder"
               placeholder="Search"
+              aria-label="Search"
               value={table.getColumn(table.getHeaderGroups()?.[0]?.headers?.[0]?.id)?.getFilterValue() as string}
               onChange={(e) => {
                 const columnId = table.getHeaderGroups()?.[0]?.headers?.[0]?.id;

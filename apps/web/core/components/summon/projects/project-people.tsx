@@ -154,26 +154,7 @@ const AddPeopleDialog = observer(function AddPeopleDialog(props: {
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
-  const {
-    workspace: { workspaceMemberIds, getWorkspaceMemberDetails },
-  } = useMember();
-
-  const needle = query.trim().toLowerCase();
-  const onProject = new Set(people.members.map((member) => member.user_id));
-  const candidates = (workspaceMemberIds ?? []).flatMap((userId) => {
-    const details = getWorkspaceMemberDetails(userId);
-    if (!details || details.is_active === false || details.member.is_bot || onProject.has(userId)) return [];
-    const { member } = details;
-    const name = member.display_name || `${member.first_name} ${member.last_name}`.trim() || member.email || "";
-    const haystack = `${name} ${member.email ?? ""}`.toLowerCase();
-    return !needle || haystack.includes(needle) ? [{ userId, name, member, role: details.role }] : [];
-  });
-  const knownEmails = new Set([
-    ...people.members.map((member) => member.email.toLowerCase()),
-    ...people.invites.map((invite) => invite.email.toLowerCase()),
-    ...candidates.flatMap(({ member }) => (member.email ? [member.email.toLowerCase()] : [])),
-  ]);
-  const newEmail = EMAIL_PATTERN.test(needle) && !knownEmails.has(needle) ? needle : null;
+  const { needle, candidates, newEmail } = useAddPeopleCandidates(people, query);
 
   const close = () => {
     setQuery("");
@@ -254,13 +235,7 @@ const AddPeopleDialog = observer(function AddPeopleDialog(props: {
             ))}
           </ul>
           {!candidates.length && !(newEmail && canInvite) ? (
-            <p className="px-1 text-13 text-tertiary">
-              {newEmail
-                ? "Only workspace admins can invite someone new."
-                : needle
-                  ? "No one in the workspace matches."
-                  : "Everyone in the workspace is already on this project."}
-            </p>
+            <p className="px-1 text-13 text-tertiary">{getEmptyMessage(newEmail, needle)}</p>
           ) : null}
           {error ? (
             <p role="alert" className="text-13 text-danger-primary">
@@ -272,6 +247,37 @@ const AddPeopleDialog = observer(function AddPeopleDialog(props: {
     </Dialog>
   );
 });
+
+/** Workspace members not yet on the project that match the query, plus a new email to invite. */
+function useAddPeopleCandidates(people: ISummonProjectPeople, query: string) {
+  const {
+    workspace: { workspaceMemberIds, getWorkspaceMemberDetails },
+  } = useMember();
+
+  const needle = query.trim().toLowerCase();
+  const onProject = new Set(people.members.map((member) => member.user_id));
+  const candidates = (workspaceMemberIds ?? []).flatMap((userId) => {
+    const details = getWorkspaceMemberDetails(userId);
+    if (!details || details.is_active === false || details.member.is_bot || onProject.has(userId)) return [];
+    const { member } = details;
+    const name = member.display_name || `${member.first_name} ${member.last_name}`.trim() || member.email || "";
+    const haystack = `${name} ${member.email ?? ""}`.toLowerCase();
+    return !needle || haystack.includes(needle) ? [{ userId, name, member, role: details.role }] : [];
+  });
+  const knownEmails = new Set([
+    ...people.members.map((member) => member.email.toLowerCase()),
+    ...people.invites.map((invite) => invite.email.toLowerCase()),
+    ...candidates.flatMap(({ member }) => (member.email ? [member.email.toLowerCase()] : [])),
+  ]);
+  const newEmail = EMAIL_PATTERN.test(needle) && !knownEmails.has(needle) ? needle : null;
+  return { needle, candidates, newEmail };
+}
+
+function getEmptyMessage(newEmail: string | null, needle: string) {
+  if (newEmail) return "Only workspace admins can invite someone new.";
+  if (needle) return "No one in the workspace matches.";
+  return "Everyone in the workspace is already on this project.";
+}
 
 function PersonOption(props: {
   avatar: React.ReactNode;

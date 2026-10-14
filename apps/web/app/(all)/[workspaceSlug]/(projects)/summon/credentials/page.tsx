@@ -6,84 +6,30 @@
 
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
-import {
-  ClockCounterClockwiseIcon,
-  NoteIcon,
-  PaperclipIcon,
-  SquaresFourIcon,
-  UsersThreeIcon,
-} from "@phosphor-icons/react";
-import { Check, Clock3, Copy, Eye, Pencil, Plus, Server, ShieldCheck, Trash2, UserRoundPlus, X } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@plane/propel/button";
-import { TextArea } from "@plane/propel/input";
-import { Input } from "@plane/ui";
-import type { ISummonCredential } from "@plane/types";
 import { PageHead } from "@/components/core/page-title";
 import { CredentialDrawer } from "@/components/summon/credential-drawer";
-import { SummonDrawer } from "@/components/summon/drawer";
-import { SummonField } from "@/components/summon/forms";
-import { SummonRequestState } from "@/components/summon/request-state";
-import { SectionTabs } from "@/components/summon/section-tabs";
-import type { TSectionTab } from "@/components/summon/section-tabs";
 import {
   SummonMetric,
   SummonMetricStrip,
   SummonPageHeader,
-  summonErrorMessage,
   summonPageClassName,
-  ViewPanel,
   SummonTableShell,
 } from "@/components/summon/screen";
+import { SummonSearchField } from "@/components/summon/search-field";
 import { useMember } from "@/hooks/store/use-member";
 import { useUser } from "@/hooks/store/user";
 import { ProjectService } from "@/services/project";
 import { summonService } from "@/services/summon.service";
 import { summarizeCredentials } from "../reference-view-model";
 import type { Route } from "./+types/page";
-import { Select } from "@plane/propel/select";
-import { Dialog, EDialogWidth } from "@plane/propel/dialog";
-import { DatePicker } from "@plane/propel/date-picker";
-import { SummonSearchField } from "@/components/summon/search-field";
+import { CredentialDetailDrawer } from "./credential-detail-drawer";
+import { CredentialForm } from "./credential-form";
+import { CredentialTable } from "./credential-table";
+import { useCredentialForm } from "./use-credential-form";
 
 const projectService = new ProjectService();
-const tabs = ["Overview", "Access", "Activity Log", "Attachments", "Notes"] as const;
-const tabItems: TSectionTab<(typeof tabs)[number]>[] = [
-  { value: "Overview", label: "Overview", icon: SquaresFourIcon },
-  { value: "Access", label: "Access", icon: UsersThreeIcon },
-  { value: "Activity Log", label: "Activity Log", icon: ClockCounterClockwiseIcon },
-  { value: "Attachments", label: "Attachments", icon: PaperclipIcon },
-  { value: "Notes", label: "Notes", icon: NoteIcon },
-];
-
-/** Column labels: the desktop header and the phone row label read from the same entry. */
-const CREDENTIAL_COLUMNS = {
-  name: "Credential Name",
-  type: "Type",
-  project: "Project",
-  environment: "Environment",
-  lastUsed: "Last Used",
-  status: "Status",
-} as const;
-
-const textMetadata = (credential: ISummonCredential, key: string) => {
-  const value = credential.metadata[key];
-  return typeof value === "string" && value.trim() ? value : "Not set";
-};
-
-const credentialTags = (credential: ISummonCredential) => {
-  const tags = credential.metadata.tags;
-  return Array.isArray(tags) ? tags.filter((tag): tag is string => typeof tag === "string") : [];
-};
-
-const formatDate = (value?: string | null) => {
-  if (!value) return "Not set";
-  return new Intl.DateTimeFormat("en", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value));
-};
-
-const formatRelative = (value?: string | null) => {
-  if (!value) return "Never";
-  return formatDate(value);
-};
 
 export default function SummonCredentialsPage({ params }: Route.ComponentProps) {
   const { workspaceSlug } = params;
@@ -91,15 +37,10 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
   const { getUserDetails } = useMember();
   const [query, setQuery] = useState("");
   const [projectFilter, setProjectFilter] = useState("all");
-  const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>("Overview");
   const [selectedId, setSelectedId] = useState("");
   const [detailOpen, setDetailOpen] = useState(false);
   const [now, setNow] = useState<Date | null>(null);
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingCredential, setEditingCredential] = useState<ISummonCredential | null>(null);
   const [manageOpen, setManageOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState("");
   const { data, error, isLoading, mutate } = useSWR(["summon-credentials", workspaceSlug], () =>
     summonService.listCredentials(workspaceSlug)
   );
@@ -118,6 +59,12 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
     },
     { shouldRetryOnError: false }
   );
+  const credentialForm = useCredentialForm({
+    workspaceSlug,
+    selected,
+    refresh: () => mutate(),
+    onSaved: setSelectedId,
+  });
 
   useEffect(() => setNow(new Date()), []);
   useEffect(() => {
@@ -139,58 +86,7 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
     () => summarizeCredentials(data ?? [], currentUser?.id ?? "", now ?? new Date("1970-01-01T00:00:00Z")),
     [currentUser?.id, data, now]
   );
-  const lastUsed = accessData?.audit.find((item) => item.action === "use")?.created_at;
-  const selectedOwner = selected?.owner ? getUserDetails(selected.owner) : undefined;
-
-  const openCreate = () => {
-    setEditingCredential(null);
-    setFormError("");
-    setFormOpen(true);
-  };
-  const openEdit = () => {
-    if (!selected) return;
-    setEditingCredential(selected);
-    setFormError("");
-    setFormOpen(true);
-  };
-  const saveCredential = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const metadata = {
-      environment: form.get("environment") || "",
-      description: form.get("description") || "",
-      host: form.get("host") || "",
-      port: form.get("port") || "",
-      protocol: form.get("protocol") || "",
-      expires_at: form.get("expires_at") || "",
-      tags: String(form.get("tags") || "")
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter(Boolean),
-      risk: form.get("risk") || "",
-    };
-    const payload = {
-      name: form.get("name"),
-      provider: form.get("provider"),
-      account_identifier: form.get("account_identifier"),
-      project: form.get("project") || null,
-      metadata,
-    };
-    setSaving(true);
-    setFormError("");
-    try {
-      const saved = editingCredential
-        ? await summonService.updateCredential(workspaceSlug, editingCredential.id, payload)
-        : await summonService.createCredential(workspaceSlug, { ...payload, secret: form.get("secret") });
-      await mutate();
-      setSelectedId(saved.id);
-      setFormOpen(false);
-    } catch (requestError) {
-      setFormError(summonErrorMessage(requestError));
-    } finally {
-      setSaving(false);
-    }
-  };
+  const openManage = () => setManageOpen(true);
 
   return (
     <section className={summonPageClassName}>
@@ -207,7 +103,7 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
               onValueChange={setQuery}
               className="w-full sm:w-80"
             />
-            <Button size="lg" onClick={openCreate}>
+            <Button size="lg" onClick={credentialForm.openCreate}>
               <Plus />
               Add credential
             </Button>
@@ -224,268 +120,44 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
       </SummonMetricStrip>
 
       <SummonTableShell>
-        <div className="min-w-0">
-          <div className="flex items-center justify-between gap-3 px-4 py-3">
-            <Select
-              value={projectFilter}
-              onValueChange={(value) => setProjectFilter(value)}
-              className="w-40"
-              options={[
-                { value: "all", label: "All Projects" },
-                ...projects.map((project) => ({ value: project.id, label: project.name })),
-              ]}
-            />
-            <span className="text-12 text-secondary tabular-nums">
-              {filtered.length} {filtered.length === 1 ? "credential" : "credentials"}
-            </span>
-          </div>
-          {!data ? (
-            <div className="p-4">
-              <SummonRequestState loading={isLoading} error={error} onRetry={() => void mutate()} />
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="p-4">
-              <SummonRequestState
-                empty
-                emptyAsset="search"
-                emptyTitle="No matching credentials"
-                emptyMessage="Try another search or filter."
-              />
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="table-stack w-full text-left text-xs md:min-w-[680px]">
-                <thead className="border-y border-subtle bg-layer-1/60 text-12 text-tertiary">
-                  <tr>
-                    <th className="px-4 py-3">{CREDENTIAL_COLUMNS.name}</th>
-                    <th className="px-3 py-3">{CREDENTIAL_COLUMNS.type}</th>
-                    <th className="px-3 py-3">{CREDENTIAL_COLUMNS.project}</th>
-                    <th className="px-3 py-3">{CREDENTIAL_COLUMNS.environment}</th>
-                    <th className="px-3 py-3">{CREDENTIAL_COLUMNS.lastUsed}</th>
-                    <th className="px-3 py-3">{CREDENTIAL_COLUMNS.status}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-subtle">
-                  {filtered.map((credential) => (
-                    <tr
-                      key={credential.id}
-                      className={selected?.id === credential.id ? "bg-accent-subtle/50" : "hover:bg-layer-1"}
-                    >
-                      <td className="px-4 py-3">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedId(credential.id);
-                            setDetailOpen(true);
-                          }}
-                          className="flex w-full items-center gap-3 text-left"
-                        >
-                          <span className="grid size-8 flex-none place-items-center rounded-lg bg-accent-subtle text-accent-primary">
-                            <Server className="size-4" />
-                          </span>
-                          <span className="min-w-0">
-                            <span className="block truncate font-medium text-primary" title={credential.name}>
-                              {credential.name}
-                            </span>
-                            <span className="mt-0.5 block truncate text-12 text-secondary">
-                              {credential.account_identifier || "No account identifier"}
-                            </span>
-                          </span>
-                        </button>
-                      </td>
-                      <td data-label={CREDENTIAL_COLUMNS.type} className="px-3 py-3">
-                        <Badge>{credential.provider.replaceAll("_", " ")}</Badge>
-                      </td>
-                      <td data-label={CREDENTIAL_COLUMNS.project} className="px-3 py-3 text-secondary">
-                        {credential.project ? projectNames.get(credential.project) || "Linked project" : "—"}
-                      </td>
-                      <td data-label={CREDENTIAL_COLUMNS.environment} className="px-3 py-3">
-                        <Badge tone="green">{textMetadata(credential, "environment")}</Badge>
-                      </td>
-                      <td data-label={CREDENTIAL_COLUMNS.lastUsed} className="px-3 py-3 text-secondary">
-                        {formatRelative(credential.updated_at)}
-                      </td>
-                      <td data-label={CREDENTIAL_COLUMNS.status} className="px-3 py-3">
-                        <Status value={credential.status} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        <CredentialTable
+          data={data}
+          error={error}
+          isLoading={isLoading}
+          onRetry={() => void mutate()}
+          filtered={filtered}
+          projects={projects}
+          projectNames={projectNames}
+          projectFilter={projectFilter}
+          onProjectFilterChange={setProjectFilter}
+          selectedId={selected?.id}
+          onOpenCredential={(credentialId) => {
+            setSelectedId(credentialId);
+            setDetailOpen(true);
+          }}
+        />
       </SummonTableShell>
 
-      <SummonDrawer
-        open={detailOpen && Boolean(selected)}
+      <CredentialDetailDrawer
+        open={detailOpen}
         onOpenChange={setDetailOpen}
-        title="Credential details"
-        flush
-      >
-        {selected ? (
-          <>
-            <div className="flex items-start gap-4 px-5 py-5">
-              <span className="grid size-14 flex-none place-items-center rounded-xl bg-accent-subtle text-accent-primary">
-                <Server className="size-6" />
-              </span>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="truncate text-lg font-semibold text-primary" title={selected.name}>
-                    {selected.name}
-                  </h3>
-                  <Status value={selected.status} />
-                </div>
-                <p className="mt-1 text-xs text-secondary capitalize">
-                  {selected.provider.replaceAll("_", " ")} · {textMetadata(selected, "environment")}
-                </p>
-                <p className="mt-2 text-12 text-tertiary">
-                  Last used {formatRelative(lastUsed)} · Created {formatDate(selected.created_at)}
-                </p>
-              </div>
-            </div>
-            <SectionTabs
-              items={tabItems}
-              value={activeTab}
-              onValueChange={setActiveTab}
-              label="Credential sections"
-              className="px-5"
-            />
-            <div className="p-5">
-              <ViewPanel value={activeTab}>
-                {activeTab === "Overview" ? (
-                  <div className="grid items-start gap-4">
-                    <div className="rounded-xl border border-subtle p-4">
-                      <dl className="grid gap-4 text-xs">
-                        <Detail label="Username" value={selected.account_identifier || "Not set"} copy />
-                        <Detail
-                          label="Password"
-                          value={selected.secret}
-                          action={
-                            <button
-                              aria-label="View password"
-                              type="button"
-                              onClick={() => setManageOpen(true)}
-                              className="text-accent-primary"
-                            >
-                              <Eye className="size-4" />
-                            </button>
-                          }
-                        />
-                        <Detail label="Host / IP" value={textMetadata(selected, "host")} copy />
-                        <Detail label="Port" value={textMetadata(selected, "port")} />
-                        <Detail label="Protocol" value={textMetadata(selected, "protocol")} />
-                        <Detail label="Description" value={textMetadata(selected, "description")} />
-                        <Detail
-                          label="Tags"
-                          value={
-                            <div className="flex flex-wrap gap-1.5">
-                              {credentialTags(selected).length
-                                ? credentialTags(selected).map((tag) => (
-                                    <Badge key={tag} tone="blue">
-                                      {tag}
-                                    </Badge>
-                                  ))
-                                : "Not set"}
-                            </div>
-                          }
-                        />
-                        <Detail
-                          label="Project"
-                          value={selected.project ? projectNames.get(selected.project) || "Linked project" : "Not set"}
-                        />
-                        <Detail
-                          label="Environment"
-                          value={<Badge tone="green">{textMetadata(selected, "environment")}</Badge>}
-                        />
-                        <Detail label="Created By" value={selectedOwner?.display_name || "Not available"} />
-                      </dl>
-                    </div>
-                    <div className="space-y-4">
-                      <div className="rounded-xl border border-subtle p-4">
-                        <h4 className="text-sm font-semibold text-primary">Quick Actions</h4>
-                        <div className="mt-3 grid gap-1">
-                          <Action icon={Eye} label="Reveal Password" onClick={() => setManageOpen(true)} />
-                          <Action icon={Pencil} label="Update Credential" onClick={openEdit} />
-                          <Action icon={Clock3} label="Rotate Password" onClick={() => setManageOpen(true)} />
-                          <Action icon={UserRoundPlus} label="Share Access" onClick={() => setManageOpen(true)} />
-                          <Action icon={Copy} label="Duplicate" disabled />
-                          <Action icon={Trash2} label="Delete" danger onClick={() => setManageOpen(true)} />
-                        </div>
-                      </div>
-                      <div className="rounded-xl border border-subtle p-4">
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-sm font-semibold text-primary">Access Summary</h4>
-                          <button
-                            type="button"
-                            onClick={() => setActiveTab("Access")}
-                            className="text-12 text-accent-primary"
-                          >
-                            View all
-                          </button>
-                        </div>
-                        <dl className="mt-3 grid gap-3">
-                          <MiniDetail label="Owner" value={selectedOwner?.display_name || "Not available"} />
-                          <MiniDetail label="Users with access" value={String(accessData?.grants.length ?? 0)} />
-                          <MiniDetail label="Last accessed" value={formatRelative(lastUsed)} />
-                        </dl>
-                      </div>
-                    </div>
-                  </div>
-                ) : activeTab === "Access" ? (
-                  <PanelList
-                    title="Users with access"
-                    empty="No active credential grants."
-                    error={accessError}
-                    items={
-                      accessData?.grants.map((grant) => ({
-                        id: grant.id,
-                        title: getUserDetails(grant.member)?.display_name || grant.member,
-                        detail: `${grant.permission} access${grant.expires_at ? ` · expires ${formatDate(grant.expires_at)}` : ""}`,
-                      })) ?? []
-                    }
-                  />
-                ) : activeTab === "Activity Log" ? (
-                  <PanelList
-                    title="Audit trail"
-                    empty="No credential activity."
-                    error={accessError}
-                    items={
-                      accessData?.audit.map((audit) => ({
-                        id: audit.id,
-                        title: audit.action.replaceAll("_", " "),
-                        detail: `${formatDate(audit.created_at)}${audit.member ? ` · ${getUserDetails(audit.member)?.display_name || audit.member}` : ""}`,
-                      })) ?? []
-                    }
-                  />
-                ) : (
-                  <SummonRequestState
-                    empty
-                    emptyAsset="credential"
-                    emptyMessage={`No ${activeTab.toLowerCase()} data source is configured for credentials.`}
-                  />
-                )}
-              </ViewPanel>
-            </div>
-            <div className="mx-5 mb-5 flex gap-3 rounded-xl bg-accent-subtle/50 p-4 text-xs text-secondary">
-              <ShieldCheck className="size-4 flex-none text-accent-primary" />
-              <p>
-                This credential is encrypted and stored securely. Secret values are revealed only after password
-                confirmation and are audited.
-              </p>
-            </div>
-          </>
-        ) : null}
-      </SummonDrawer>
+        selected={selected}
+        accessData={accessData}
+        accessError={accessError}
+        projectNames={projectNames}
+        getUserDetails={getUserDetails}
+        onManage={openManage}
+        onEdit={credentialForm.openEdit}
+      />
 
-      {formOpen ? (
+      {credentialForm.formOpen ? (
         <CredentialForm
-          credential={editingCredential}
+          credential={credentialForm.editingCredential}
           projects={projects}
-          saving={saving}
-          error={formError}
-          onClose={() => setFormOpen(false)}
-          onSubmit={saveCredential}
+          saving={credentialForm.saving}
+          error={credentialForm.formError}
+          onClose={credentialForm.closeForm}
+          onSubmit={credentialForm.saveCredential}
         />
       ) : null}
       <CredentialDrawer
@@ -496,222 +168,5 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
         onChanged={() => void mutate()}
       />
     </section>
-  );
-}
-
-function Badge({ children, tone = "neutral" }: { children: React.ReactNode; tone?: "neutral" | "blue" | "green" }) {
-  const tones = {
-    neutral: "bg-layer-2 text-secondary",
-    blue: "bg-label-indigo-bg text-label-indigo-text",
-    green: "bg-label-emerald-bg text-label-emerald-text",
-  };
-  return (
-    <span className={`inline-flex rounded-md px-2 py-1 text-12 font-medium capitalize ${tones[tone]}`}>{children}</span>
-  );
-}
-
-function Status({ value }: { value: ISummonCredential["status"] }) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-12 font-medium capitalize ${value === "active" ? "bg-success-subtle text-success-primary" : "bg-danger-subtle text-danger-primary"}`}
-    >
-      <span className="size-1.5 rounded-full bg-current" />
-      {value}
-    </span>
-  );
-}
-
-function Detail({
-  label,
-  value,
-  copy,
-  action,
-}: {
-  label: string;
-  value: React.ReactNode;
-  copy?: boolean;
-  action?: React.ReactNode;
-}) {
-  return (
-    <div className="grid grid-cols-[7rem_minmax(0,1fr)] items-start gap-3">
-      <dt className="text-secondary">{label}</dt>
-      <dd className="flex min-w-0 items-center gap-2 font-medium text-primary">
-        <span className="min-w-0 break-words">{value}</span>
-        {copy ? <Copy className="size-3.5 flex-none text-tertiary" /> : null}
-        {action}
-      </dd>
-    </div>
-  );
-}
-
-function MiniDetail({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-start justify-between gap-3 text-12">
-      <dt className="text-secondary">{label}</dt>
-      <dd className="text-right font-medium text-primary">{value}</dd>
-    </div>
-  );
-}
-
-function Action(props: {
-  icon: typeof Eye;
-  label: string;
-  onClick?: () => void;
-  danger?: boolean;
-  disabled?: boolean;
-}) {
-  const Icon = props.icon;
-  return (
-    <button
-      type="button"
-      onClick={props.onClick}
-      disabled={props.disabled}
-      className={`flex items-center gap-2 rounded-lg px-2 py-2 text-left text-xs hover:bg-layer-1 disabled:cursor-not-allowed disabled:opacity-40 ${props.danger ? "text-danger-primary" : "text-primary"}`}
-    >
-      <Icon className="size-3.5" />
-      {props.label}
-    </button>
-  );
-}
-
-function PanelList(props: {
-  title: string;
-  empty: string;
-  error?: unknown;
-  items: Array<{ id: string; title: string; detail: string }>;
-}) {
-  if (props.error) return <SummonRequestState error={props.error} />;
-  return (
-    <div className="rounded-xl border border-subtle">
-      <h3 className="border-b border-subtle px-4 py-3 text-sm font-semibold text-primary">{props.title}</h3>
-      <div className="divide-y divide-subtle">
-        {props.items.map((item) => (
-          <div key={item.id} className="px-4 py-3">
-            <p className="text-xs font-medium text-primary capitalize">{item.title}</p>
-            <p className="mt-1 text-12 text-secondary">{item.detail}</p>
-          </div>
-        ))}
-        {!props.items.length ? <p className="p-4 text-xs text-tertiary">{props.empty}</p> : null}
-      </div>
-    </div>
-  );
-}
-
-function CredentialForm(props: {
-  credential: ISummonCredential | null;
-  projects: Array<{ id: string; name: string }>;
-  saving: boolean;
-  error: string;
-  onClose: () => void;
-  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
-}) {
-  const metadata = props.credential?.metadata ?? {};
-  return (
-    <Dialog open onOpenChange={(open) => !open && props.onClose()}>
-      <Dialog.Panel width={EDialogWidth.XXL} className="p-5">
-        <div className="flex items-center justify-between">
-          <Dialog.Title className="text-18 font-semibold text-primary">
-            {props.credential ? "Update Credential" : "Add Credential"}
-          </Dialog.Title>
-          <button type="button" onClick={props.onClose} aria-label="Close">
-            <X className="size-4 text-secondary" />
-          </button>
-        </div>
-        <form onSubmit={props.onSubmit} className="mt-5 grid gap-3 sm:grid-cols-2">
-          <Input name="name" required defaultValue={props.credential?.name} placeholder="Credential name" />
-          <Input
-            name="account_identifier"
-            defaultValue={props.credential?.account_identifier}
-            placeholder="Account identifier"
-          />
-          <SummonField label="Provider">
-            <Select
-              name="provider"
-              defaultValue={props.credential?.provider || "plane_mcp"}
-              options={[
-                { value: "plane_mcp", label: "Plane MCP PAT" },
-                { value: "server", label: "Server" },
-                { value: "database", label: "Database" },
-                { value: "github", label: "GitHub" },
-                { value: "figma", label: "Figma" },
-                { value: "other", label: "Other" },
-              ]}
-            />
-          </SummonField>
-          <SummonField label="Project">
-            <Select
-              name="project"
-              defaultValue={props.credential?.project || ""}
-              options={[
-                { value: "", label: "No project" },
-                ...props.projects.map((project) => ({ value: project.id, label: project.name })),
-              ]}
-            />
-          </SummonField>
-          {!props.credential ? (
-            <Input name="secret" type="password" required autoComplete="new-password" placeholder="Secret or PAT" />
-          ) : null}
-          <Input
-            name="environment"
-            defaultValue={typeof metadata.environment === "string" ? metadata.environment : ""}
-            placeholder="Environment"
-          />
-          <Input
-            name="host"
-            defaultValue={typeof metadata.host === "string" ? metadata.host : ""}
-            placeholder="Host / IP"
-          />
-          <Input name="port" defaultValue={typeof metadata.port === "string" ? metadata.port : ""} placeholder="Port" />
-          <Input
-            name="protocol"
-            defaultValue={typeof metadata.protocol === "string" ? metadata.protocol : ""}
-            placeholder="Protocol"
-          />
-          <DatePicker
-            name="expires_at"
-            aria-label="Expires on"
-            placeholder="Expiry date"
-            defaultValue={typeof metadata.expires_at === "string" ? metadata.expires_at.slice(0, 10) : ""}
-          />
-          <Input
-            name="tags"
-            defaultValue={Array.isArray(metadata.tags) ? metadata.tags.join(", ") : ""}
-            placeholder="Tags, comma separated"
-          />
-          <SummonField label="Risk">
-            <Select
-              name="risk"
-              defaultValue={typeof metadata.risk === "string" ? metadata.risk : ""}
-              options={[
-                { value: "", label: "Not assessed" },
-                { value: "low", label: "Low" },
-                { value: "high", label: "High" },
-                { value: "critical", label: "Critical" },
-              ]}
-            />
-          </SummonField>
-          <TextArea
-            name="description"
-            rows={3}
-            defaultValue={typeof metadata.description === "string" ? metadata.description : ""}
-            placeholder="Description"
-            className="sm:col-span-2"
-          />
-          <p className="text-12 text-tertiary sm:col-span-2">
-            Secrets are encrypted server-side and are never returned in list responses.
-          </p>
-          {props.error ? <p className="text-xs text-danger-primary sm:col-span-2">{props.error}</p> : null}
-          <div className="flex justify-end gap-2 sm:col-span-2">
-            <Button size="xl" type="button" variant="secondary" onClick={props.onClose}>
-              Cancel
-            </Button>
-            <Button size="xl" type="submit" loading={props.saving}>
-              <Check className="mr-1.5 size-3.5" />
-              Save credential
-            </Button>
-          </div>
-        </form>
-      </Dialog.Panel>
-    </Dialog>
   );
 }

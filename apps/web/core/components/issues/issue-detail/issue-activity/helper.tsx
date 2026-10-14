@@ -210,7 +210,26 @@ export const useWorkItemCommentOperations = (
       },
     };
     return ops;
-  }, [workspaceSlug, projectId, issueId, createComment, updateComment, uploadEditorAsset, removeComment]);
+  }, [
+    workspaceSlug,
+    projectId,
+    issueId,
+    issueDetails,
+    projectDetails,
+    currentUser,
+    t,
+    createComment,
+    updateComment,
+    removeComment,
+    uploadEditorAsset,
+    duplicateEditorAsset,
+    createCommentReaction,
+    removeCommentReaction,
+    getCommentReactionsByCommentId,
+    commentReactionsByUser,
+    getCommentReactionById,
+    getUserDetails,
+  ]);
 
   return operations;
 };

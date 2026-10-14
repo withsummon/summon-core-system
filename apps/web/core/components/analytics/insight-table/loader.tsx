@@ -14,15 +14,17 @@ interface TableSkeletonProps {
   rows: number;
 }
 
+// Stable column identity: explicit id, then accessor key, then header text
+const getColumnKey = (column: ColumnDef<any>): string =>
+  column.id ?? ("accessorKey" in column ? String(column.accessorKey) : String(column.header));
+
 export function TableLoader({ columns, rows }: TableSkeletonProps) {
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          {columns.map((column, index) => (
-            <TableHead key={column.header?.toString() ?? index}>
-              {typeof column.header === "string" ? column.header : ""}
-            </TableHead>
+          {columns.map((column) => (
+            <TableHead key={getColumnKey(column)}>{typeof column.header === "string" ? column.header : ""}</TableHead>
           ))}
         </TableRow>
       </TableHeader>

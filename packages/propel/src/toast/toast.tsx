@@ -11,49 +11,12 @@ import { CloseIcon } from "../icons/actions/close-icon";
 // spinner
 import { CircularBarSpinner } from "../spinners/circular-bar-spinner";
 import { cn } from "../utils/classname";
-
-export enum TOAST_TYPE {
-  SUCCESS = "success",
-  ERROR = "error",
-  INFO = "info",
-  WARNING = "warning",
-  LOADING = "loading",
-  LOADING_TOAST = "loading-toast",
-}
-
-type SetToastProps =
-  | {
-      type: TOAST_TYPE.LOADING;
-      title?: string;
-    }
-  | {
-      id?: string | number;
-      type: Exclude<TOAST_TYPE, TOAST_TYPE.LOADING>;
-      title: string;
-      message?: string;
-      actionItems?: React.ReactNode;
-    };
-
-type PromiseToastCallback<ToastData> = (data: ToastData) => string;
-type ActionItemsPromiseToastCallback<ToastData> = (data: ToastData) => React.ReactNode;
-
-type PromiseToastData<ToastData> = {
-  title: string;
-  message?: PromiseToastCallback<ToastData>;
-  actionItems?: ActionItemsPromiseToastCallback<ToastData>;
-};
-
-type PromiseToastOptions<ToastData> = {
-  loading?: string;
-  success: PromiseToastData<ToastData>;
-  error: PromiseToastData<ToastData>;
-};
+import { TOAST_TYPE, toastManager } from "./manager";
+import type { SetToastProps } from "./manager";
 
 export type ToastProps = {
   theme: "light" | "dark" | "system";
 };
-
-const toastManager = BaseToast.createToastManager();
 
 export function Toast(props: ToastProps) {
   return (
@@ -247,78 +210,3 @@ export function ToastStatic({ type, title, message, actionItems, theme = "light"
     </div>
   );
 }
-
-export const setToast = (props: SetToastProps) => {
-  let toastId: string | undefined;
-  if (props.type !== TOAST_TYPE.LOADING) {
-    toastId = toastManager.add({
-      data: {
-        type: props.type,
-        title: props.title,
-        message: props.message,
-        actionItems: props.actionItems,
-      },
-    });
-  } else {
-    toastId = toastManager.add({
-      data: {
-        type: props.type,
-        title: props.title,
-      },
-    });
-  }
-  return toastId;
-};
-
-export const updateToast = (id: string, props: SetToastProps) => {
-  toastManager.update(id, {
-    data:
-      props.type === TOAST_TYPE.LOADING
-        ? {
-            type: TOAST_TYPE.LOADING,
-            title: props.title,
-          }
-        : {
-            type: props.type,
-            title: props.title,
-            message: props.message,
-            actionItems: props.actionItems,
-          },
-  });
-};
-
-export const setPromiseToast = <ToastData,>(
-  promise: Promise<ToastData>,
-  options: PromiseToastOptions<ToastData>
-): void => {
-  toastManager.promise(promise, {
-    loading: {
-      data: {
-        title: options.loading ?? "Loading…",
-        type: TOAST_TYPE.LOADING,
-        message: undefined,
-        actionItems: undefined,
-      },
-    },
-    success: (data) => ({
-      data: {
-        type: TOAST_TYPE.SUCCESS,
-        title: options.success.title,
-        message: options.success.message?.(data),
-        actionItems: options.success.actionItems?.(data),
-      },
-    }),
-    error: (data) => ({
-      data: {
-        type: TOAST_TYPE.ERROR,
-        title: options.error.title,
-        message: options.error.message?.(data),
-        actionItems: options.error.actionItems?.(data),
-      },
-    }),
-  });
-};
-
-export const dismissToast = (tId: string) => {
-  toastManager.close(tId);
-};

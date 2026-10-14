@@ -60,17 +60,12 @@ export const ModuleViewHeader = observer(function ModuleViewHeader() {
   const handleFilters = useCallback(
     (key: keyof TModuleFilters, value: string | string[]) => {
       if (!projectId) return;
-      const newValues = filters?.[key] ?? [];
-
-      if (Array.isArray(value))
-        value.forEach((val) => {
-          if (!newValues.includes(val)) newValues.push(val);
-          else newValues.splice(newValues.indexOf(val), 1);
-        });
-      else {
-        if (filters?.[key]?.includes(value)) newValues.splice(newValues.indexOf(value), 1);
-        else newValues.push(value);
+      const selected = new Set<string>(filters?.[key] ?? []);
+      for (const val of Array.isArray(value) ? value : [value]) {
+        if (selected.has(val)) selected.delete(val);
+        else selected.add(val);
       }
+      const newValues = Array.from(selected);
 
       updateFilters(projectId.toString(), { [key]: newValues });
     },
@@ -125,6 +120,7 @@ export const ModuleViewHeader = observer(function ModuleViewHeader() {
           <input
             ref={inputRef}
             className="w-full max-w-[234px] border-none bg-transparent text-13 text-primary outline-none placeholder:text-placeholder"
+            aria-label="Search modules"
             placeholder="Search"
             value={searchQuery}
             onChange={(e) => updateSearchQuery(e.target.value)}

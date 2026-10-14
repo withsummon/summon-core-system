@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+// react-doctor-disable-next-line prefer-dynamic-import -- server-side PDF renderer in the Node live service; no client bundle
 import { StyleSheet } from "@react-pdf/renderer";
 import {
   BACKGROUND_COLORS,

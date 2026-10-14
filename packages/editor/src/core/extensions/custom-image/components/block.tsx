@@ -5,18 +5,19 @@
  */
 
 import { NodeSelection } from "@tiptap/pm/state";
-import React, { useRef, useState, useCallback, useLayoutEffect, useEffect } from "react";
+import { useRef, useCallback } from "react";
 // plane imports
 import { cn } from "@plane/utils";
 // local imports
 import { ECustomImageAttributeNames } from "../types";
-import type { Pixel, TCustomImageAttributes, TCustomImageSize } from "../types";
-import { ensurePixelString, getImageBlockId, isImageDuplicating } from "../utils";
+import type { TCustomImageAttributes } from "../types";
+import { getImageBlockId, isImageDuplicating } from "../utils";
 import type { CustomImageNodeViewProps } from "./node-view";
 import { ImageToolbarRoot } from "./toolbar";
+import { ImageResizeHandles } from "./resize-handles";
 import { ImageUploadStatus } from "./upload-status";
-
-const MIN_SIZE = 100;
+import { useImageErrorRecovery } from "./use-image-error-recovery";
+import { useImageResize } from "./use-image-resize";
 
 type CustomImageBlockProps = CustomImageNodeViewProps & {
   editorContainer: HTMLDivElement | null;
@@ -25,6 +26,45 @@ type CustomImageBlockProps = CustomImageNodeViewProps & {
   setFailedToLoadImage: (isError: boolean) => void;
   src: string | undefined;
   downloadSrc: string | undefined;
+};
+
+type VisibilityArgs = {
+  hasErroredOnFirstLoad: boolean;
+  imageFromFileSystem: string | undefined;
+  initialResizeComplete: boolean;
+  isEditable: boolean;
+  resolvedDownloadSrc: string | undefined;
+  resolvedImageSrc: string | undefined;
+  status: TCustomImageAttributes["status"];
+};
+
+const getImageBlockVisibility = (args: VisibilityArgs) => {
+  const {
+    hasErroredOnFirstLoad,
+    imageFromFileSystem,
+    initialResizeComplete,
+    isEditable,
+    resolvedDownloadSrc,
+    resolvedImageSrc,
+    status,
+  } = args;
+  const isDuplicating = isImageDuplicating(status);
+  // show the image loader if the remote image's src or preview image from filesystem is not set yet (while loading the image post upload) (or)
+  // if the initial resize (from 35% width and "auto" height attrs to the actual size in px) is not complete
+  const showImageLoader =
+    (!resolvedImageSrc && !isDuplicating) || !initialResizeComplete || hasErroredOnFirstLoad || isDuplicating; // show the image upload status only when the resolvedImageSrc is not ready
+  const showUploadStatus = !resolvedImageSrc && !isDuplicating;
+  // show the image utils only if the remote image's (post upload) src is set and the initial resize is complete (but not while we're showing the preview imageFromFileSystem)
+  const toolbarSources =
+    resolvedImageSrc && resolvedDownloadSrc && initialResizeComplete && !isDuplicating
+      ? { src: resolvedImageSrc, downloadSrc: resolvedDownloadSrc }
+      : null;
+  // show the image resizer only if the editor is editable, the remote image's (post upload) src is set and the initial resize is complete (but not while we're showing the preview imageFromFileSystem)
+  const showImageResizer = isEditable && resolvedImageSrc && initialResizeComplete && !isDuplicating;
+  // show the preview image from the file system if the remote image's src is not set
+  const displayedImageSrc = resolvedImageSrc || imageFromFileSystem;
+
+  return { displayedImageSrc, showImageLoader, showImageResizer, showUploadStatus, toolbarSources };
 };
 
 export function CustomImageBlock(props: CustomImageBlockProps) {
@@ -51,20 +91,8 @@ export function CustomImageBlock(props: CustomImageBlockProps) {
     alignment: nodeAlignment,
     status,
   } = node.attrs;
-  // states
-  const [size, setSize] = useState<TCustomImageSize>({
-    width: ensurePixelString(nodeWidth, "35%") ?? "35%",
-    height: ensurePixelString(nodeHeight, "auto") ?? "auto",
-    aspectRatio: nodeAspectRatio || null,
-  });
-  const [isResizing, setIsResizing] = useState(false);
-  const [initialResizeComplete, setInitialResizeComplete] = useState(false);
   // refs
-  const containerRef = useRef<HTMLDivElement>(null);
-  const containerRect = useRef<DOMRect | null>(null);
   const imageRef = useRef<HTMLImageElement>(null);
-  const [hasErroredOnFirstLoad, setHasErroredOnFirstLoad] = useState(false);
-  const [hasTriedRestoringImageOnce, setHasTriedRestoringImageOnce] = useState(false);
   // extension options
   const isTouchDevice = !!(editor.storage.utility as { isTouchDevice?: boolean } | undefined)?.isTouchDevice;
 
@@ -78,122 +106,24 @@ export function CustomImageBlock(props: CustomImageBlockProps) {
     },
     [updateAttributes]
   );
-
-  const handleImageLoad = useCallback(() => {
-    const img = imageRef.current;
-    if (!img) return;
-    let closestEditorContainer: HTMLDivElement | null = null;
-
-    if (editorContainer) {
-      closestEditorContainer = editorContainer;
-    } else {
-      closestEditorContainer = img.closest(".editor-container");
-      if (!closestEditorContainer) {
-        console.error("Editor container not found");
-        return;
-      }
-    }
-    if (!closestEditorContainer) {
-      console.error("Editor container not found");
-      return;
-    }
-
-    setEditorContainer(closestEditorContainer);
-    const aspectRatioCalculated = img.naturalWidth / img.naturalHeight;
-
-    if (nodeWidth === "35%") {
-      const editorWidth = closestEditorContainer.clientWidth;
-      const initialWidth = Math.max(editorWidth * 0.35, MIN_SIZE);
-      const initialHeight = initialWidth / aspectRatioCalculated;
-
-      const initialComputedSize: TCustomImageSize = {
-        width: `${Math.round(initialWidth)}px` satisfies Pixel,
-        height: `${Math.round(initialHeight)}px` satisfies Pixel,
-        aspectRatio: aspectRatioCalculated,
-      };
-      setSize(initialComputedSize);
-      updateAttributesSafely(
-        initialComputedSize,
-        "Failed to update attributes while initializing an image for the first time:"
-      );
-    } else {
-      // as the aspect ratio in not stored for old images, we need to update the attrs
-      // or if aspectRatioCalculated from the image's width and height doesn't match stored aspectRatio then also we'll update the attrs
-      if (!nodeAspectRatio || nodeAspectRatio !== aspectRatioCalculated) {
-        setSize((prevSize) => {
-          const newSize = { ...prevSize, aspectRatio: aspectRatioCalculated };
-          updateAttributesSafely(
-            newSize,
-            "Failed to update attributes while initializing images with width but no aspect ratio:"
-          );
-          return newSize;
-        });
-      }
-    }
-    setInitialResizeComplete(true);
-  }, [nodeWidth, updateAttributesSafely, editorContainer, nodeAspectRatio, setEditorContainer]);
-
-  // for real time resizing
-  useLayoutEffect(() => {
-    setSize((prevSize) => ({
-      ...prevSize,
-      width: ensurePixelString(nodeWidth) ?? "35%",
-      height: ensurePixelString(nodeHeight) ?? "auto",
-      aspectRatio: nodeAspectRatio,
-    }));
-  }, [nodeWidth, nodeHeight, nodeAspectRatio]);
-
-  const handleResize = useCallback(
-    (e: MouseEvent | TouchEvent) => {
-      if (!containerRef.current || !containerRect.current || !size.aspectRatio) return;
-
-      const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
-
-      if (nodeAlignment === "right") {
-        const newWidth = Math.max(containerRect.current.right - clientX, MIN_SIZE);
-        const newHeight = newWidth / size.aspectRatio;
-        setSize((prevSize) => ({ ...prevSize, width: `${newWidth}px`, height: `${newHeight}px` }));
-      } else {
-        const newWidth = Math.max(clientX - containerRect.current.left, MIN_SIZE);
-        const newHeight = newWidth / size.aspectRatio;
-        setSize((prevSize) => ({ ...prevSize, width: `${newWidth}px`, height: `${newHeight}px` }));
-      }
-    },
-    [nodeAlignment, size.aspectRatio]
-  );
-
-  const handleResizeEnd = useCallback(() => {
-    setIsResizing(false);
-    updateAttributesSafely(size, "Failed to update attributes at the end of resizing:");
-  }, [size, updateAttributesSafely]);
-
-  const handleResizeStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsResizing(true);
-
-    if (containerRef.current) {
-      containerRect.current = containerRef.current.getBoundingClientRect();
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isResizing) {
-      window.addEventListener("mousemove", handleResize);
-      window.addEventListener("mouseup", handleResizeEnd);
-      window.addEventListener("mouseleave", handleResizeEnd);
-      window.addEventListener("touchmove", handleResize);
-      window.addEventListener("touchend", handleResizeEnd);
-
-      return () => {
-        window.removeEventListener("mousemove", handleResize);
-        window.removeEventListener("mouseup", handleResizeEnd);
-        window.removeEventListener("mouseleave", handleResizeEnd);
-        window.removeEventListener("touchmove", handleResize);
-        window.removeEventListener("touchend", handleResizeEnd);
-      };
-    }
-  }, [isResizing, handleResize, handleResizeEnd]);
+  const { containerRef, handleImageLoad, handleResizeStart, initialResizeComplete, isResizing, size } = useImageResize({
+    editorContainer,
+    imageRef,
+    nodeAlignment,
+    nodeAspectRatio,
+    nodeHeight,
+    nodeWidth,
+    setEditorContainer,
+    updateAttributesSafely,
+  });
+  const { handleImageError, hasErroredOnFirstLoad } = useImageErrorRecovery({
+    extension,
+    imageRef,
+    imgNodeSrc,
+    isTouchDevice,
+    resolvedImageSrc,
+    setFailedToLoadImage,
+  });
 
   const handleImageMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -210,18 +140,16 @@ export function CustomImageBlock(props: CustomImageBlockProps) {
     [editor, getPos, isTouchDevice]
   );
 
-  const isDuplicating = isImageDuplicating(status);
-  // show the image loader if the remote image's src or preview image from filesystem is not set yet (while loading the image post upload) (or)
-  // if the initial resize (from 35% width and "auto" height attrs to the actual size in px) is not complete
-  const showImageLoader =
-    (!resolvedImageSrc && !isDuplicating) || !initialResizeComplete || hasErroredOnFirstLoad || isDuplicating; // show the image upload status only when the resolvedImageSrc is not ready
-  const showUploadStatus = !resolvedImageSrc && !isDuplicating;
-  // show the image utils only if the remote image's (post upload) src is set and the initial resize is complete (but not while we're showing the preview imageFromFileSystem)
-  const showImageToolbar = resolvedImageSrc && resolvedDownloadSrc && initialResizeComplete && !isDuplicating;
-  // show the image resizer only if the editor is editable, the remote image's (post upload) src is set and the initial resize is complete (but not while we're showing the preview imageFromFileSystem)
-  const showImageResizer = editor.isEditable && resolvedImageSrc && initialResizeComplete && !isDuplicating;
-  // show the preview image from the file system if the remote image's src is not set
-  const displayedImageSrc = resolvedImageSrc || imageFromFileSystem;
+  const { displayedImageSrc, showImageLoader, showImageResizer, showUploadStatus, toolbarSources } =
+    getImageBlockVisibility({
+      hasErroredOnFirstLoad,
+      imageFromFileSystem,
+      initialResizeComplete,
+      isEditable: editor.isEditable,
+      resolvedDownloadSrc,
+      resolvedImageSrc,
+      status,
+    });
 
   return (
     <div
@@ -238,6 +166,8 @@ export function CustomImageBlock(props: CustomImageBlockProps) {
       <div
         ref={containerRef}
         className="group/image-component relative inline-block max-w-full"
+        // Pointer-only: selects the image node; keyboard selection goes through the editor.
+        role="presentation"
         onMouseDown={handleImageMouseDown}
         style={{
           width: size.width,
@@ -252,43 +182,7 @@ export function CustomImageBlock(props: CustomImageBlockProps) {
           src={displayedImageSrc}
           alt=""
           onLoad={handleImageLoad}
-          onError={(_e) =>
-            void (async () => {
-              // for old image extension this command doesn't exist or if the image failed to load for the first time
-              if (!extension.options.restoreImage || hasTriedRestoringImageOnce) {
-                setFailedToLoadImage(true);
-                return;
-              }
-
-              try {
-                setHasErroredOnFirstLoad(true);
-                // this is a type error from tiptap, don't remove await until it's fixed
-                if (!imgNodeSrc) {
-                  throw new Error("No source image to restore from");
-                }
-                await extension.options.restoreImage?.(imgNodeSrc);
-                if (!imageRef.current) {
-                  throw new Error("Image reference not found");
-                }
-                if (!resolvedImageSrc) {
-                  throw new Error("No resolved image source available");
-                }
-                if (isTouchDevice) {
-                  const refreshedSrc = await extension.options.getImageSource?.(imgNodeSrc);
-                  imageRef.current.src = refreshedSrc;
-                } else {
-                  imageRef.current.src = resolvedImageSrc;
-                }
-              } catch (error) {
-                // if the image failed to even restore, then show the error state
-                setFailedToLoadImage(true);
-                console.error("Error while loading image", error);
-              } finally {
-                setHasErroredOnFirstLoad(false);
-                setHasTriedRestoringImageOnce(true);
-              }
-            })()
-          }
+          onError={handleImageError}
           width={size.width}
           className={cn("image-component block rounded-md", {
             // hide the image while the background calculations of the image loader are in progress (to avoid flickering) and show the loader until then
@@ -304,50 +198,26 @@ export function CustomImageBlock(props: CustomImageBlockProps) {
         {showUploadStatus && node.attrs[ECustomImageAttributeNames.ID] && (
           <ImageUploadStatus editor={editor} nodeId={node.attrs[ECustomImageAttributeNames.ID]} />
         )}
-        {showImageToolbar && (
+        {toolbarSources && (
           <ImageToolbarRoot
             alignment={nodeAlignment ?? "left"}
             editor={editor}
             aspectRatio={size.aspectRatio === null ? 1 : size.aspectRatio}
-            downloadSrc={resolvedDownloadSrc}
+            downloadSrc={toolbarSources.downloadSrc}
             handleAlignmentChange={(alignment) =>
               updateAttributesSafely({ alignment }, "Failed to update attributes while changing alignment:")
             }
             height={size.height}
             isTouchDevice={isTouchDevice}
             width={size.width}
-            src={resolvedImageSrc}
+            src={toolbarSources.src}
           />
         )}
         {selected && displayedImageSrc === resolvedImageSrc && (
           <div className="pointer-events-none absolute inset-0 size-full bg-accent-primary/30" />
         )}
         {showImageResizer && (
-          <>
-            <div
-              className={cn(
-                "pointer-events-none absolute inset-0 rounded-md border-2 border-accent-strong transition-opacity duration-100 ease-in-out",
-                {
-                  "opacity-100": isResizing,
-                  "opacity-0 group-hover/image-component:opacity-100": !isResizing,
-                }
-              )}
-            />
-            <div
-              className={cn(
-                "absolute bottom-0 size-4 translate-y-1/2 rounded-full border-2 border-white bg-accent-primary transition-opacity duration-100 ease-in-out",
-                {
-                  "pointer-events-auto opacity-100": isResizing,
-                  "pointer-events-none opacity-0 group-hover/image-component:pointer-events-auto group-hover/image-component:opacity-100":
-                    !isResizing,
-                  "left-0 -translate-x-1/2 cursor-nesw-resize": nodeAlignment === "right",
-                  "right-0 translate-x-1/2 cursor-nwse-resize": nodeAlignment !== "right",
-                }
-              )}
-              onMouseDown={handleResizeStart}
-              onTouchStart={handleResizeStart}
-            />
-          </>
+          <ImageResizeHandles alignment={nodeAlignment} isResizing={isResizing} onResizeStart={handleResizeStart} />
         )}
       </div>
     </div>

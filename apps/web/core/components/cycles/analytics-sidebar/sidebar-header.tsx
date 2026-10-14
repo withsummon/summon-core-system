@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
 import { ArrowRight } from "lucide-react";
@@ -41,6 +41,8 @@ const cycleService = new CycleService();
 
 export const CycleSidebarHeader = observer(function CycleSidebarHeader(props: Props) {
   const { workspaceSlug, projectId, cycleDetails, handleClose, isArchived = false } = props;
+  // captured once so the date picker's lower bound stays stable across renders
+  const [today] = useState(() => new Date());
   // hooks
   const { allowPermissions } = useUserPermissions();
   const { updateCycleDetails } = useCycle();
@@ -161,7 +163,7 @@ export const CycleSidebarHeader = observer(function CycleSidebarHeader(props: Pr
                   <DateRangeDropdown
                     className="h-7"
                     buttonVariant="border-with-text"
-                    minDate={new Date()}
+                    minDate={today}
                     value={{
                       from: getDate(startDateValue),
                       to: getDate(endDateValue),

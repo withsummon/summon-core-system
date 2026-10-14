@@ -26,7 +26,6 @@ export function CustomImageNodeView(props: CustomImageNodeViewProps) {
   const { editor, extension, node, updateAttributes } = props;
   const { src: imgNodeSrc, status } = node.attrs;
 
-  const [isUploaded, setIsUploaded] = useState(!!imgNodeSrc);
   const [resolvedSrc, setResolvedSrc] = useState<string | undefined>(undefined);
   const [resolvedDownloadSrc, setResolvedDownloadSrc] = useState<string | undefined>(undefined);
   const [imageFromFileSystem, setImageFromFileSystem] = useState<string | undefined>(undefined);
@@ -45,15 +44,11 @@ export function CustomImageNodeView(props: CustomImageNodeViewProps) {
   }, []);
 
   // the image is already uploaded if the image-component node has src attribute
-  // and we need to remove the blob from our file system
-  useEffect(() => {
-    if (resolvedSrc || imgNodeSrc) {
-      setIsUploaded(true);
-      setImageFromFileSystem(undefined);
-    } else {
-      setIsUploaded(false);
-    }
-  }, [resolvedSrc, imgNodeSrc]);
+  // and we need to remove the blob from our file system (adjusted during render so the stale preview never paints)
+  const isUploaded = !!(resolvedSrc || imgNodeSrc);
+  if (isUploaded && imageFromFileSystem) {
+    setImageFromFileSystem(undefined);
+  }
 
   useEffect(() => {
     if (!imgNodeSrc) {
@@ -66,18 +61,25 @@ export function CustomImageNodeView(props: CustomImageNodeViewProps) {
     setResolvedDownloadSrc(undefined);
     setFailedToLoadImage(false);
 
+    // ignore results from a source that has since changed or unmounted
+    let isStale = false;
     const getImageSource = async () => {
       try {
         const url = await extension.options.getImageSource?.(imgNodeSrc);
+        if (isStale) return;
         setResolvedSrc(url);
         const downloadUrl = await extension.options.getImageDownloadSource?.(imgNodeSrc);
+        if (isStale) return;
         setResolvedDownloadSrc(downloadUrl);
       } catch (error) {
         console.error("Error fetching image source:", error);
-        setFailedToLoadImage(true);
+        if (!isStale) setFailedToLoadImage(true);
       }
     };
     void getImageSource();
+    return () => {
+      isStale = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imgNodeSrc, extension.options.getImageSource, extension.options.getImageDownloadSource]);
 
@@ -102,7 +104,7 @@ export function CustomImageNodeView(props: CustomImageNodeViewProps) {
           throw new Error("Duplication returned invalid asset ID");
         }
 
-        setFailedToLoadImage(false);
+        // the new src re-runs the source effect, which clears failedToLoadImage
         updateAttributes({ src: newAssetId, status: ECustomImageStatus.UPLOADED });
       } catch (error: unknown) {
         console.error("Failed to duplicate image:", error);
@@ -125,15 +127,15 @@ export function CustomImageNodeView(props: CustomImageNodeViewProps) {
     }
   }, [status, imgNodeSrc, updateAttributes]);
 
+  // an UPLOADED status always arrives with a new src, whose source effect clears failedToLoadImage
   useEffect(() => {
     if (status === ECustomImageStatus.UPLOADED) {
       hasRetriedOnMount.current = false;
-      setFailedToLoadImage(false);
     }
   }, [status]);
 
   const hasDuplicationFailed = hasImageDuplicationFailed(status);
-  const hasValidImageSource = imageFromFileSystem || (isUploaded && resolvedSrc);
+  const hasValidImageSource = imageFromFileSystem || resolvedSrc;
   const shouldShowBlock = hasValidImageSource && !failedToLoadImage && !hasDuplicationFailed;
 
   return (
@@ -155,7 +157,6 @@ export function CustomImageNodeView(props: CustomImageNodeViewProps) {
             hasDuplicationFailed={hasDuplicationFailed}
             loadImageFromFileSystem={setImageFromFileSystem}
             maxFileSize={(editor.storage.imageComponent as { maxFileSize?: number } | undefined)?.maxFileSize ?? 0}
-            setIsUploaded={setIsUploaded}
             {...props}
           />
         )}

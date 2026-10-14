@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import { autoScrollForElements } from "@atlaskit/pragmatic-drag-and-drop-auto-scroll/element";
 import { observer } from "mobx-react";
@@ -94,8 +94,8 @@ export const CalendarChart = observer(function CalendarChart(props: Props) {
   } = props;
   // states
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  //refs
-  const scrollableContainerRef = useRef<HTMLDivElement | null>(null);
+  // the scroll container mounts after loading, so track the element itself to bind auto-scroll once it exists
+  const [scrollableContainer, setScrollableContainer] = useState<HTMLDivElement | null>(null);
   // store hooks
   const {
     issues: { viewFlags },
@@ -113,16 +113,14 @@ export const CalendarChart = observer(function CalendarChart(props: Props) {
 
   // Enable Auto Scroll for calendar
   useEffect(() => {
-    const element = scrollableContainerRef.current;
-
-    if (!element) return;
+    if (!scrollableContainer) return;
 
     return combine(
       autoScrollForElements({
-        element,
+        element: scrollableContainer,
       })
     );
-  }, [scrollableContainerRef?.current]);
+  }, [scrollableContainer]);
 
   if (!calendarPayload || !formattedDatePayload)
     return (
@@ -147,7 +145,7 @@ export const CalendarChart = observer(function CalendarChart(props: Props) {
             className={cn("flex w-full flex-col overflow-y-auto md:h-full", {
               "vertical-scrollbar scrollbar-lg": windowWidth > 768,
             })}
-            ref={scrollableContainerRef}
+            ref={setScrollableContainer}
           >
             <CalendarWeekHeader isLoading={!issues} showWeekends={showWeekends} />
             <div className="h-full w-full">

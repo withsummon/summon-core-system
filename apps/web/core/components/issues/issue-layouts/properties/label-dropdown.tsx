@@ -128,10 +128,13 @@ export function LabelDropdown(props: ILabelDropdownProps) {
   const handleAddLabel = async (labelName: string) => {
     if (!projectId) return;
     setSubmitting(true);
-    const created = await createLabel(workspaceSlug, projectId, { name: labelName, color: getRandomLabelColor() });
-    onChange([...value, created.id]);
-    setQuery("");
-    setSubmitting(false);
+    try {
+      const created = await createLabel(workspaceSlug, projectId, { name: labelName, color: getRandomLabelColor() });
+      onChange([...value, created.id]);
+      setQuery("");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const { handleOpenChange } = useDropdown({ setIsOpen, onOpen, onClose, setQuery });
@@ -197,57 +200,14 @@ export function LabelDropdown(props: ILabelDropdownProps) {
               />
             </div>
             <Combobox.List className="max-h-60 overflow-y-auto">
-              {isLoading ? (
-                <p className="text-center text-secondary">{t("common.loading")}</p>
-              ) : filteredOptions && filteredOptions.length > 0 ? (
-                filteredOptions.map((option) => (
-                  <Combobox.Item
-                    key={option.value}
-                    value={option.value}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }
-                    }}
-                    className={POPUP_OPTION_CLASSNAME}
-                    render={(itemProps, { selected }) => (
-                      <div {...itemProps}>
-                        {
-                          <>
-                            {option.content}
-                            {selected && (
-                              <div className="flex-shrink-0">
-                                <CheckIcon className={`h-3.5 w-3.5`} />
-                              </div>
-                            )}
-                          </>
-                        }
-                      </div>
-                    )}
-                  ></Combobox.Item>
-                ))
-              ) : submitting ? (
-                <Loader className="h-3.5 w-3.5 animate-spin" />
-              ) : canCreateLabel ? (
-                <button
-                  type="button"
-                  disabled={!query.length}
-                  onClick={() => void handleAddLabel(query)}
-                  className={POPUP_OPTION_CLASSNAME}
-                >
-                  {/* TODO: translate here */}
-                  {query.length ? (
-                    <>
-                      + Add <span className="text-primary">&quot;{query}&quot;</span> to labels
-                    </>
-                  ) : (
-                    t("label.create.type")
-                  )}
-                </button>
-              ) : (
-                <p className="text-left text-secondary">{t("common.search.no_matching_results")}</p>
-              )}
+              <LabelDropdownOptions
+                isLoading={isLoading}
+                filteredOptions={filteredOptions}
+                submitting={submitting}
+                canCreateLabel={!!canCreateLabel}
+                query={query}
+                onAddLabel={(labelName) => void handleAddLabel(labelName)}
+              />
             </Combobox.List>
           </div>
         </div>
@@ -259,4 +219,74 @@ export function LabelDropdown(props: ILabelDropdownProps) {
 function preventPropagation(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
   e.stopPropagation();
   e.preventDefault();
+}
+
+type TLabelOption = { value: string; query: string; content: React.ReactNode };
+
+type TLabelDropdownOptionsProps = {
+  isLoading: boolean;
+  filteredOptions: TLabelOption[] | undefined;
+  submitting: boolean;
+  canCreateLabel: boolean;
+  query: string;
+  onAddLabel: (labelName: string) => void;
+};
+
+function LabelDropdownOptions(props: TLabelDropdownOptionsProps) {
+  const { isLoading, filteredOptions, submitting, canCreateLabel, query, onAddLabel } = props;
+  const { t } = useTranslation();
+
+  if (isLoading) return <p className="text-center text-secondary">{t("common.loading")}</p>;
+
+  if (filteredOptions && filteredOptions.length > 0)
+    return (
+      <>
+        {filteredOptions.map((option) => (
+          <Combobox.Item
+            key={option.value}
+            value={option.value}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
+            className={POPUP_OPTION_CLASSNAME}
+            render={(itemProps, { selected }) => (
+              <div {...itemProps}>
+                {option.content}
+                {selected && (
+                  <div className="flex-shrink-0">
+                    <CheckIcon className={`h-3.5 w-3.5`} />
+                  </div>
+                )}
+              </div>
+            )}
+          ></Combobox.Item>
+        ))}
+      </>
+    );
+
+  if (submitting) return <Loader className="h-3.5 w-3.5 animate-spin" />;
+
+  if (canCreateLabel)
+    return (
+      <button
+        type="button"
+        disabled={!query.length}
+        onClick={() => onAddLabel(query)}
+        className={POPUP_OPTION_CLASSNAME}
+      >
+        {/* TODO: translate here */}
+        {query.length ? (
+          <>
+            + Add <span className="text-primary">&quot;{query}&quot;</span> to labels
+          </>
+        ) : (
+          t("label.create.type")
+        )}
+      </button>
+    );
+
+  return <p className="text-left text-secondary">{t("common.search.no_matching_results")}</p>;
 }

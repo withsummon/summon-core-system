@@ -5,3 +5,4 @@
  */
 
 export * from "./accordion";
+export * from "./compound";

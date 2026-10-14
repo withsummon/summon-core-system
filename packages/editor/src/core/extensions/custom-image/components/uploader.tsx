@@ -26,8 +26,53 @@ type CustomImageUploaderProps = CustomImageNodeViewProps & {
   hasDuplicationFailed: boolean;
   loadImageFromFileSystem: (file: string) => void;
   maxFileSize: number;
-  setIsUploaded: (isUploaded: boolean) => void;
 };
+
+type DisplayMessageArgs = {
+  draggedInside: boolean;
+  isEditable: boolean;
+  isErrorState: boolean;
+  isUploading: boolean;
+};
+
+const getDisplayMessage = ({ draggedInside, isEditable, isErrorState, isUploading }: DisplayMessageArgs) => {
+  if (isErrorState) {
+    return "Error loading image";
+  }
+
+  if (isUploading) {
+    return "Uploading…";
+  }
+
+  if (draggedInside && isEditable) {
+    return "Drop image here";
+  }
+
+  return "Add an image";
+};
+
+type ClassNameArgs = {
+  draggedInside: boolean;
+  isEditable: boolean;
+  isErrorState: boolean;
+  selected: boolean;
+};
+
+const getUploaderClassName = ({ draggedInside, isEditable, isErrorState, selected }: ClassNameArgs) =>
+  cn(
+    "image-upload-component flex cursor-default items-center justify-start gap-2 rounded-lg border border-dashed bg-layer-3 px-2 py-3 text-tertiary transition-colors duration-200 ease-in-out",
+    {
+      "border-subtle": !(selected && isEditable && !isErrorState),
+      "cursor-pointer hover:bg-layer-3-hover hover:text-secondary": isEditable && !isErrorState,
+      "bg-layer-3-hover text-secondary": draggedInside && isEditable && !isErrorState,
+      "bg-accent-primary/10 text-accent-secondary hover:bg-accent-primary/10 hover:text-accent-secondary":
+        selected && isEditable && !isErrorState,
+      "cursor-default bg-danger-subtle text-danger-primary": isErrorState,
+      "hover:bg-danger-subtle-hover hover:text-danger-primary": isErrorState && isEditable,
+      "bg-danger-subtle-selected": isErrorState && selected,
+      "hover:bg-danger-subtle-active": isErrorState && selected && isEditable,
+    }
+  );
 
 export function CustomImageUploader(props: CustomImageUploaderProps) {
   const {
@@ -39,7 +84,6 @@ export function CustomImageUploader(props: CustomImageUploaderProps) {
     maxFileSize,
     node,
     selected,
-    setIsUploaded,
     updateAttributes,
     hasDuplicationFailed,
   } = props;
@@ -56,7 +100,6 @@ export function CustomImageUploader(props: CustomImageUploaderProps) {
     (url: string) => {
       if (url) {
         if (!imageEntityId) return;
-        setIsUploaded(true);
         // Update the node view's src attribute post upload
         updateAttributes({
           src: url,
@@ -181,22 +224,17 @@ export function CustomImageUploader(props: CustomImageUploaderProps) {
       ? "color-mix(in srgb, var(--border-color-accent-strong) 20%, transparent)"
       : undefined;
 
-  const getDisplayMessage = useCallback(() => {
-    const isUploading = isImageBeingUploaded;
-    if (isErrorState) {
-      return "Error loading image";
-    }
-
-    if (isUploading) {
-      return "Uploading…";
-    }
-
-    if (draggedInside && editor.isEditable) {
-      return "Drop image here";
-    }
-
-    return "Add an image";
-  }, [draggedInside, editor.isEditable, isErrorState, isImageBeingUploaded]);
+  const displayMessage = getDisplayMessage({
+    draggedInside,
+    isEditable: editor.isEditable,
+    isErrorState,
+    isUploading: isImageBeingUploaded,
+  });
+  // the whole row opens the file picker, except in the error state where only retry is actionable
+  const isPickerEnabled = editor.isEditable && !isErrorState;
+  const openFilePicker = () => {
+    if (isPickerEnabled) fileInputRef.current?.click();
+  };
 
   const handleRetryClick = useCallback(
     (e: React.MouseEvent) => {
@@ -210,33 +248,24 @@ export function CustomImageUploader(props: CustomImageUploaderProps) {
 
   return (
     <div
-      className={cn(
-        "image-upload-component flex cursor-default items-center justify-start gap-2 rounded-lg border border-dashed bg-layer-3 px-2 py-3 text-tertiary transition-colors duration-200 ease-in-out",
-        {
-          "border-subtle": !(selected && editor.isEditable && !isErrorState),
-          "cursor-pointer hover:bg-layer-3-hover hover:text-secondary": editor.isEditable && !isErrorState,
-          "bg-layer-3-hover text-secondary": draggedInside && editor.isEditable && !isErrorState,
-          "bg-accent-primary/10 text-accent-secondary hover:bg-accent-primary/10 hover:text-accent-secondary":
-            selected && editor.isEditable && !isErrorState,
-          "cursor-default bg-danger-subtle text-danger-primary": isErrorState,
-          "hover:bg-danger-subtle-hover hover:text-danger-primary": isErrorState && editor.isEditable,
-          "bg-danger-subtle-selected": isErrorState && selected,
-          "hover:bg-danger-subtle-active": isErrorState && selected && editor.isEditable,
-        }
-      )}
+      className={getUploaderClassName({ draggedInside, isEditable: editor.isEditable, isErrorState, selected })}
       style={borderColor ? { borderColor } : undefined}
       onDrop={onDrop}
       onDragOver={onDragEnter}
       onDragLeave={onDragLeave}
       contentEditable={false}
-      onClick={() => {
-        if (!failedToLoadImage && editor.isEditable && !hasDuplicationFailed) {
-          fileInputRef.current?.click();
-        }
+      role={isPickerEnabled ? "button" : undefined}
+      tabIndex={isPickerEnabled ? 0 : undefined}
+      onClick={openFilePicker}
+      onKeyDown={(e) => {
+        if (e.key !== "Enter" && e.key !== " ") return;
+        e.preventDefault();
+        e.stopPropagation();
+        openFilePicker();
       }}
     >
       <ImageIcon className="size-4" />
-      <div className="flex-1 text-14 font-medium">{getDisplayMessage()}</div>
+      <div className="flex-1 text-14 font-medium">{displayMessage}</div>
       {hasDuplicationFailed && editor.isEditable && (
         <button
           type="button"

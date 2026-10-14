@@ -86,43 +86,47 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
   const projectIdFromRouter = getProjectByIdentifier(routerProjectIdentifier)?.id;
   const projectId = data?.project_id ?? routerProjectId?.toString() ?? projectIdFromRouter;
 
-  const fetchIssueDetail = async (issueId: string | undefined) => {
-    setDescription(undefined);
-    if (!workspaceSlug) return;
-
-    if (!projectId || issueId === undefined || !fetchIssueDetails) {
-      // Set description to the issue description from the props if available
-      setDescription(data?.description_html || "<p></p>");
-      return;
-    }
-    const response = await fetchIssue(workspaceSlug.toString(), projectId.toString(), issueId);
-    if (response) setDescription(response?.description_html || "<p></p>");
-  };
-
   useEffect(() => {
+    // a newer run supersedes this one, so its fetched description must not land
+    let isStale = false;
+    // only the "no issue data" path clears the description when it is torn down
+    let clearDescriptionOnCleanup = false;
+    const fetchIssueDetail = async (issueId: string | undefined) => {
+      setDescription(undefined);
+      if (!workspaceSlug) return;
+
+      if (!projectId || issueId === undefined || !fetchIssueDetails) {
+        // Set description to the issue description from the props if available
+        setDescription(data?.description_html || "<p></p>");
+        return;
+      }
+      const response = await fetchIssue(workspaceSlug.toString(), projectId.toString(), issueId);
+      if (response && !isStale) setDescription(response?.description_html || "<p></p>");
+    };
+
     // fetching issue details
     if (isOpen) fetchIssueDetail(data?.id ?? data?.sourceIssueId);
 
-    // if modal is closed, reset active project to null
-    // and return to avoid activeProjectId being set to some other project
     if (!isOpen) {
+      // if modal is closed, reset active project to null
+      // to avoid activeProjectId being set to some other project
       setActiveProjectId(null);
-      return;
-    }
-
-    // if data is present, set active project to the project of the
-    // issue. This has more priority than the project in the url.
-    if (data && data.project_id) {
+    } else if (data && data.project_id) {
+      // if data is present, set active project to the project of the
+      // issue. This has more priority than the project in the url.
       setActiveProjectId(data.project_id);
-      return;
+    } else {
+      // if data is not present, set active project to the first project in the allowedProjectIds array
+      if (allowedProjectIds && allowedProjectIds.length > 0 && !activeProjectId)
+        setActiveProjectId(projectId?.toString() ?? allowedProjectIds?.[0]);
+      clearDescriptionOnCleanup = true;
     }
 
-    // if data is not present, set active project to the first project in the allowedProjectIds array
-    if (allowedProjectIds && allowedProjectIds.length > 0 && !activeProjectId)
-      setActiveProjectId(projectId?.toString() ?? allowedProjectIds?.[0]);
-
-    // clearing up the description state when we leave the component
-    return () => setDescription(undefined);
+    return () => {
+      isStale = true;
+      // clearing up the description state when we leave the component
+      if (clearDescriptionOnCleanup) setDescription(undefined);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.project_id, data?.id, data?.sourceIssueId, projectId, isOpen, activeProjectId]);
 
@@ -303,9 +307,10 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
     const updatedModuleIds = xor(data.module_ids, payload.module_ids);
     const modulesToAdd: string[] = [];
     const modulesToRemove: string[] = [];
+    const currentModuleIds = new Set(data.module_ids);
 
     for (const moduleId of updatedModuleIds) {
-      if (data.module_ids?.includes(moduleId)) {
+      if (currentModuleIds.has(moduleId)) {
         modulesToRemove.push(moduleId);
       } else {
         modulesToAdd.push(moduleId);

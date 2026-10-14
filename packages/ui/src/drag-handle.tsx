@@ -27,6 +27,7 @@ export const DragHandle = forwardRef(function DragHandle(
   return (
     <button
       type="button"
+      aria-label="Drag to reorder"
       className={cn("flex flex-shrink-0 cursor-grab rounded-sm bg-surface-2 p-0.5 text-secondary", className)}
       onContextMenu={(e) => {
         e.preventDefault();

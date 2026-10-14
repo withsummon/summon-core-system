@@ -13,7 +13,10 @@ import { Button } from "@plane/propel/button";
 // components
 import { PageHead } from "@/components/core/page-title";
 import { DownloadActivityButton } from "@/components/profile/activity/download-button";
-import { WorkspaceActivityListPage } from "@/components/profile/activity/workspace-activity-list";
+import {
+  WorkspaceActivityListPage,
+  useWorkspaceActivityPage,
+} from "@/components/profile/activity/workspace-activity-list";
 // hooks
 import { useUserPermissions } from "@/hooks/store/user";
 
@@ -22,30 +25,21 @@ const PER_PAGE = 100;
 function ProfileActivityPage() {
   // states
   const [pageCount, setPageCount] = useState(1);
-  const [totalPages, setTotalPages] = useState(0);
-  const [resultsCount, setResultsCount] = useState(0);
   // router
   const { allowPermissions } = useUserPermissions();
   //hooks
   const { t } = useTranslation();
 
-  const updateTotalPages = (count: number) => setTotalPages(count);
-
-  const updateResultsCount = (count: number) => setResultsCount(count);
+  // the newest page decides whether more pages remain
+  const lastPage = useWorkspaceActivityPage(`${PER_PAGE}:${pageCount - 1}:0`, PER_PAGE);
+  const totalPages = lastPage?.total_pages ?? 0;
+  const resultsCount = lastPage?.results.length ?? 0;
 
   const handleLoadMore = () => setPageCount((prev) => prev + 1);
 
   const activityPages: React.ReactNode[] = [];
   for (let i = 0; i < pageCount; i++)
-    activityPages.push(
-      <WorkspaceActivityListPage
-        key={i}
-        cursor={`${PER_PAGE}:${i}:0`}
-        perPage={PER_PAGE}
-        updateResultsCount={updateResultsCount}
-        updateTotalPages={updateTotalPages}
-      />
-    );
+    activityPages.push(<WorkspaceActivityListPage key={i} cursor={`${PER_PAGE}:${i}:0`} perPage={PER_PAGE} />);
 
   const canDownloadActivity = allowPermissions(
     [EUserPermissions.ADMIN, EUserPermissions.MEMBER],

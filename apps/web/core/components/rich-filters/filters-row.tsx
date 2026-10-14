@@ -39,8 +39,6 @@ export const FiltersRow = observer(function FiltersRow<K extends TFilterProperty
     variant = "header",
     trackerElements,
   } = props;
-  // states
-  const [isUpdating, setIsUpdating] = useState(false);
   // derived values
   const disabledAllOperations = disabledAllOperationsProp || !filter.configManager.areConfigsReady;
   const hasAnyConditions = filter.allConditionsForDisplay.length > 0;
@@ -54,15 +52,6 @@ export const FiltersRow = observer(function FiltersRow<K extends TFilterProperty
   const modalButtonConfig: Partial<TAddFilterButtonProps<K, E>["buttonConfig"]> = {
     label: !hasAnyConditions ? "Filters" : null,
   };
-
-  const handleUpdate = useCallback(async () => {
-    setIsUpdating(true);
-    try {
-      await filter.updateView();
-    } finally {
-      setTimeout(() => setIsUpdating(false), 240); // To avoid flickering
-    }
-  }, [filter]);
 
   const leftContent = (
     <>
@@ -86,7 +75,69 @@ export const FiltersRow = observer(function FiltersRow<K extends TFilterProperty
     </>
   );
 
-  const rightContent = !disabledAllOperations && (
+  const mainContent = (
+    <div className="flex w-full items-start gap-2 rounded-lg bg-layer-1 px-4 py-2">
+      <div className="flex w-full flex-wrap items-center gap-2">{leftContent}</div>
+      <div
+        className={cn("flex items-center gap-2 border-l border-subtle pl-4", {
+          "border-l-transparent pl-0": !hasAvailableOperations,
+        })}
+      >
+        <FiltersRowOperations filter={filter} isDisabled={disabledAllOperations} trackerElements={trackerElements} />
+      </div>
+    </div>
+  );
+
+  const ModalVariant = (
+    <div className="flex min-h-11 w-full flex-wrap items-center gap-2 rounded-lg bg-layer-1 p-2">{mainContent}</div>
+  );
+
+  const HeaderVariant = (
+    <Header variant={EHeaderVariant.TERNARY} className="min-h-11 bg-surface-1 !px-3">
+      {mainContent}
+    </Header>
+  );
+
+  if (!filter.configManager.areConfigsReady && !hasAnyConditions) {
+    return (
+      <div hidden={!filter.isVisible}>
+        <Loader>
+          <Loader.Item height="44px" width="100%" className={cn({ "rounded-none": variant === "header" })} />
+        </Loader>
+      </div>
+    );
+  }
+
+  return <div hidden={!filter.isVisible}>{variant === "modal" ? ModalVariant : HeaderVariant}</div>;
+});
+
+type TFiltersRowOperationsProps<K extends TFilterProperty, E extends TExternalFilter> = {
+  filter: IFilterInstance<K, E>;
+  isDisabled: boolean;
+  trackerElements?: TFiltersRowProps<K, E>["trackerElements"];
+};
+
+// Always mounted (renders nothing while disabled) so the update loading state survives toggling.
+const FiltersRowOperations = observer(function FiltersRowOperations<
+  K extends TFilterProperty,
+  E extends TExternalFilter,
+>(props: TFiltersRowOperationsProps<K, E>) {
+  const { filter, isDisabled, trackerElements } = props;
+  // states
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleUpdate = useCallback(async () => {
+    setIsUpdating(true);
+    try {
+      await filter.updateView();
+    } finally {
+      setTimeout(() => setIsUpdating(false), 240); // To avoid flickering
+    }
+  }, [filter]);
+
+  if (isDisabled) return null;
+
+  return (
     <>
       {filter.canClearFilters && (
         <Button
@@ -122,41 +173,6 @@ export const FiltersRow = observer(function FiltersRow<K extends TFilterProperty
       )}
     </>
   );
-
-  const mainContent = (
-    <div className="flex w-full items-start gap-2 rounded-lg bg-layer-1 px-4 py-2">
-      <div className="flex w-full flex-wrap items-center gap-2">{leftContent}</div>
-      <div
-        className={cn("flex items-center gap-2 border-l border-subtle pl-4", {
-          "border-l-transparent pl-0": !hasAvailableOperations,
-        })}
-      >
-        {rightContent}
-      </div>
-    </div>
-  );
-
-  const ModalVariant = (
-    <div className="flex min-h-11 w-full flex-wrap items-center gap-2 rounded-lg bg-layer-1 p-2">{mainContent}</div>
-  );
-
-  const HeaderVariant = (
-    <Header variant={EHeaderVariant.TERNARY} className="min-h-11 bg-surface-1 !px-3">
-      {mainContent}
-    </Header>
-  );
-
-  if (!filter.configManager.areConfigsReady && !hasAnyConditions) {
-    return (
-      <div hidden={!filter.isVisible}>
-        <Loader>
-          <Loader.Item height="44px" width="100%" className={cn({ "rounded-none": variant === "header" })} />
-        </Loader>
-      </div>
-    );
-  }
-
-  return <div hidden={!filter.isVisible}>{variant === "modal" ? ModalVariant : HeaderVariant}</div>;
 });
 
 const COMMON_OPERATION_BUTTON_CLASSNAME = "py-1";

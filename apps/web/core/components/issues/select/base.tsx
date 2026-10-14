@@ -169,106 +169,14 @@ export const WorkItemLabelSelectBase = observer(function WorkItemLabelSelectBase
                     />
                   </div>
                   <Combobox.List className="max-h-60 overflow-y-auto">
-                    {labelsList && filteredOptions ? (
-                      filteredOptions.length > 0 ? (
-                        filteredOptions.map((label) => {
-                          const children = labelsList?.filter((l) => l.parent === label.id);
-
-                          if (children.length === 0) {
-                            if (!label.parent)
-                              return (
-                                <Combobox.Item
-                                  key={label.id}
-                                  className={POPUP_OPTION_CLASSNAME}
-                                  value={label.id}
-                                  render={(itemProps, { selected }) => (
-                                    <div {...itemProps}>
-                                      {
-                                        <div className="flex w-full justify-between gap-2 rounded-sm">
-                                          <div className="flex items-center justify-start gap-2 truncate">
-                                            <span
-                                              className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
-                                              style={{
-                                                backgroundColor: label.color,
-                                              }}
-                                            />
-                                            <span className="truncate">{label.name}</span>
-                                          </div>
-                                          <div className="flex shrink-0 items-center justify-center rounded-sm p-1">
-                                            <CheckIcon
-                                              className={`h-3 w-3 ${selected ? "opacity-100" : "opacity-0"}`}
-                                            />
-                                          </div>
-                                        </div>
-                                      }
-                                    </div>
-                                  )}
-                                ></Combobox.Item>
-                              );
-                          } else
-                            return (
-                              <div key={label.id} className="border-y border-subtle">
-                                <div className="flex items-center gap-2 truncate p-2 text-primary select-none">
-                                  <Component className="h-3 w-3" /> {label.name}
-                                </div>
-                                <div>
-                                  {children.map((child) => (
-                                    <Combobox.Item
-                                      key={child.id}
-                                      className={POPUP_OPTION_CLASSNAME}
-                                      value={child.id}
-                                      render={(itemProps, { selected }) => (
-                                        <div {...itemProps}>
-                                          {
-                                            <div className="flex w-full justify-between gap-2 rounded-sm">
-                                              <div className="flex items-center justify-start gap-2">
-                                                <span
-                                                  className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
-                                                  style={{
-                                                    backgroundColor: child?.color,
-                                                  }}
-                                                />
-                                                <span>{child.name}</span>
-                                              </div>
-                                              <div className="flex items-center justify-center rounded-sm p-1">
-                                                <CheckIcon
-                                                  className={`h-3 w-3 ${selected ? "opacity-100" : "opacity-0"}`}
-                                                />
-                                              </div>
-                                            </div>
-                                          }
-                                        </div>
-                                      )}
-                                    ></Combobox.Item>
-                                  ))}
-                                </div>
-                              </div>
-                            );
-                        })
-                      ) : submitting ? (
-                        <Loader className="h-3.5 w-3.5 animate-spin" />
-                      ) : createLabelEnabled ? (
-                        <button
-                          type="button"
-                          disabled={!query.length}
-                          onClick={() => void handleAddLabel(query)}
-                          className={POPUP_OPTION_CLASSNAME}
-                        >
-                          {/* TODO: translate here */}
-                          {query.length ? (
-                            <>
-                              + Add <span className="text-primary">&quot;{query}&quot;</span> to labels
-                            </>
-                          ) : (
-                            t("label.create.type")
-                          )}
-                        </button>
-                      ) : (
-                        <p className="px-2 py-1.5 text-placeholder">{t("no_matching_results")}</p>
-                      )
-                    ) : (
-                      <p className="px-2 py-1.5 text-placeholder">{t("loading")}</p>
-                    )}
+                    <LabelSelectOptions
+                      labelsList={labelsList}
+                      filteredOptions={filteredOptions}
+                      submitting={submitting}
+                      createLabelEnabled={createLabelEnabled}
+                      query={query}
+                      onAddLabel={(labelName) => void handleAddLabel(labelName)}
+                    />
                   </Combobox.List>
                 </div>
               </div>
@@ -279,3 +187,117 @@ export const WorkItemLabelSelectBase = observer(function WorkItemLabelSelectBase
     </div>
   );
 });
+
+type TLabelSelectOptionsProps = {
+  labelsList: IIssueLabel[];
+  filteredOptions: IIssueLabel[];
+  submitting: boolean;
+  createLabelEnabled: boolean;
+  query: string;
+  onAddLabel: (labelName: string) => void;
+};
+
+function LabelSelectOptions(props: TLabelSelectOptionsProps) {
+  const { labelsList, filteredOptions, submitting, createLabelEnabled, query, onAddLabel } = props;
+  const { t } = useTranslation();
+
+  if (!labelsList || !filteredOptions) return <p className="px-2 py-1.5 text-placeholder">{t("loading")}</p>;
+
+  if (filteredOptions.length > 0)
+    return (
+      <>
+        {filteredOptions.map((label) => {
+          const children = labelsList.filter((l) => l.parent === label.id);
+
+          if (children.length > 0) return <LabelGroupOption key={label.id} label={label} childLabels={children} />;
+          // child labels render inside their parent's group
+          if (label.parent) return null;
+          return (
+            <Combobox.Item
+              key={label.id}
+              className={POPUP_OPTION_CLASSNAME}
+              value={label.id}
+              render={(itemProps, { selected }) => (
+                <div {...itemProps}>
+                  <div className="flex w-full justify-between gap-2 rounded-sm">
+                    <div className="flex items-center justify-start gap-2 truncate">
+                      <span
+                        className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
+                        style={{
+                          backgroundColor: label.color,
+                        }}
+                      />
+                      <span className="truncate">{label.name}</span>
+                    </div>
+                    <div className="flex shrink-0 items-center justify-center rounded-sm p-1">
+                      <CheckIcon className={`h-3 w-3 ${selected ? "opacity-100" : "opacity-0"}`} />
+                    </div>
+                  </div>
+                </div>
+              )}
+            ></Combobox.Item>
+          );
+        })}
+      </>
+    );
+
+  if (submitting) return <Loader className="h-3.5 w-3.5 animate-spin" />;
+
+  if (createLabelEnabled)
+    return (
+      <button
+        type="button"
+        disabled={!query.length}
+        onClick={() => onAddLabel(query)}
+        className={POPUP_OPTION_CLASSNAME}
+      >
+        {/* TODO: translate here */}
+        {query.length ? (
+          <>
+            + Add <span className="text-primary">&quot;{query}&quot;</span> to labels
+          </>
+        ) : (
+          t("label.create.type")
+        )}
+      </button>
+    );
+
+  return <p className="px-2 py-1.5 text-placeholder">{t("no_matching_results")}</p>;
+}
+
+function LabelGroupOption({ label, childLabels }: { label: IIssueLabel; childLabels: IIssueLabel[] }) {
+  return (
+    <div className="border-y border-subtle">
+      <div className="flex items-center gap-2 truncate p-2 text-primary select-none">
+        <Component className="h-3 w-3" /> {label.name}
+      </div>
+      <div>
+        {childLabels.map((child) => (
+          <Combobox.Item
+            key={child.id}
+            className={POPUP_OPTION_CLASSNAME}
+            value={child.id}
+            render={(itemProps, { selected }) => (
+              <div {...itemProps}>
+                <div className="flex w-full justify-between gap-2 rounded-sm">
+                  <div className="flex items-center justify-start gap-2">
+                    <span
+                      className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
+                      style={{
+                        backgroundColor: child?.color,
+                      }}
+                    />
+                    <span>{child.name}</span>
+                  </div>
+                  <div className="flex items-center justify-center rounded-sm p-1">
+                    <CheckIcon className={`h-3 w-3 ${selected ? "opacity-100" : "opacity-0"}`} />
+                  </div>
+                </div>
+              </div>
+            )}
+          ></Combobox.Item>
+        ))}
+      </div>
+    </div>
+  );
+}

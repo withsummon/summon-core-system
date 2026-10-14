@@ -4,23 +4,21 @@
  * See the LICENSE file for details.
  */
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import type { LucideIcon } from "lucide-react";
-import { CornerDownRight, RefreshCcw, Sparkles, TriangleAlert } from "lucide-react";
+import { Sparkles, TriangleAlert } from "lucide-react";
 // plane editor
 import type { EditorRefApi } from "@plane/editor";
 import { ChevronRightIcon } from "@plane/propel/icons";
-// plane ui
-import { Tooltip } from "@plane/propel/tooltip";
 // components
 import { cn } from "@plane/utils";
-import { RichTextEditor } from "@/components/editor/rich-text";
 // plane web constants
 import { AI_EDITOR_TASKS, LOADING_TEXTS } from "@plane/constants";
 // plane web services
 import type { TTaskPayload } from "@/services/ai.service";
 import { AIService } from "@/services/ai.service";
 import { AskPiMenu } from "./ask-pi-menu";
+import { AIResponseBlock } from "./response-block";
 const aiService = new AIService();
 
 type Props = {
@@ -65,7 +63,12 @@ const TONES_LIST = [
 ];
 
 export function EditorAIMenu(props: Props) {
-  const { editorRef, isOpen, onClose, workspaceId, workspaceSlug } = props;
+  // remounting on every open/close resets the task and response for the next use
+  return <EditorAIMenuContent key={props.isOpen ? "open" : "closed"} {...props} />;
+}
+
+function EditorAIMenuContent(props: Props) {
+  const { editorRef, onClose, workspaceId, workspaceSlug } = props;
   // states
   const [activeTask, setActiveTask] = useState<AI_EDITOR_TASKS | null>(null);
   const [response, setResponse] = useState<string | undefined>(undefined);
@@ -133,14 +136,6 @@ export function EditorAIMenu(props: Props) {
     onClose();
   };
 
-  // reset on close
-  useEffect(() => {
-    if (!isOpen) {
-      setActiveTask(null);
-      setResponse(undefined);
-    }
-  }, [isOpen]);
-
   return (
     <div
       className={cn(
@@ -204,71 +199,15 @@ export function EditorAIMenu(props: Props) {
             />
           ) : (
             <>
-              <div
-                className={cn("flex items-center gap-3 px-4 py-3.5", {
-                  "items-start": response,
-                })}
-              >
-                <span className="grid size-7 flex-shrink-0 place-items-center rounded-full border border-subtle text-secondary">
-                  <Sparkles className="size-3" />
-                </span>
-                {response ? (
-                  <div>
-                    <RichTextEditor
-                      displayConfig={{
-                        fontSize: "small-font",
-                      }}
-                      editable={false}
-                      id="editor-ai-response"
-                      initialValue={response}
-                      containerClassName="!p-0 border-none"
-                      editorClassName="!pl-0"
-                      workspaceId={workspaceId}
-                      workspaceSlug={workspaceSlug}
-                    />
-                    <div className="mt-3 flex items-center gap-4">
-                      <button
-                        type="button"
-                        className="rounded-sm p-1 text-13 font-medium text-tertiary outline-none hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
-                        onClick={() => handleInsertText(false)}
-                      >
-                        Replace selection
-                      </button>
-                      <Tooltip tooltipContent="Add to next line">
-                        <button
-                          type="button"
-                          className="grid size-6 flex-shrink-0 place-items-center rounded-sm outline-none hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
-                          aria-label="Add to next line"
-                          onClick={() => handleInsertText(true)}
-                        >
-                          <CornerDownRight className="size-4 text-tertiary" />
-                        </button>
-                      </Tooltip>
-                      <Tooltip tooltipContent="Re-generate response">
-                        <button
-                          type="button"
-                          className="grid size-6 flex-shrink-0 place-items-center rounded-sm outline-none hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
-                          aria-label="Re-generate response"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleRegenerate();
-                          }}
-                          disabled={isRegenerating}
-                        >
-                          <RefreshCcw
-                            className={cn("size-4 text-tertiary", {
-                              "animate-spin": isRegenerating,
-                            })}
-                          />
-                        </button>
-                      </Tooltip>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-13 text-secondary">{activeTask ? LOADING_TEXTS[activeTask] : "Pi is writing"}…</p>
-                )}
-              </div>
+              <AIResponseBlock
+                response={response}
+                pendingText={<>{activeTask ? LOADING_TEXTS[activeTask] : "Pi is writing"}…</>}
+                handleInsertText={handleInsertText}
+                handleRegenerate={handleRegenerate}
+                isRegenerating={isRegenerating}
+                workspaceId={workspaceId}
+                workspaceSlug={workspaceSlug}
+              />
               <div className="sticky bottom-0 flex w-full items-center gap-2 bg-surface-1 py-2 pl-[54.8px]">
                 {TONES_LIST.map((tone) => (
                   <button

@@ -30,6 +30,7 @@ export const FilterStatus = observer(function FilterStatus(props: Props) {
   const [previewEnabled, setPreviewEnabled] = useState(true);
   // derived values
   const filterValue = inboxFilters?.status || [];
+  const selectedValues = new Set(filterValue);
   const appliedFiltersCount = filterValue?.length ?? 0;
   const filteredOptions = INBOX_STATUS.filter(
     (s) =>
@@ -59,7 +60,7 @@ export const FilterStatus = observer(function FilterStatus(props: Props) {
             filteredOptions.map((status) => (
               <FilterOption
                 key={status.key}
-                isChecked={filterValue?.includes(status.status) ? true : false}
+                isChecked={selectedValues.has(status.status)}
                 onClick={() => handleStatusFilterSelect(status.status)}
                 icon={<InboxStatusIcon type={status.status} className={`h-3.5 w-3.5`} />}
                 title={t(status.i18n_title)}

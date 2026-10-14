@@ -4,8 +4,10 @@
  * See the LICENSE file for details.
  */
 
-import { range } from "lodash-es";
 import { Loader } from "@plane/ui";
+
+// fixed, varied title widths so the skeleton looks organic without random values per render
+const ROW_TITLE_WIDTHS = [310, 270, 330, 250, 300, 280, 340, 260, 320, 290];
 
 export function PageLoader() {
   return (
@@ -20,9 +22,9 @@ export function PageLoader() {
         </Loader>
       </div>
       <div>
-        {range(10).map((i) => (
-          <Loader key={i} className="relative flex items-center gap-2 border-b border-subtle p-3 py-4">
-            <Loader.Item width={`${250 + 10 * Math.floor(Math.random() * 10)}px`} height="22px" />
+        {ROW_TITLE_WIDTHS.map((titleWidth) => (
+          <Loader key={titleWidth} className="relative flex items-center gap-2 border-b border-subtle p-3 py-4">
+            <Loader.Item width={`${titleWidth}px`} height="22px" />
             <div className="relative ml-auto flex items-center gap-2">
               <Loader.Item width="60px" height="22px" />
               <Loader.Item width="22px" height="22px" />

@@ -41,6 +41,23 @@ type Props = {
   moduleId: string;
 };
 
+/** Total work items across every state group, plus the card label for it. */
+function getModuleIssueCount(moduleDetails: IModule) {
+  const total =
+    moduleDetails.backlog_issues +
+    moduleDetails.unstarted_issues +
+    moduleDetails.started_issues +
+    moduleDetails.completed_issues +
+    moduleDetails.cancelled_issues;
+  const completed = moduleDetails.completed_issues;
+
+  let label = `${completed}/${total} Work items`;
+  if (!total) label = `0 work items`;
+  else if (total === completed) label = `${total} Work item${total > 1 ? `s` : ``}`;
+
+  return { total, label };
+}
+
 export const ModuleCardItem = observer(function ModuleCardItem(props: Props) {
   const { moduleId } = props;
   // refs
@@ -153,26 +170,8 @@ export const ModuleCardItem = observer(function ModuleCardItem(props: Props) {
 
   if (!moduleDetails) return null;
 
-  const moduleTotalIssues =
-    moduleDetails.backlog_issues +
-    moduleDetails.unstarted_issues +
-    moduleDetails.started_issues +
-    moduleDetails.completed_issues +
-    moduleDetails.cancelled_issues;
-
-  const moduleCompletedIssues = moduleDetails.completed_issues;
-
-  // const areYearsEqual = startDate.getFullYear() === endDate.getFullYear();
-
   const moduleStatus = MODULE_STATUS.find((status) => status.value === moduleDetails.status);
-
-  const issueCount = moduleDetails
-    ? !moduleTotalIssues || moduleTotalIssues === 0
-      ? `0 work items`
-      : moduleTotalIssues === moduleCompletedIssues
-        ? `${moduleTotalIssues} Work item${moduleTotalIssues > 1 ? `s` : ``}`
-        : `${moduleCompletedIssues}/${moduleTotalIssues} Work items`
-    : `0 work items`;
+  const { total: moduleTotalIssues, label: issueCount } = getModuleIssueCount(moduleDetails);
 
   const moduleLeadDetails = moduleDetails.lead_id ? getUserDetails(moduleDetails.lead_id) : undefined;
 
@@ -210,7 +209,7 @@ export const ModuleCardItem = observer(function ModuleCardItem(props: Props) {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-secondary">
                 <WorkItemsIcon className="h-4 w-4 text-tertiary" />
-                <span className="text-11 text-tertiary">{issueCount ?? "0 Work item"}</span>
+                <span className="text-11 text-tertiary">{issueCount}</span>
               </div>
               {moduleLeadDetails ? (
                 <span className="cursor-default">

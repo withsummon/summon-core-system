@@ -84,9 +84,9 @@ export const SubIssuesActionButton = observer(function SubIssuesActionButton(pro
 
   return (
     <CustomMenu customButton={customButtonElement} placement="bottom-start" disabled={disabled} closeOnSelect>
-      {optionItems.map((item, index) => (
+      {optionItems.map((item) => (
         <CustomMenu.MenuItem
-          key={index}
+          key={item.i18n_label}
           onClick={() => {
             item.onClick();
           }}

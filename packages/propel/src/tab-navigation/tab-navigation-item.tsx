@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, domAnimation, LazyMotion, m } from "framer-motion";
 import { cn } from "../utils";
 import type { TTabNavigationItemProps } from "./tab-navigation-types";
 
@@ -17,20 +17,22 @@ export function TabNavigationItem({ children, isActive, className }: TTabNavigat
         className
       )}
     >
-      <AnimatePresence>
-        {isActive && (
-          <motion.div
-            className="absolute inset-0 -z-10 rounded-md bg-layer-transparent-active"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{
-              duration: 0.3,
-              ease: [0.4, 0, 0.2, 1],
-            }}
-          />
-        )}
-      </AnimatePresence>
+      <LazyMotion features={domAnimation}>
+        <AnimatePresence>
+          {isActive && (
+            <m.div
+              className="absolute inset-0 -z-10 rounded-md bg-layer-transparent-active"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{
+                duration: 0.3,
+                ease: [0.4, 0, 0.2, 1],
+              }}
+            />
+          )}
+        </AnimatePresence>
+      </LazyMotion>
       {children}
     </div>
   );

@@ -41,13 +41,13 @@ export const useTabPreferences = (workspaceSlug: string, projectId: string): TTa
   // Get preferences from store
   const storePreferences = getProjectUserProperties(projectId);
   const defaultTab = storePreferences?.preferences?.navigation?.default_tab || DEFAULT_TAB_KEY;
-  const hideInMoreMenu = storePreferences?.preferences?.navigation?.hide_in_more_menu || [];
+  const hideInMoreMenu = storePreferences?.preferences?.navigation?.hide_in_more_menu;
 
   // Convert store preferences to component format
   const tabPreferences: TTabPreferences = useMemo(() => {
     return {
       defaultTab,
-      hiddenTabs: hideInMoreMenu,
+      hiddenTabs: hideInMoreMenu || [],
     };
   }, [defaultTab, hideInMoreMenu]);
 

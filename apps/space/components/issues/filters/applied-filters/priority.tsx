@@ -24,6 +24,7 @@ export function AppliedPriorityFilters(props: Props) {
           <button
             type="button"
             className="grid place-items-center text-tertiary hover:text-secondary"
+            aria-label={`Remove ${priority} priority filter`}
             onClick={() => handleRemove(priority)}
           >
             <CloseIcon height={10} width={10} strokeWidth={2} />

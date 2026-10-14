@@ -51,6 +51,7 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
   const { isOpen, onClose, projectId } = props;
   // states
   const [isUnPublishing, setIsUnPublishing] = useState(false);
+  const [windowOrigin] = useState(() => (typeof window !== "undefined" ? window.location.origin : ""));
   // router
   const { workspaceSlug } = useParams();
   // store hooks
@@ -131,6 +132,7 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     .map(([key, value]) => key)
     .filter((l) => VIEW_OPTIONS.find((o) => o.key === l));
+  const selectedLayoutSet = new Set(selectedLayouts);
 
   const handleFormSubmit = async (formData: Partial<TProjectPublishSettings>) => {
     if (!selectedLayouts || selectedLayouts.length === 0) {
@@ -164,7 +166,7 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
     });
   }, [projectPublishSettings, reset]);
 
-  const SPACE_APP_URL = (SPACE_BASE_URL.trim() === "" ? window.location.origin : SPACE_BASE_URL) + SPACE_BASE_PATH;
+  const SPACE_APP_URL = (SPACE_BASE_URL.trim() === "" ? windowOrigin : SPACE_BASE_URL) + SPACE_BASE_PATH;
   const publishLink = `${SPACE_APP_URL}/issues/${projectPublishSettings?.anchor}`;
 
   const handleCopyLink = () =>
@@ -251,7 +253,7 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
                   render={({ field: { onChange, value } }) => (
                     <CustomSelect
                       value={value}
-                      label={VIEW_OPTIONS.filter((o) => selectedLayouts.includes(o.key))
+                      label={VIEW_OPTIONS.filter((o) => selectedLayoutSet.has(o.key))
                         .map((o) => o.label)
                         .join(", ")}
                       onChange={(val: TProjectPublishLayouts) => {
@@ -271,7 +273,7 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
                           className="flex items-center justify-between gap-2"
                         >
                           {option.label}
-                          {selectedLayouts.includes(option.key) && <CheckIcon className="size-3.5 flex-shrink-0" />}
+                          {selectedLayoutSet.has(option.key) && <CheckIcon className="size-3.5 flex-shrink-0" />}
                         </CustomSelect.Option>
                       ))}
                     </CustomSelect>

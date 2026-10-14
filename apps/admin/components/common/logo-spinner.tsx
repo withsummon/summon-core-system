@@ -4,16 +4,19 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { useTheme } from "next-themes";
 import LogoSpinnerDark from "@/app/assets/images/logo-spinner-dark.gif?url";
 import LogoSpinnerLight from "@/app/assets/images/logo-spinner-light.gif?url";
 
+// The server snapshot (false) keeps hydration matching; the client snapshot flips it to true right after.
+const subscribeNoop = () => () => {};
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
+
 export function LogoSpinner() {
   const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
+  const mounted = useSyncExternalStore(subscribeNoop, getClientSnapshot, getServerSnapshot);
 
   const logoSrc = mounted && resolvedTheme === "dark" ? LogoSpinnerLight : LogoSpinnerDark;
 

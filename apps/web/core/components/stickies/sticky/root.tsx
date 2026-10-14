@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { debounce } from "lodash-es";
 import { observer } from "mobx-react";
 import { Minimize2 } from "lucide-react";
@@ -39,7 +39,13 @@ export const StickyNote = observer(function StickyNote(props: TProps) {
   // sticky operations
   const { stickyOperations } = useStickyOperations({ workspaceSlug });
   // derived values
-  const stickyData: Partial<TSticky> = stickyId ? stickies[stickyId] : { background_color: getRandomStickyColor() };
+  // a new (unsaved) sticky keeps one random color for its lifetime
+  const [newStickyColor] = useState(getRandomStickyColor);
+  const savedSticky = stickyId ? stickies[stickyId] : undefined;
+  const stickyData: Partial<TSticky> = useMemo(
+    () => (stickyId ? savedSticky : { background_color: newStickyColor }) as Partial<TSticky>,
+    [stickyId, savedSticky, newStickyColor]
+  );
   // const isStickiesPage = pathName?.includes("stickies");
   const backgroundColor =
     STICKY_COLORS_LIST.find((c) => c.key === stickyData?.background_color)?.backgroundColor ||
@@ -56,15 +62,10 @@ export const StickyNote = observer(function StickyNote(props: TProps) {
         });
       }
     },
-    [stickyId, stickyOperations]
+    [stickyId, stickyOperations, stickyData]
   );
 
-  const debouncedFormSave = useCallback(
-    debounce(async (payload: Partial<TSticky>) => {
-      await handleChange(payload);
-    }, 500),
-    [stickyOperations, stickyData, handleChange]
-  );
+  const debouncedFormSave = useMemo(() => debounce(handleChange, 500), [handleChange]);
 
   const handleDelete = async () => {
     if (!stickyId) return;

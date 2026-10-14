@@ -42,11 +42,13 @@ export const ReadonlyModule = observer(function ReadonlyModule(props: TReadonlyM
   const moduleIds = Array.isArray(value) ? value : value ? [value] : [];
   const modules = moduleIds.map((id) => getModuleById(id)).filter(Boolean);
 
+  const hasModules = moduleIds.length > 0;
+
   useEffect(() => {
-    if (moduleIds.length > 0 && projectId) {
+    if (hasModules && projectId) {
       fetchModules(workspaceSlug, projectId);
     }
-  }, [value, projectId, workspaceSlug]);
+  }, [hasModules, fetchModules, projectId, workspaceSlug]);
 
   if (modules.length === 0) {
     return (

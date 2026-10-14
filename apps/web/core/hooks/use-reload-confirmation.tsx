@@ -44,7 +44,7 @@ const useReloadConfirmations = (isActive = true, message?: string, defaultShowAl
         event.stopPropagation();
       }
     },
-    [isActive, showAlert]
+    [isActive, showAlert, alertMessage, onLeave]
   );
 
   useEffect(() => {

@@ -36,6 +36,7 @@ export function AppliedLabelsFilters(props: Props) {
             <button
               type="button"
               className="grid place-items-center text-tertiary hover:text-secondary"
+              aria-label={`Remove ${labelDetails.name} label filter`}
               onClick={() => handleRemove(labelId)}
             >
               <CloseIcon height={10} width={10} strokeWidth={2} />

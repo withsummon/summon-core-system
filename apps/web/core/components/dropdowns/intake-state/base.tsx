@@ -7,22 +7,16 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { observer } from "mobx-react";
-import { ComboboxPrimitive as Combobox } from "@plane/propel/combobox";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import { SearchIcon, IntakeStateGroupIcon, ChevronDownIcon } from "@plane/propel/icons";
-import { POPUP_SEARCH_CLASSNAME, POPUP_SEARCH_INPUT_CLASSNAME } from "@plane/propel/popover";
+import { IntakeStateGroupIcon } from "@plane/propel/icons";
 import type { IIntakeState } from "@plane/types";
-import { ComboDropDown, Spinner } from "@plane/ui";
+import { ComboDropDown } from "@plane/ui";
 import { cn } from "@plane/utils";
 // components
-import { DropdownButton } from "@/components/dropdowns/buttons";
-import { BUTTON_VARIANTS_WITH_TEXT } from "@/components/dropdowns/constants";
 import type { TDropdownProps } from "@/components/dropdowns/types";
 // hooks
 import { useDropdown } from "@/hooks/use-dropdown";
-// plane web imports
-import { StateOption } from "@/components/workflow";
+import { StateDropdownOptions, StateDropdownTrigger } from "../state/state-dropdown-parts";
 
 export type TWorkItemStateDropdownBaseProps = TDropdownProps & {
   alwaysAllowStateChange?: boolean;
@@ -77,7 +71,6 @@ export const WorkItemStateDropdownBase = observer(function WorkItemStateDropdown
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   // store hooks
-  const { t } = useTranslation();
   const statesList = stateIds.map((stateId) => getStateById(stateId)).filter((state) => !!state);
   const defaultState = statesList?.find((state) => state?.default) || statesList[0];
   const stateValue = value ? value : showDefaultState ? defaultState?.id : undefined;
@@ -101,71 +94,36 @@ export const WorkItemStateDropdownBase = observer(function WorkItemStateDropdown
     ),
   }));
 
-  const filteredOptions =
-    query === "" ? options : options?.filter((o) => o.query.toLowerCase().includes(query.toLowerCase()));
-
   const selectedState = stateValue ? getStateById(stateValue) : undefined;
 
   const dropdownOnChange = (val: string) => {
     onChange(val);
   };
 
-  const comboButton = button ? (
-    <button
-      type="button"
-      className={cn(
-        "clickable block h-full w-full outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
-        buttonContainerClassName
-      )}
+  const comboButton = (
+    <StateDropdownTrigger
+      button={button}
+      buttonClassName={buttonClassName}
+      buttonContainerClassName={buttonContainerClassName}
+      buttonVariant={buttonVariant}
       disabled={disabled}
+      dropdownArrow={dropdownArrow}
+      dropdownArrowClassName={dropdownArrowClassName}
+      icon={
+        <IntakeStateGroupIcon
+          stateGroup={selectedState?.group ?? "triage"}
+          color={selectedState?.color ?? "var(--text-color-tertiary)"}
+          className={cn("flex-shrink-0", iconSize)}
+        />
+      }
+      hideIcon={hideIcon}
+      isActive={isOpen}
+      isInitializing={isInitializing}
+      renderByDefault={renderByDefault}
+      selectedStateName={selectedState?.name}
+      showTooltip={showTooltip}
       tabIndex={tabIndex}
-    >
-      {button}
-    </button>
-  ) : (
-    <button
-      tabIndex={tabIndex}
-      type="button"
-      className={cn(
-        "clickable block h-full max-w-full outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
-        {
-          "cursor-not-allowed text-secondary": disabled,
-          "cursor-pointer": !disabled,
-        },
-        buttonContainerClassName
-      )}
-      disabled={disabled}
-    >
-      <DropdownButton
-        className={buttonClassName}
-        isActive={isOpen}
-        tooltipHeading={t("state")}
-        tooltipContent={selectedState?.name ?? t("state")}
-        showTooltip={showTooltip}
-        variant={buttonVariant}
-        renderToolTipByDefault={renderByDefault}
-      >
-        {isInitializing ? (
-          <Spinner className="h-3.5 w-3.5" />
-        ) : (
-          <>
-            {!hideIcon && (
-              <IntakeStateGroupIcon
-                stateGroup={selectedState?.group ?? "triage"}
-                color={selectedState?.color ?? "var(--text-color-tertiary)"}
-                className={cn("flex-shrink-0", iconSize)}
-              />
-            )}
-            {BUTTON_VARIANTS_WITH_TEXT.includes(buttonVariant) && (
-              <span className="flex-grow truncate text-left">{selectedState?.name ?? t("state")}</span>
-            )}
-            {dropdownArrow && (
-              <ChevronDownIcon className={cn("h-2.5 w-2.5 flex-shrink-0", dropdownArrowClassName)} aria-hidden="true" />
-            )}
-          </>
-        )}
-      </DropdownButton>
-    </button>
+    />
   );
 
   return (
@@ -180,32 +138,12 @@ export const WorkItemStateDropdownBase = observer(function WorkItemStateDropdown
       placement={placement}
       onOpenChange={handleOpenChange}
     >
-      <div className="z-10">
-        <div className="w-56 max-w-[calc(100vw-2rem)]">
-          <div className={POPUP_SEARCH_CLASSNAME}>
-            <SearchIcon className="size-3.5 flex-none" />
-            <Combobox.Input
-              className={POPUP_SEARCH_INPUT_CLASSNAME}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t("common.search.label")}
-            />
-          </div>
-          <Combobox.List className="max-h-60 overflow-y-auto">
-            {filteredOptions ? (
-              filteredOptions.length > 0 ? (
-                filteredOptions.map((option) => (
-                  <StateOption {...props} key={option.value} option={option} selectedValue={value} />
-                ))
-              ) : (
-                <p className="px-2 py-1.5 text-placeholder">{t("no_matching_results")}</p>
-              )
-            ) : (
-              <p className="px-2 py-1.5 text-placeholder">{t("loading")}</p>
-            )}
-          </Combobox.List>
-        </div>
-      </div>
+      <StateDropdownOptions
+        query={query}
+        onQueryChange={setQuery}
+        options={options}
+        optionProps={{ ...props, selectedValue: value }}
+      />
     </ComboDropDown>
   );
 });

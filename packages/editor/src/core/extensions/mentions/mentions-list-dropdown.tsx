@@ -6,7 +6,16 @@
 
 import { FloatingOverlay } from "@floating-ui/react";
 import type { SuggestionProps } from "@tiptap/suggestion";
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { v4 as uuidv4 } from "uuid";
 import { debounce } from "lodash-es";
 // plane utils
@@ -14,6 +23,8 @@ import { useOutsideClickDetector } from "@plane/hooks";
 import { cn } from "@plane/utils";
 // helpers
 import { DROPDOWN_NAVIGATION_KEYS, getNextValidIndex } from "@/helpers/tippy";
+// hooks
+import { useStateResetOnChange } from "@/hooks/use-state-reset-on-change";
 // types
 import type { TMentionHandler, TMentionSection, TMentionSuggestion } from "@/types";
 
@@ -22,15 +33,17 @@ export type MentionsListDropdownProps = SuggestionProps<TMentionSection, TMentio
     onClose: () => void;
   };
 
+const INITIAL_SELECTED_INDEX = { section: 0, item: 0 };
+
 export const MentionsListDropdown = forwardRef(function MentionsListDropdown(props: MentionsListDropdownProps, ref) {
   const { command, query, searchCallback, onClose } = props;
   // states
   const [sections, setSections] = useState<TMentionSection[]>([]);
-  const [selectedIndex, setSelectedIndex] = useState({
-    section: 0,
-    item: 0,
-  });
-  const [isLoading, setIsLoading] = useState(false);
+  // selection resets to the first item whenever the sections change
+  const [selectedIndex, setSelectedIndex] = useStateResetOnChange(sections, INITIAL_SELECTED_INDEX);
+  // the last query whose search has finished; anything newer is still loading
+  const [settledQuery, setSettledQuery] = useState<string | null>(null);
+  const isLoading = query !== undefined && query !== null && query !== settledQuery;
   // refs
   const dropdownContainer = useRef<HTMLDivElement>(null);
 
@@ -74,35 +87,27 @@ export const MentionsListDropdown = forwardRef(function MentionsListDropdown(pro
     },
   }));
 
-  // initialize the select index to 0 by default
-  useEffect(() => {
-    setSelectedIndex({
-      section: 0,
-      item: 0,
-    });
-  }, [sections]);
-
   // debounced search callback
-  const debouncedSearchCallback = useCallback(
-    debounce(async (searchQuery: string) => {
-      try {
-        const sectionsResponse = await searchCallback?.(searchQuery);
-        if (sectionsResponse) {
-          setSections(sectionsResponse);
+  const debouncedSearchCallback = useMemo(
+    () =>
+      debounce(async (searchQuery: string) => {
+        try {
+          const sectionsResponse = await searchCallback?.(searchQuery);
+          if (sectionsResponse) {
+            setSections(sectionsResponse);
+          }
+        } catch (error) {
+          console.error("Failed to fetch suggestions:", error);
+        } finally {
+          setSettledQuery(searchQuery);
         }
-      } catch (error) {
-        console.error("Failed to fetch suggestions:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    }, 300),
+      }, 300),
     [searchCallback]
   );
 
   // trigger debounced search when query changes
   useEffect(() => {
     if (query !== undefined && query !== null) {
-      setIsLoading(true);
       void debouncedSearchCallback(query);
     }
   }, [query, debouncedSearchCallback]);

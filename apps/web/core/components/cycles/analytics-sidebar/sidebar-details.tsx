@@ -12,7 +12,7 @@ import { SquareUser } from "lucide-react";
 import { EEstimateSystem } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { MembersPropertyIcon, WorkItemsIcon } from "@plane/propel/icons";
-import type { ICycle } from "@plane/types";
+import type { ICycle, TProgressSnapshot } from "@plane/types";
 // plane ui
 import { Avatar, AvatarGroup, TextArea } from "@plane/ui";
 // helpers
@@ -27,6 +27,51 @@ type Props = {
   cycleDetails: ICycle;
 };
 
+function getCycleProgressLabels(cycleDetails: ICycle, emptyCountLabel: string) {
+  const isCompleted = cycleDetails?.status?.toLocaleLowerCase() === "completed";
+  // completed cycles report their frozen snapshot when one exists
+  const progressSource: TProgressSnapshot | ICycle | undefined =
+    isCompleted && !isEmpty(cycleDetails?.progress_snapshot) ? cycleDetails?.progress_snapshot : cycleDetails;
+  const hasNoIssues = progressSource?.total_issues === 0;
+
+  return {
+    isCompleted,
+    issueCount: hasNoIssues ? emptyCountLabel : `${progressSource?.completed_issues}/${progressSource?.total_issues}`,
+    issueEstimatePointCount: hasNoIssues
+      ? emptyCountLabel
+      : `${progressSource?.completed_estimate_points}/${progressSource?.total_estimate_points}`,
+  };
+}
+
+function hasPointEstimates(cycleDetails: ICycle, isPointsEstimateSystem: boolean) {
+  if (isEmpty(cycleDetails?.progress_snapshot || {})) return isPointsEstimateSystem;
+  return !isEmpty(cycleDetails?.progress_snapshot?.estimate_distribution || {});
+}
+
+const CycleMembers = observer(function CycleMembers({ assigneeIds }: { assigneeIds: string[] | undefined }) {
+  const { getUserDetails } = useMember();
+  const { t } = useTranslation();
+
+  if (!assigneeIds || assigneeIds.length === 0)
+    return <span className="px-1.5 text-13 text-tertiary">{t("no_assignee")}</span>;
+
+  return (
+    <AvatarGroup showTooltip>
+      {assigneeIds.map((member) => {
+        const memberDetails = getUserDetails(member);
+        return (
+          <Avatar
+            key={memberDetails?.id}
+            name={memberDetails?.display_name ?? ""}
+            src={getFileURL(memberDetails?.avatar_url ?? "")}
+            showTooltip={false}
+          />
+        );
+      })}
+    </AvatarGroup>
+  );
+});
+
 export const CycleSidebarDetails = observer(function CycleSidebarDetails(props: Props) {
   const { projectId, cycleDetails } = props;
   // hooks
@@ -35,36 +80,17 @@ export const CycleSidebarDetails = observer(function CycleSidebarDetails(props: 
   const { t } = useTranslation();
 
   const areEstimateEnabled = projectId && areEstimateEnabledByProjectId(projectId.toString());
-  const cycleStatus = cycleDetails?.status?.toLocaleLowerCase();
-  const isCompleted = cycleStatus === "completed";
-
-  const issueCount =
-    isCompleted && !isEmpty(cycleDetails?.progress_snapshot)
-      ? cycleDetails?.progress_snapshot?.total_issues === 0
-        ? `0 ${t("common.work_item")}`
-        : `${cycleDetails?.progress_snapshot?.completed_issues}/${cycleDetails?.progress_snapshot?.total_issues}`
-      : cycleDetails?.total_issues === 0
-        ? `0 ${t("common.work_item")}`
-        : `${cycleDetails?.completed_issues}/${cycleDetails?.total_issues}`;
   const estimateType = areEstimateEnabled && currentActiveEstimateId && estimateById(currentActiveEstimateId);
   const cycleOwnerDetails = cycleDetails ? getUserDetails(cycleDetails.owned_by_id) : undefined;
+  const { isCompleted, issueCount, issueEstimatePointCount } = getCycleProgressLabels(
+    cycleDetails,
+    `0 ${t("common.work_item")}`
+  );
+  const isEstimatePointValid = hasPointEstimates(
+    cycleDetails,
+    !!estimateType && estimateType?.type == EEstimateSystem.POINTS
+  );
 
-  const isEstimatePointValid = isEmpty(cycleDetails?.progress_snapshot || {})
-    ? estimateType && estimateType?.type == EEstimateSystem.POINTS
-      ? true
-      : false
-    : isEmpty(cycleDetails?.progress_snapshot?.estimate_distribution || {})
-      ? false
-      : true;
-
-  const issueEstimatePointCount =
-    isCompleted && !isEmpty(cycleDetails?.progress_snapshot)
-      ? cycleDetails?.progress_snapshot.total_issues === 0
-        ? `0 ${t("common.work_item")}`
-        : `${cycleDetails?.progress_snapshot.completed_estimate_points}/${cycleDetails?.progress_snapshot.total_estimate_points}`
-      : cycleDetails?.total_issues === 0
-        ? `0 ${t("common.work_item")}`
-        : `${cycleDetails?.completed_estimate_points}/${cycleDetails?.total_estimate_points}`;
   return (
     <div className="flex w-full flex-col gap-5">
       {cycleDetails?.description && (
@@ -96,25 +122,7 @@ export const CycleSidebarDetails = observer(function CycleSidebarDetails(props: 
           </div>
           <div className="flex w-3/5 items-center rounded-xs">
             <div className="flex items-center gap-2.5">
-              {cycleDetails?.assignee_ids && cycleDetails.assignee_ids.length > 0 ? (
-                <>
-                  <AvatarGroup showTooltip>
-                    {cycleDetails.assignee_ids.map((member) => {
-                      const memberDetails = getUserDetails(member);
-                      return (
-                        <Avatar
-                          key={memberDetails?.id}
-                          name={memberDetails?.display_name ?? ""}
-                          src={getFileURL(memberDetails?.avatar_url ?? "")}
-                          showTooltip={false}
-                        />
-                      );
-                    })}
-                  </AvatarGroup>
-                </>
-              ) : (
-                <span className="px-1.5 text-13 text-tertiary">{t("no_assignee")}</span>
-              )}
+              <CycleMembers assigneeIds={cycleDetails?.assignee_ids} />
             </div>
           </div>
         </div>

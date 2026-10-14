@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { observer } from "mobx-react";
 import { usePathname, useSearchParams } from "next/navigation";
 // hooks
@@ -14,6 +14,11 @@ import { useModule } from "@/hooks/store/use-module";
 import { useAppRouter } from "@/hooks/use-app-router";
 // components
 import { ModuleAnalyticsSidebar } from "./";
+
+// The portal host lives in the workspace layout; read it on every render like a DOM ref, with no server value.
+const subscribeToNothing = () => () => {};
+const getFullScreenPortal = () => document.getElementById("full-screen-portal");
+const getServerPortal = () => null;
 
 type Props = {
   projectId: string;
@@ -36,6 +41,7 @@ export const ModulePeekOverview = observer(function ModulePeekOverview({
   if (peekModule && peekModule !== shownModule) setShownModule(peekModule);
   // store hooks
   const { fetchModuleDetails, fetchArchivedModuleDetails } = useModule();
+  const portalContainer = useSyncExternalStore(subscribeToNothing, getFullScreenPortal, getServerPortal);
 
   const handleClose = () => {
     const query = generateQueryParams(searchParams, ["peekModule"]);
@@ -57,7 +63,7 @@ export const ModulePeekOverview = observer(function ModulePeekOverview({
       onOpenChangeComplete={(open) => !open && setShownModule(null)}
     >
       <DrawerContent
-        container={document.getElementById("full-screen-portal")}
+        container={portalContainer}
         initialFocus={false}
         finalFocus={false}
         aria-label="Module details"

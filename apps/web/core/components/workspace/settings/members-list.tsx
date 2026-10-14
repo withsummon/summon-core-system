@@ -21,6 +21,39 @@ import { useMember } from "@/hooks/store/use-member";
 import { WorkspaceInvitationsListItem } from "./invitations-list-item";
 import { WorkspaceMembersListItem } from "./members-list-item";
 
+type PendingInvitesSectionProps = {
+  invitationIds: string[];
+  isOpen: boolean;
+  onToggle: () => void;
+};
+
+function PendingInvitesSection({ invitationIds, isOpen, onToggle }: PendingInvitesSectionProps) {
+  const { t } = useTranslation();
+  return (
+    <Collapsible
+      isOpen={isOpen}
+      onToggle={onToggle}
+      buttonClassName="w-full"
+      className=""
+      title={
+        <div className="flex w-full items-center justify-between pt-4">
+          <div className="flex">
+            <h4 className="pt-2 pb-2 text-h5-medium">{t("workspace_settings.settings.members.pending_invites")}</h4>
+            <CountChip count={invitationIds.length} className="m-auto ml-2 h-5" />
+          </div>{" "}
+          <ChevronDownIcon className={`h-5 w-5 transition-[rotate] ${isOpen ? "rotate-180" : ""}`} />
+        </div>
+      }
+    >
+      <div className="ml-auto items-center gap-1.5 rounded-md bg-surface-1 py-1.5">
+        {invitationIds.map((invitationId) => (
+          <WorkspaceInvitationsListItem key={invitationId} invitationId={invitationId} />
+        ))}
+      </div>
+    </Collapsible>
+  );
+}
+
 export const WorkspaceMembersList = observer(function WorkspaceMembersList(props: {
   searchQuery: string;
   isAdmin: boolean;
@@ -78,29 +111,11 @@ export const WorkspaceMembersList = observer(function WorkspaceMembersList(props
         )}
       </div>
       {isAdmin && searchedInvitationsIds && searchedInvitationsIds.length > 0 && (
-        <Collapsible
+        <PendingInvitesSection
+          invitationIds={searchedInvitationsIds}
           isOpen={showPendingInvites}
           onToggle={() => setShowPendingInvites((prev) => !prev)}
-          buttonClassName="w-full"
-          className=""
-          title={
-            <div className="flex w-full items-center justify-between pt-4">
-              <div className="flex">
-                <h4 className="pt-2 pb-2 text-h5-medium">{t("workspace_settings.settings.members.pending_invites")}</h4>
-                {searchedInvitationsIds && (
-                  <CountChip count={searchedInvitationsIds.length} className="m-auto ml-2 h-5" />
-                )}
-              </div>{" "}
-              <ChevronDownIcon className={`h-5 w-5 transition-[rotate] ${showPendingInvites ? "rotate-180" : ""}`} />
-            </div>
-          }
-        >
-          <div className="ml-auto items-center gap-1.5 rounded-md bg-surface-1 py-1.5">
-            {searchedInvitationsIds?.map((invitationId) => (
-              <WorkspaceInvitationsListItem key={invitationId} invitationId={invitationId} />
-            ))}
-          </div>
-        </Collapsible>
+        />
       )}
     </>
   );

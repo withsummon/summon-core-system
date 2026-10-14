@@ -4,7 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { useEditorState, useEditor as useTiptapEditor } from "@tiptap/react";
+import { useEditor as useTiptapEditor } from "@tiptap/react";
+import { isEqual } from "lodash-es";
 import { useImperativeHandle, useEffect } from "react";
 import type { MarkdownStorage } from "tiptap-markdown";
 // extensions
@@ -14,7 +15,7 @@ import { getEditorRefHelpers } from "@/helpers/editor-ref";
 // props
 import { CoreEditorProps } from "@/props";
 // types
-import type { TEditorHookProps } from "@/types";
+import type { TEditorAsset, TEditorHookProps } from "@/types";
 
 declare module "@tiptap/core" {
   interface Storage {
@@ -130,19 +131,22 @@ export const useEditor = (props: TEditorHookProps) => {
     editor.commands.updateAssetsUploadStatus?.(assetsUploadStatus);
   }, [editor, fileHandler.assetsUploadStatus]);
 
-  // subscribe to assets list changes
-  const assetsList = useEditorState({
-    editor,
-    selector: ({ editor }) => ({
-      assets: editor?.storage.utility?.assetsList ?? [],
-    }),
-  });
-  // trigger callback when assets list changes
+  // subscribe to assets list changes and report them whenever their content changes
   useEffect(() => {
-    const assets = assetsList?.assets;
-    if (!assets || !onAssetChange) return;
-    onAssetChange(assets);
-  }, [assetsList?.assets, onAssetChange]);
+    if (!editor || !onAssetChange) return;
+    let lastAssets: TEditorAsset[] | undefined;
+    const reportAssets = () => {
+      const assets = editor.storage.utility?.assetsList ?? [];
+      if (lastAssets && isEqual(lastAssets, assets)) return;
+      lastAssets = assets;
+      onAssetChange(assets);
+    };
+    reportAssets();
+    editor.on("transaction", reportAssets);
+    return () => {
+      editor.off("transaction", reportAssets);
+    };
+  }, [editor, onAssetChange]);
 
   useImperativeHandle(
     forwardedRef,

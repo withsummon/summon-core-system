@@ -30,6 +30,7 @@ export const FilterGroupBy = observer(function FilterGroupBy(props: Props) {
   const selectedSubGroupBy = displayFilters?.sub_group_by ?? null;
 
   const options = useGroupByOptions(groupByOptions);
+  const ignoredGroupBySet = new Set(ignoreGroupedFilters);
 
   return (
     <>
@@ -47,7 +48,7 @@ export const FilterGroupBy = observer(function FilterGroupBy(props: Props) {
               groupBy.key === selectedSubGroupBy
             )
               return null;
-            if (ignoreGroupedFilters.includes(groupBy?.key)) return null;
+            if (ignoredGroupBySet.has(groupBy?.key)) return null;
 
             return (
               <FilterOption

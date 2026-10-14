@@ -44,20 +44,20 @@ export const useStickyOperations = (props: TProps) => {
     useSticky();
   const { t } = useTranslation();
 
-  const isValid = (data: Partial<TSticky>) => {
-    if (data.name && data.name.length > 100) {
-      setToast({
-        type: TOAST_TYPE.ERROR,
-        title: t("stickies.toasts.not_updated.title"),
-        message: t("stickies.toasts.errors.wrong_name"),
-      });
-      return false;
-    }
-    return true;
-  };
+  const stickyOperations: TOperations = useMemo(() => {
+    const isValid = (data: Partial<TSticky>) => {
+      if (data.name && data.name.length > 100) {
+        setToast({
+          type: TOAST_TYPE.ERROR,
+          title: t("stickies.toasts.not_updated.title"),
+          message: t("stickies.toasts.errors.wrong_name"),
+        });
+        return false;
+      }
+      return true;
+    };
 
-  const stickyOperations: TOperations = useMemo(
-    () => ({
+    return {
       create: async (data?: Partial<TSticky>) => {
         try {
           const payload: Partial<TSticky> = {
@@ -144,9 +144,17 @@ export const useStickyOperations = (props: TProps) => {
           });
         }
       },
-    }),
-    [createSticky, deleteSticky, getWorkspaceStickyIds, stickies, updateSticky, updateStickyPosition, workspaceSlug]
-  );
+    };
+  }, [
+    createSticky,
+    deleteSticky,
+    getWorkspaceStickyIds,
+    stickies,
+    t,
+    updateSticky,
+    updateStickyPosition,
+    workspaceSlug,
+  ]);
 
   return {
     stickyOperations,

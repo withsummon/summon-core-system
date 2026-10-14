@@ -52,8 +52,9 @@ export const ModuleGanttBlock = observer(function ModuleGanttBlock(props: Props)
       }
       position="top-start"
     >
-      <div
-        className="relative flex h-full w-full cursor-pointer items-center rounded-sm"
+      <button
+        type="button"
+        className="relative flex h-full w-full cursor-pointer items-center rounded-sm text-left"
         style={blockStyle}
         onClick={() =>
           router.push(
@@ -68,7 +69,7 @@ export const ModuleGanttBlock = observer(function ModuleGanttBlock(props: Props)
         >
           {moduleDetails?.name}
         </div>
-      </div>
+      </button>
     </Tooltip>
   );
 });

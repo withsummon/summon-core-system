@@ -30,10 +30,11 @@ type TLabelStatComponent = {
 export const LabelStatComponent = observer(function LabelStatComponent(props: TLabelStatComponent) {
   const { distribution, isEditable, selectedLabelIds, handleLabelFiltersUpdate } = props;
   const { t } = useTranslation();
+  const selectedLabelIdSet = new Set(selectedLabelIds);
   return (
     <div>
       {distribution && distribution.length > 0 ? (
-        distribution.map((label, index) => {
+        distribution.map((label) => {
           if (label.id) {
             return (
               <SingleProgressStats
@@ -53,14 +54,14 @@ export const LabelStatComponent = observer(function LabelStatComponent(props: TL
                 total={label.total}
                 {...(isEditable && {
                   onClick: () => handleLabelFiltersUpdate(label.id),
-                  selected: label.id ? selectedLabelIds.includes(label.id) : false,
+                  selected: label.id ? selectedLabelIdSet.has(label.id) : false,
                 })}
               />
             );
           } else {
             return (
               <SingleProgressStats
-                key={`no-label-${index}`}
+                key="no-label"
                 title={
                   <div className="flex items-center gap-2">
                     <span

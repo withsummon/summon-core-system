@@ -11,6 +11,7 @@ import { useParams } from "next/navigation";
 import useSWR from "swr";
 // plane constants
 import { ISSUE_DISPLAY_FILTERS_BY_PAGE, PROJECT_VIEW_TRACKER_ELEMENTS } from "@plane/constants";
+import type { ICycle } from "@plane/types";
 import { EIssuesStoreType, EIssueLayoutTypes } from "@plane/types";
 // components
 import { TransferIssues } from "@/components/cycles/transfer-issues";
@@ -50,11 +51,24 @@ function CycleIssueLayout(props: {
   }
 }
 
+const getCycleTransferState = (cycleDetails: ICycle | null | undefined) => {
+  const cycleStatus = cycleDetails?.status?.toLocaleLowerCase() ?? "draft";
+  const isProgressSnapshotEmpty = isEmpty(cycleDetails?.progress_snapshot);
+  const transferableIssuesCount = cycleDetails
+    ? cycleDetails.backlog_issues + cycleDetails.unstarted_issues + cycleDetails.started_issues
+    : 0;
+  return {
+    isCompletedCycle: cycleStatus === "completed",
+    isProgressSnapshotEmpty,
+    canTransferIssues: isProgressSnapshotEmpty && transferableIssuesCount > 0,
+  };
+};
+
 export const CycleLayoutRoot = observer(function CycleLayoutRoot() {
   const { workspaceSlug: routerWorkspaceSlug, projectId: routerProjectId, cycleId: routerCycleId } = useParams();
-  const workspaceSlug = routerWorkspaceSlug ? routerWorkspaceSlug.toString() : undefined;
-  const projectId = routerProjectId ? routerProjectId.toString() : undefined;
-  const cycleId = routerCycleId ? routerCycleId.toString() : undefined;
+  const workspaceSlug = routerWorkspaceSlug?.toString();
+  const projectId = routerProjectId?.toString();
+  const cycleId = routerCycleId?.toString();
   // store hooks
   const { issuesFilter } = useIssues(EIssuesStoreType.CYCLE);
   const { getCycleById } = useCycle();
@@ -74,14 +88,9 @@ export const CycleLayoutRoot = observer(function CycleLayoutRoot() {
     { revalidateIfStale: false, revalidateOnFocus: false }
   );
 
-  const cycleDetails = cycleId ? getCycleById(cycleId) : undefined;
-  const cycleStatus = cycleDetails?.status?.toLocaleLowerCase() ?? "draft";
-  const isCompletedCycle = cycleStatus === "completed";
-  const isProgressSnapshotEmpty = isEmpty(cycleDetails?.progress_snapshot);
-  const transferableIssuesCount = cycleDetails
-    ? cycleDetails.backlog_issues + cycleDetails.unstarted_issues + cycleDetails.started_issues
-    : 0;
-  const canTransferIssues = isProgressSnapshotEmpty && transferableIssuesCount > 0;
+  const { isCompletedCycle, isProgressSnapshotEmpty, canTransferIssues } = getCycleTransferState(
+    cycleId ? getCycleById(cycleId) : undefined
+  );
 
   if (!workspaceSlug || !projectId || !cycleId || !workItemFilters) return <></>;
   return (
@@ -104,11 +113,11 @@ export const CycleLayoutRoot = observer(function CycleLayoutRoot() {
               isOpen={transferIssuesModal}
             />
             <div className="relative flex h-full w-full flex-col overflow-hidden">
-              {cycleStatus === "completed" && (
+              {isCompletedCycle && (
                 <TransferIssues
                   handleClick={() => setTransferIssuesModal(true)}
                   canTransferIssues={canTransferIssues}
-                  disabled={!isEmpty(cycleDetails?.progress_snapshot)}
+                  disabled={!isProgressSnapshotEmpty}
                 />
               )}
               {cycleWorkItemsFilter && (

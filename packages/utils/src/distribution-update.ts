@@ -199,6 +199,19 @@ const getChartUpdates = (
 };
 
 /**
+ * Indexes items by id, keeping the first item per id (matches `Array.prototype.find`)
+ */
+const indexById = <T>(items: T[] | undefined, getId: (item: T) => string | null | undefined) => {
+  const index = new Map<string | null | undefined, T>();
+  if (!Array.isArray(items)) return index;
+  for (const item of items) {
+    const itemId = getId(item);
+    if (!index.has(itemId)) index.set(itemId, item);
+  }
+  return index;
+};
+
+/**
  * Method to update distribution of either cycle or module object
  * @param distributionObject
  * @param distributionUpdates
@@ -213,32 +226,29 @@ export const updateDistribution = (distributionObject: ICycle | IModule, distrib
     if (currentValue !== undefined) set(distributionObject, path, (currentValue ?? 0) + value);
   }
 
+  const issuesAssigneesById = indexById(distributionObject.distribution?.assignees, (a) => a.assignee_id);
+  const pointsAssigneesById = indexById(distributionObject.estimate_distribution?.assignees, (a) => a.assignee_id);
+  const issuesLabelsById = indexById(distributionObject.distribution?.labels, (l) => l.label_id);
+  const pointsLabelsById = indexById(distributionObject.estimate_distribution?.labels, (l) => l.label_id);
+
   // for assignee update iterate through the assignee update and apply at the respective position
   for (const assigneeUpdate of assigneeUpdates) {
     const { id } = assigneeUpdate;
 
     // find and update the assignee issue counts
-    if (Array.isArray(distributionObject.distribution?.assignees)) {
-      const issuesAssignee = distributionObject.distribution?.assignees?.find(
-        (assignee) => assignee.assignee_id === id
-      );
-      if (issuesAssignee) {
-        issuesAssignee.completed_issues += assigneeUpdate.completed_issues ?? 0;
-        issuesAssignee.pending_issues += assigneeUpdate.pending_issues ?? 0;
-        issuesAssignee.total_issues += assigneeUpdate.total_issues;
-      }
+    const issuesAssignee = issuesAssigneesById.get(id);
+    if (issuesAssignee) {
+      issuesAssignee.completed_issues += assigneeUpdate.completed_issues ?? 0;
+      issuesAssignee.pending_issues += assigneeUpdate.pending_issues ?? 0;
+      issuesAssignee.total_issues += assigneeUpdate.total_issues;
     }
 
     // find and update the assignee points
-    if (Array.isArray(distributionObject.estimate_distribution?.assignees)) {
-      const pointsAssignee = distributionObject.estimate_distribution?.assignees?.find(
-        (assignee) => assignee.assignee_id === id
-      );
-      if (pointsAssignee) {
-        pointsAssignee.completed_estimates += assigneeUpdate.completed_estimates ?? 0;
-        pointsAssignee.pending_estimates += assigneeUpdate.pending_estimates ?? 0;
-        pointsAssignee.total_estimates += assigneeUpdate.total_estimates;
-      }
+    const pointsAssignee = pointsAssigneesById.get(id);
+    if (pointsAssignee) {
+      pointsAssignee.completed_estimates += assigneeUpdate.completed_estimates ?? 0;
+      pointsAssignee.pending_estimates += assigneeUpdate.pending_estimates ?? 0;
+      pointsAssignee.total_estimates += assigneeUpdate.total_estimates;
     }
   }
 
@@ -246,23 +256,19 @@ export const updateDistribution = (distributionObject: ICycle | IModule, distrib
     const { id } = labelUpdate;
 
     // find and update the label issue counts
-    if (Array.isArray(distributionObject.distribution?.labels)) {
-      const issuesLabel = distributionObject.distribution?.labels?.find((label) => label.label_id === id);
-      if (issuesLabel) {
-        issuesLabel.completed_issues += labelUpdate.completed_issues ?? 0;
-        issuesLabel.pending_issues += labelUpdate.pending_issues ?? 0;
-        issuesLabel.total_issues += labelUpdate.total_issues;
-      }
+    const issuesLabel = issuesLabelsById.get(id);
+    if (issuesLabel) {
+      issuesLabel.completed_issues += labelUpdate.completed_issues ?? 0;
+      issuesLabel.pending_issues += labelUpdate.pending_issues ?? 0;
+      issuesLabel.total_issues += labelUpdate.total_issues;
     }
 
     // find and update the label points
-    if (Array.isArray(distributionObject.estimate_distribution?.labels)) {
-      const pointsLabel = distributionObject.estimate_distribution?.labels?.find((label) => label.label_id === id);
-      if (pointsLabel) {
-        pointsLabel.completed_estimates += labelUpdate.completed_estimates ?? 0;
-        pointsLabel.pending_estimates += labelUpdate.pending_estimates ?? 0;
-        pointsLabel.total_estimates += labelUpdate.total_estimates;
-      }
+    const pointsLabel = pointsLabelsById.get(id);
+    if (pointsLabel) {
+      pointsLabel.completed_estimates += labelUpdate.completed_estimates ?? 0;
+      pointsLabel.pending_estimates += labelUpdate.pending_estimates ?? 0;
+      pointsLabel.total_estimates += labelUpdate.total_estimates;
     }
   }
 };

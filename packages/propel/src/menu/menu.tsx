@@ -9,13 +9,10 @@ import { Menu as BaseMenu } from "@base-ui/react/menu";
 import { MoreHorizontal } from "lucide-react";
 import { ChevronDownIcon, ChevronRightIcon } from "../icons";
 import { cn } from "../utils/classname";
-import { POPUP_CLASSNAME, POPUP_OPTION_CLASSNAME } from "../popover/surface";
 import { convertPlacementToSideAndAlign } from "../utils/placement";
+import { MENU_ITEM_CLASSNAME, MENU_POPUP_CLASSNAME } from "./constants";
 import type { TMenuProps, TSubMenuProps, TMenuItemProps } from "./types";
 
-/** Surface and item styles, exported for menus composed from `MenuPrimitive` parts (filter inputs, checkbox items). */
-export const MENU_POPUP_CLASSNAME = cn("min-w-48 overflow-y-auto", POPUP_CLASSNAME);
-export const MENU_ITEM_CLASSNAME = cn(POPUP_OPTION_CLASSNAME, "text-primary");
 const SelectionContext = React.createContext<boolean | undefined>(undefined);
 
 function MenuItem({ children, disabled, onClick, className }: TMenuItemProps) {
@@ -57,6 +54,37 @@ function SubMenu({
   );
 }
 
+const MAX_HEIGHT_CLASSNAME: Record<NonNullable<TMenuProps["maxHeight"]>, string> = {
+  sm: "max-h-28",
+  rg: "max-h-36",
+  md: "max-h-48",
+  lg: "max-h-60",
+  xl: "max-h-80",
+  "2xl": "max-h-96",
+};
+
+type TMenuTriggerContentProps = Pick<TMenuProps, "customButton" | "label" | "noChevron"> & {
+  isEllipsis: boolean;
+  verticalEllipsis: boolean;
+};
+
+function MenuTriggerContent({
+  customButton,
+  label,
+  noChevron,
+  isEllipsis,
+  verticalEllipsis,
+}: TMenuTriggerContentProps) {
+  if (customButton !== undefined && customButton !== null) return <>{customButton}</>;
+  if (isEllipsis) return <MoreHorizontal className={cn("size-3.5", verticalEllipsis && "rotate-90")} />;
+  return (
+    <>
+      {label}
+      {!noChevron && <ChevronDownIcon className="size-3.5" />}
+    </>
+  );
+}
+
 function Menu({
   ariaLabel,
   buttonClassName,
@@ -86,6 +114,15 @@ function Menu({
   closeOnSelect,
 }: TMenuProps) {
   const { side, align } = convertPlacementToSideAndAlign(placement);
+  const isEllipsis = ellipsis || verticalEllipsis;
+  const triggerClassName =
+    render || customButton
+      ? customButtonClassName
+      : [
+          isEllipsis ? "p-1 text-secondary hover:bg-layer-1" : "px-2.5 py-1 text-11 text-secondary hover:bg-layer-1",
+          !noBorder && !isEllipsis && "border border-strong",
+          buttonClassName,
+        ];
   return (
     <BaseMenu.Root
       onOpenChange={(open) => {
@@ -99,7 +136,7 @@ function Menu({
           openOnHover={openOnHover}
           render={render}
           disabled={disabled}
-          aria-label={ariaLabel ?? (ellipsis || verticalEllipsis ? "More options" : undefined)}
+          aria-label={ariaLabel ?? (isEllipsis ? "More options" : undefined)}
           tabIndex={customButtonTabIndex}
           onClick={(event) => {
             event.stopPropagation();
@@ -107,28 +144,18 @@ function Menu({
           }}
           className={cn(
             "flex items-center justify-between gap-1 rounded whitespace-nowrap transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent-strong/40 disabled:cursor-not-allowed disabled:opacity-50",
-            render || customButton
-              ? customButtonClassName
-              : [
-                  ellipsis || verticalEllipsis
-                    ? "p-1 text-secondary hover:bg-layer-1"
-                    : "px-2.5 py-1 text-11 text-secondary hover:bg-layer-1",
-                  !noBorder && !ellipsis && !verticalEllipsis && "border border-strong",
-                  buttonClassName,
-                ]
+            triggerClassName
           )}
         >
-          {render
-            ? undefined
-            : (customButton ??
-              (ellipsis || verticalEllipsis ? (
-                <MoreHorizontal className={cn("size-3.5", verticalEllipsis && "rotate-90")} />
-              ) : (
-                <>
-                  {label}
-                  {!noChevron && <ChevronDownIcon className="size-3.5" />}
-                </>
-              )))}
+          {render ? undefined : (
+            <MenuTriggerContent
+              customButton={customButton}
+              label={label}
+              noChevron={noChevron}
+              isEllipsis={isEllipsis}
+              verticalEllipsis={verticalEllipsis}
+            />
+          )}
         </BaseMenu.Trigger>
       </div>
       <BaseMenu.Portal container={portalElement}>
@@ -136,18 +163,7 @@ function Menu({
           <BaseMenu.Popup
             tabIndex={tabIndex}
             onClick={(event) => event.stopPropagation()}
-            className={cn(
-              MENU_POPUP_CLASSNAME,
-              {
-                "max-h-28": maxHeight === "sm",
-                "max-h-36": maxHeight === "rg",
-                "max-h-48": maxHeight === "md",
-                "max-h-60": maxHeight === "lg",
-                "max-h-80": maxHeight === "xl",
-                "max-h-96": maxHeight === "2xl",
-              },
-              optionsClassName
-            )}
+            className={cn(MENU_POPUP_CLASSNAME, MAX_HEIGHT_CLASSNAME[maxHeight], optionsClassName)}
           >
             <SelectionContext.Provider value={closeOnSelect}>{children}</SelectionContext.Provider>
           </BaseMenu.Popup>

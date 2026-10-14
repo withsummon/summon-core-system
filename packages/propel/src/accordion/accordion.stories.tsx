@@ -5,7 +5,7 @@
  */
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Accordion } from "./accordion";
+import { Accordion } from ".";
 
 const meta = {
   title: "Components/Accordion",

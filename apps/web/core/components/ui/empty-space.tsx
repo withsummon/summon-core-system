@@ -74,16 +74,20 @@ function EmptySpaceItem({ title, description, Icon, action, href }: EmptySpaceIt
   );
 
   if (href) {
-    spaceItem = <Link href={href}>{spaceItem}</Link>;
+    spaceItem = (
+      <Link href={href} onClick={action}>
+        {spaceItem}
+      </Link>
+    );
+  } else if (action) {
+    spaceItem = (
+      <button type="button" className="w-full text-left" onClick={action}>
+        {spaceItem}
+      </button>
+    );
   }
 
-  return (
-    <>
-      <li className="cursor-pointer" onClick={action} role="button">
-        {spaceItem}
-      </li>
-    </>
-  );
+  return <li className="cursor-pointer">{spaceItem}</li>;
 }
 
 export { EmptySpace, EmptySpaceItem };

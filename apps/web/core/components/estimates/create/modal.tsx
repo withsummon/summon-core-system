@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import { EEstimateSystem, ESTIMATE_SYSTEMS } from "@plane/constants";
@@ -59,13 +59,16 @@ export const CreateEstimateModal = observer(function CreateEstimateModal(props: 
     });
   };
 
-  useEffect(() => {
+  // reset the form each time the modal opens (adjusted during render, not in an effect)
+  const [wasOpen, setWasOpen] = useState(false);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
     if (isOpen) {
       setEstimateSystem(EEstimateSystem.POINTS);
       setEstimatePoints(undefined);
       setEstimatePointError([]);
     }
-  }, [isOpen]);
+  }
 
   const validateEstimatePointError = () => {
     let estimateError = false;

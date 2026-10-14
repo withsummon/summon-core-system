@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+// react-doctor-disable-next-line prefer-dynamic-import -- server-side PDF renderer in the Node live service; no client bundle
 import { Image, Link, Text, View } from "@react-pdf/renderer";
 import type { Style } from "@react-pdf/types";
 import type { ReactElement } from "react";

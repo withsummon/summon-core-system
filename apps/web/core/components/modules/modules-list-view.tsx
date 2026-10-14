@@ -11,6 +11,7 @@ import { EUserPermissionsLevel, MODULE_TRACKER_ELEMENTS } from "@plane/constants
 import { useTranslation } from "@plane/i18n";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
 import { EUserProjectRoles } from "@plane/types";
+import type { TModuleDisplayFilters } from "@plane/types";
 import { ContentWrapper, Row, ERowVariant } from "@plane/ui";
 // components
 import { ListLayout } from "@/components/core/list";
@@ -23,6 +24,56 @@ import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useModule } from "@/hooks/store/use-module";
 import { useModuleFilter } from "@/hooks/store/use-module-filter";
 import { useUserPermissions } from "@/hooks/store/user";
+
+type TModulesLayoutType = TModuleDisplayFilters["layout"];
+
+function ModulesLayoutLoader({ layout }: { layout: TModulesLayoutType }) {
+  return (
+    <>
+      {layout === "list" && <CycleModuleListLayoutLoader />}
+      {layout === "board" && <CycleModuleBoardLayoutLoader />}
+      {layout === "gantt" && <GanttLayoutLoader />}
+    </>
+  );
+}
+
+type TModulesLayoutProps = {
+  layout: TModulesLayoutType;
+  moduleIds: string[];
+  isPeekOpen: boolean;
+};
+
+function ModulesLayout({ layout, moduleIds, isPeekOpen }: TModulesLayoutProps) {
+  return (
+    <>
+      {layout === "list" && (
+        <ListLayout>
+          {moduleIds.map((moduleId) => (
+            <ModuleListItem key={moduleId} moduleId={moduleId} />
+          ))}
+        </ListLayout>
+      )}
+      {layout === "board" && (
+        <Row
+          className={`grid size-full grid-cols-1 gap-6 overflow-y-auto py-page-y ${
+            isPeekOpen
+              ? "3xl:grid-cols-3 lg:grid-cols-1 xl:grid-cols-2"
+              : "3xl:grid-cols-4 lg:grid-cols-2 xl:grid-cols-3"
+          } vertical-scrollbar scrollbar-lg auto-rows-max`}
+        >
+          {moduleIds.map((moduleId) => (
+            <ModuleCardItem key={moduleId} moduleId={moduleId} />
+          ))}
+        </Row>
+      )}
+      {layout === "gantt" && (
+        <div className="size-full overflow-hidden">
+          <ModulesListGanttChartView />
+        </div>
+      )}{" "}
+    </>
+  );
+}
 
 export const ModulesListView = observer(function ModulesListView() {
   // router
@@ -44,14 +95,7 @@ export const ModulesListView = observer(function ModulesListView() {
     EUserPermissionsLevel.PROJECT
   );
 
-  if (loader || !projectModuleIds || !filteredModuleIds)
-    return (
-      <>
-        {displayFilters?.layout === "list" && <CycleModuleListLayoutLoader />}
-        {displayFilters?.layout === "board" && <CycleModuleBoardLayoutLoader />}
-        {displayFilters?.layout === "gantt" && <GanttLayoutLoader />}
-      </>
-    );
+  if (loader || !projectModuleIds || !filteredModuleIds) return <ModulesLayoutLoader layout={displayFilters?.layout} />;
 
   if (projectModuleIds.length === 0)
     return (
@@ -83,31 +127,7 @@ export const ModulesListView = observer(function ModulesListView() {
   return (
     <ContentWrapper variant={ERowVariant.HUGGING}>
       <div className="flex size-full justify-between">
-        {displayFilters?.layout === "list" && (
-          <ListLayout>
-            {filteredModuleIds.map((moduleId) => (
-              <ModuleListItem key={moduleId} moduleId={moduleId} />
-            ))}
-          </ListLayout>
-        )}
-        {displayFilters?.layout === "board" && (
-          <Row
-            className={`grid size-full grid-cols-1 gap-6 overflow-y-auto py-page-y ${
-              peekModule
-                ? "3xl:grid-cols-3 lg:grid-cols-1 xl:grid-cols-2"
-                : "3xl:grid-cols-4 lg:grid-cols-2 xl:grid-cols-3"
-            } vertical-scrollbar scrollbar-lg auto-rows-max`}
-          >
-            {filteredModuleIds.map((moduleId) => (
-              <ModuleCardItem key={moduleId} moduleId={moduleId} />
-            ))}
-          </Row>
-        )}
-        {displayFilters?.layout === "gantt" && (
-          <div className="size-full overflow-hidden">
-            <ModulesListGanttChartView />
-          </div>
-        )}
+        <ModulesLayout layout={displayFilters?.layout} moduleIds={filteredModuleIds} isPeekOpen={!!peekModule} />
         <div className="flex-shrink-0">
           <ModulePeekOverview projectId={projectId?.toString() ?? ""} workspaceSlug={workspaceSlug?.toString() ?? ""} />
         </div>

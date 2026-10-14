@@ -186,6 +186,7 @@ export function ParentIssuesListModal({
                           sequenceId: issue?.sequence_id,
                         })}
                         target="_blank"
+                        aria-label="Open work item in new tab"
                         className="relative z-1 hidden flex-shrink-0 text-secondary group-hover:block hover:text-primary"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}

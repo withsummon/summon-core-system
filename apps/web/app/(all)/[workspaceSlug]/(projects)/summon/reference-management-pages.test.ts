@@ -6,8 +6,7 @@ const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf
 
 test("management reporting follows the reference hierarchy with real report bindings", () => {
   const view = read("./reports/report-view.tsx");
-  const visuals = read("./reports/report-visuals.tsx");
-  const source = `${view}\n${visuals}`;
+  const source = `${view}\n${read("./reports/report-panels.tsx")}\n${read("./reports/report-visuals.tsx")}`;
 
   for (const section of [
     "Overview",
@@ -24,15 +23,21 @@ test("management reporting follows the reference hierarchy with real report bind
   assert.match(source, /data\.projects/);
   assert.match(source, /data\.issues\.overdue/);
   assert.match(source, /data\.opportunity_stages/);
-  assert.match(view, /useState<TReportTab>\("overview"\)/);
-  assert.match(view, /onClick=\{\(\) => setActiveTab\(tab\.id\)\}/);
-  assert.match(view, /const showTab = \(tab: TReportTab\) => activeTab === "overview" \|\| activeTab === tab/);
+  assert.match(view, /useHashTab\(REPORT_TABS\.map/);
+  assert.match(view, /<SectionTabs items=\{REPORT_TABS\} value=\{activeTab\} onValueChange=\{setActiveTab\}/);
+  assert.match(view, /activeTab === "overview" \|\| activeTab === tab/);
   assert.match(source, /No disbursement data source configured/);
   assert.doesNotMatch(source, /24\.8B|37\.6B|Pegadaian|SANFIND|Mutiara/);
 });
 
 test("client detail follows the reference hierarchy and persists edits through the API", () => {
   const page = read("./clients/[clientId]/page.tsx");
+  const source = [
+    page,
+    read("./clients/[clientId]/client-detail-panels.tsx"),
+    read("./clients/[clientId]/client-detail-aside.tsx"),
+    read("./clients/[clientId]/client-edit-dialog.tsx"),
+  ].join("\n");
 
   for (const section of [
     "Overview",
@@ -44,17 +49,16 @@ test("client detail follows the reference hierarchy and persists edits through t
     "Client Information",
     "Notes",
   ]) {
-    assert.match(page, new RegExp(section));
+    assert.match(source, new RegExp(section));
   }
 
   assert.match(page, /summonService\.getClientDetail/);
-  assert.match(page, /summonService\.updateClient/);
-  assert.match(page, /useState<TClientTab>\("overview"\)/);
-  assert.match(page, /onClick=\{\(\) => setActiveTab\(tab\.id\)\}/);
-  assert.match(page, /const showTab = \(tab: TClientTab\) => activeTab === "overview" \|\| activeTab === tab/);
-  assert.match(page, /data\.page_contexts/);
-  assert.match(page, /data\.recent_activity/);
-  assert.doesNotMatch(page, /Pegadaian|Andika Pratama|Budi Santoso|Citra Lestari/);
+  assert.match(source, /summonService\.updateClient/);
+  assert.match(page, /useHashTab\(CLIENT_TABS\.map/);
+  assert.match(page, /const showTab = \(tab: TClientTab\) => isOverview \|\| activeTab === tab/);
+  assert.match(source, /data\.page_contexts/);
+  assert.match(source, /data\.recent_activity/);
+  assert.doesNotMatch(source, /Pegadaian|Andika Pratama|Budi Santoso|Citra Lestari/);
 });
 
 test("Dokploy MCP keeps the PAT route independent from an OAuth secret bind", () => {

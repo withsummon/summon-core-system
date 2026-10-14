@@ -26,6 +26,7 @@ export function LayoutSelection(props: Props) {
   const { layouts, onChange, selectedLayout } = props;
   const { isMobile } = usePlatformOS();
   const { t } = useTranslation();
+  const layoutSet = new Set(layouts);
   const handleOnChange = (layoutKey: EIssueLayoutTypes) => {
     if (selectedLayout !== layoutKey) {
       onChange(layoutKey);
@@ -34,7 +35,7 @@ export function LayoutSelection(props: Props) {
 
   return (
     <div className="flex items-center gap-1 rounded-md bg-layer-3 p-1">
-      {ISSUE_LAYOUTS.filter((l) => layouts.includes(l.key)).map((layout) => (
+      {ISSUE_LAYOUTS.filter((l) => layoutSet.has(l.key)).map((layout) => (
         <Tooltip key={layout.key} tooltipContent={t(layout.i18n_title)} isMobile={isMobile}>
           <Button
             variant="ghost"

@@ -38,6 +38,7 @@ export const CycleFiltersSelection = observer(function CycleFiltersSelection(pro
             type="text"
             className="w-full bg-surface-2 outline-none placeholder:text-placeholder"
             placeholder="Search"
+            aria-label="Search filters"
             value={filtersSearchQuery}
             onChange={(e) => setFiltersSearchQuery(e.target.value)}
             autoFocus={!isMobile}

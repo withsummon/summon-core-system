@@ -31,6 +31,7 @@ import type { ModalPortalProps } from "./types";
  * @param showOverlay - Whether to show background overlay
  * @param closeOnOverlayClick - Whether clicking overlay closes modal
  * @param closeOnEscape - Whether pressing Escape closes modal
+ * @param ariaLabel - Accessible name for the dialog
  */
 export function ModalPortal({
   children,
@@ -46,6 +47,7 @@ export function ModalPortal({
   showOverlay = true,
   closeOnOverlayClick = true,
   closeOnEscape = true,
+  ariaLabel,
 }: ModalPortalProps) {
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -94,10 +96,15 @@ export function ModalPortal({
   if (!isOpen) return null;
 
   const content = (
-    <div
-      className={cn("absolute inset-0 h-full w-full overflow-y-auto", className)}
+    // non-modal <dialog open>: utility classes reset the UA margin, border, padding, size limits and colors
+    <dialog
+      open
+      aria-label={ariaLabel}
+      className={cn(
+        "absolute inset-0 m-0 h-full max-h-none w-full max-w-none overflow-y-auto border-0 bg-transparent p-0 text-inherit",
+        className
+      )}
       style={{ zIndex: MODAL_Z_INDEX }}
-      role="dialog"
     >
       {showOverlay && (
         <div
@@ -109,7 +116,7 @@ export function ModalPortal({
       <div ref={contentRef} className={cn(modalClasses)} style={{ zIndex: MODAL_Z_INDEX + 1 }} role="document">
         {children}
       </div>
-    </div>
+    </dialog>
   );
 
   return <PortalWrapper portalId={portalId}>{content}</PortalWrapper>;

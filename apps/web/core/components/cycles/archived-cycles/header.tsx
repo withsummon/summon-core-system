@@ -41,19 +41,13 @@ export const ArchivedCyclesHeader = observer(function ArchivedCyclesHeader() {
   const handleFilters = useCallback(
     (key: keyof TCycleFilters, value: string | string[]) => {
       if (!projectId) return;
-      const newValues = currentProjectArchivedFilters?.[key] ?? [];
+      const selectedValues = new Set(currentProjectArchivedFilters?.[key] ?? []);
+      (Array.isArray(value) ? value : [value]).forEach((val) => {
+        if (selectedValues.has(val)) selectedValues.delete(val);
+        else selectedValues.add(val);
+      });
 
-      if (Array.isArray(value))
-        value.forEach((val) => {
-          if (!newValues.includes(val)) newValues.push(val);
-          else newValues.splice(newValues.indexOf(val), 1);
-        });
-      else {
-        if (currentProjectArchivedFilters?.[key]?.includes(value)) newValues.splice(newValues.indexOf(value), 1);
-        else newValues.push(value);
-      }
-
-      updateFilters(projectId.toString(), { [key]: newValues }, "archived");
+      updateFilters(projectId.toString(), { [key]: Array.from(selectedValues) }, "archived");
     },
     [currentProjectArchivedFilters, projectId, updateFilters]
   );
@@ -103,6 +97,7 @@ export const ArchivedCyclesHeader = observer(function ArchivedCyclesHeader() {
             ref={inputRef}
             className="w-full max-w-[234px] border-none bg-transparent text-13 text-primary outline-none placeholder:text-placeholder"
             placeholder="Search"
+            aria-label="Search cycles"
             value={archivedCyclesSearchQuery}
             onChange={(e) => updateArchivedCyclesSearchQuery(e.target.value)}
             onKeyDown={handleInputKeyDown}

@@ -43,6 +43,8 @@ export const SelectYAxis = observer(function SelectYAxis({ value, onChange, hidd
     return true;
   };
 
+  const hiddenOptionSet = new Set(hiddenOptions);
+
   return (
     <CustomSelect
       value={value}
@@ -56,7 +58,7 @@ export const SelectYAxis = observer(function SelectYAxis({ value, onChange, hidd
       maxHeight="lg"
     >
       {options.map((item) => {
-        if (hiddenOptions?.includes(item.value)) return null;
+        if (hiddenOptionSet.has(item.value)) return null;
         return (
           isEstimateEnabled(item.value) && (
             <CustomSelect.Option key={item.value} value={item.value}>

@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import React, { useLayoutEffect, useState, useMemo } from "react";
+import React, { useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { DEFAULT_PORTAL_ID } from "./constants";
 import type { PortalWrapperProps } from "./types";
@@ -58,15 +58,12 @@ export function PortalWrapper({
     };
   }, [portalId, onMount, onUnmount]);
 
-  const content = useMemo(() => {
-    if (!children) return null;
-    return className ? <div className={className}>{children}</div> : children;
-  }, [children, className]);
-
   // SSR: render nothing on server
   if (!isMounted) {
     return null;
   }
+
+  const content = children && className ? <div className={className}>{children}</div> : children || null;
 
   // If portal container exists, render into it
   if (portalContainer) {

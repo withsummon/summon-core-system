@@ -26,6 +26,8 @@ export const FilterStateGroup = observer(function FilterStateGroup(props: Props)
 
   const appliedFiltersCount = appliedFilters?.length ?? 0;
 
+  const appliedFilterSet = new Set(appliedFilters);
+
   const filteredOptions = Object.values(STATE_GROUPS).filter((s) => s.key.includes(searchQuery.toLowerCase()));
 
   const handleViewToggle = () => {
@@ -49,7 +51,7 @@ export const FilterStateGroup = observer(function FilterStateGroup(props: Props)
               {filteredOptions.slice(0, itemsToRender).map((stateGroup) => (
                 <FilterOption
                   key={stateGroup.key}
-                  isChecked={appliedFilters?.includes(stateGroup.key) ? true : false}
+                  isChecked={appliedFilterSet.has(stateGroup.key)}
                   onClick={() => handleUpdate(stateGroup.key)}
                   icon={<StateGroupIcon stateGroup={stateGroup.key} />}
                   title={stateGroup.label}

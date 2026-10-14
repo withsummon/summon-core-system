@@ -37,6 +37,7 @@ export const FilterCycle = observer(function FilterCycle(props: Props) {
   const cycleIds = projectId ? getProjectCycleIds(projectId.toString()) : undefined;
   const cycles = cycleIds?.map((projectId) => getCycleById(projectId)!) ?? null;
   const appliedFiltersCount = appliedFilters?.length ?? 0;
+  const appliedFilterSet = new Set(appliedFilters);
 
   const sortedOptions = useMemo(() => {
     const filteredOptions = (cycles || []).filter((cycle) =>
@@ -75,7 +76,7 @@ export const FilterCycle = observer(function FilterCycle(props: Props) {
                 {sortedOptions.slice(0, itemsToRender).map((cycle) => (
                   <FilterOption
                     key={cycle.id}
-                    isChecked={appliedFilters?.includes(cycle.id) ? true : false}
+                    isChecked={appliedFilterSet.has(cycle.id)}
                     onClick={() => handleUpdate(cycle.id)}
                     icon={
                       <CycleGroupIcon cycleGroup={cycleStatus(cycle?.status)} className="h-3.5 w-3.5 flex-shrink-0" />

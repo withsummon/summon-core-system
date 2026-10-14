@@ -365,6 +365,7 @@ const activityDetails: {
             added this{" "}
             <a
               href={`${activity.new_value}`}
+              aria-label="Open the added link in a new tab"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
@@ -385,6 +386,7 @@ const activityDetails: {
             updated the{" "}
             <a
               href={`${activity.old_value}`}
+              aria-label="Open the previous link in a new tab"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
@@ -405,6 +407,7 @@ const activityDetails: {
             removed this{" "}
             <a
               href={`${activity.old_value}`}
+              aria-label="Open the removed link in a new tab"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 font-medium text-primary hover:underline"

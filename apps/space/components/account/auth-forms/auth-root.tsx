@@ -29,6 +29,25 @@ import { AuthUniqueCodeForm } from "./unique-code";
 
 const authService = new SitesAuthService();
 
+const AUTH_STATE_BY_ERROR_CODE: Partial<Record<EAuthenticationErrorCodes, { mode: EAuthModes; step: EAuthSteps }>> = {
+  [EAuthenticationErrorCodes.AUTHENTICATION_FAILED_SIGN_IN]: { mode: EAuthModes.SIGN_IN, step: EAuthSteps.PASSWORD },
+  [EAuthenticationErrorCodes.AUTHENTICATION_FAILED_SIGN_UP]: { mode: EAuthModes.SIGN_UP, step: EAuthSteps.PASSWORD },
+  [EAuthenticationErrorCodes.INVALID_MAGIC_CODE_SIGN_IN]: { mode: EAuthModes.SIGN_IN, step: EAuthSteps.UNIQUE_CODE },
+  [EAuthenticationErrorCodes.EXPIRED_MAGIC_CODE_SIGN_IN]: { mode: EAuthModes.SIGN_IN, step: EAuthSteps.UNIQUE_CODE },
+  [EAuthenticationErrorCodes.EMAIL_CODE_ATTEMPT_EXHAUSTED_SIGN_IN]: {
+    mode: EAuthModes.SIGN_IN,
+    step: EAuthSteps.UNIQUE_CODE,
+  },
+  [EAuthenticationErrorCodes.INVALID_MAGIC_CODE_SIGN_UP]: { mode: EAuthModes.SIGN_UP, step: EAuthSteps.UNIQUE_CODE },
+  [EAuthenticationErrorCodes.EXPIRED_MAGIC_CODE_SIGN_UP]: { mode: EAuthModes.SIGN_UP, step: EAuthSteps.UNIQUE_CODE },
+  [EAuthenticationErrorCodes.EMAIL_CODE_ATTEMPT_EXHAUSTED_SIGN_UP]: {
+    mode: EAuthModes.SIGN_UP,
+    step: EAuthSteps.UNIQUE_CODE,
+  },
+};
+
+const getAuthStateForError = (code: EAuthenticationErrorCodes) => AUTH_STATE_BY_ERROR_CODE[code];
+
 export const AuthRoot = observer(function AuthRoot() {
   // router params
   const searchParams = useSearchParams();
@@ -38,47 +57,22 @@ export const AuthRoot = observer(function AuthRoot() {
   // states
   const [authMode, setAuthMode] = useState<EAuthModes>(EAuthModes.SIGN_UP);
   const [authStep, setAuthStep] = useState<EAuthSteps>(EAuthSteps.EMAIL);
-  const [email, setEmail] = useState(emailParam ? emailParam.toString() : "");
+  const [email, setEmail] = useState(emailParam ?? "");
   const [errorInfo, setErrorInfo] = useState<TAuthErrorInfo | undefined>(undefined);
   const [isPasswordAutoset, setIsPasswordAutoset] = useState(true);
   // hooks
   const { config } = useInstance();
 
   useEffect(() => {
-    if (error_code) {
-      const errorhandler = authErrorHandler(error_code?.toString() as EAuthenticationErrorCodes);
-      if (errorhandler) {
-        if (errorhandler.code === EAuthenticationErrorCodes.AUTHENTICATION_FAILED_SIGN_IN) {
-          setAuthMode(EAuthModes.SIGN_IN);
-          setAuthStep(EAuthSteps.PASSWORD);
-        }
-        if (errorhandler.code === EAuthenticationErrorCodes.AUTHENTICATION_FAILED_SIGN_UP) {
-          setAuthMode(EAuthModes.SIGN_UP);
-          setAuthStep(EAuthSteps.PASSWORD);
-        }
-        if (
-          [
-            EAuthenticationErrorCodes.INVALID_MAGIC_CODE_SIGN_IN,
-            EAuthenticationErrorCodes.EXPIRED_MAGIC_CODE_SIGN_IN,
-            EAuthenticationErrorCodes.EMAIL_CODE_ATTEMPT_EXHAUSTED_SIGN_IN,
-          ].includes(errorhandler.code)
-        ) {
-          setAuthMode(EAuthModes.SIGN_IN);
-          setAuthStep(EAuthSteps.UNIQUE_CODE);
-        }
-        if (
-          [
-            EAuthenticationErrorCodes.INVALID_MAGIC_CODE_SIGN_UP,
-            EAuthenticationErrorCodes.EXPIRED_MAGIC_CODE_SIGN_UP,
-            EAuthenticationErrorCodes.EMAIL_CODE_ATTEMPT_EXHAUSTED_SIGN_UP,
-          ].includes(errorhandler.code)
-        ) {
-          setAuthMode(EAuthModes.SIGN_UP);
-          setAuthStep(EAuthSteps.UNIQUE_CODE);
-        }
-        setErrorInfo(errorhandler);
-      }
+    if (!error_code) return;
+    const errorhandler = authErrorHandler(error_code.toString() as EAuthenticationErrorCodes);
+    if (!errorhandler) return;
+    const errorAuthState = getAuthStateForError(errorhandler.code);
+    if (errorAuthState) {
+      setAuthMode(errorAuthState.mode);
+      setAuthStep(errorAuthState.step);
     }
+    setErrorInfo(errorhandler);
   }, [error_code]);
 
   const isSMTPConfigured = config?.is_smtp_configured || false;
@@ -149,7 +143,7 @@ export const AuthRoot = observer(function AuthRoot() {
   return (
     <div className="mt-10 flex w-full flex-grow flex-col items-center justify-center py-6">
       <div className="relative flex w-full max-w-[22.5rem] flex-col gap-6">
-        {errorInfo && errorInfo?.type === EErrorAlertType.BANNER_ALERT && (
+        {errorInfo?.type === EErrorAlertType.BANNER_ALERT && (
           <AuthBanner bannerData={errorInfo} handleBannerData={(value) => setErrorInfo(value)} />
         )}
         <AuthHeader authMode={authMode} />
@@ -185,7 +179,7 @@ export const AuthRoot = observer(function AuthRoot() {
             }}
           />
         )}
-        <TermsAndConditions isSignUp={authMode === EAuthModes.SIGN_UP ? true : false} />
+        <TermsAndConditions isSignUp={authMode === EAuthModes.SIGN_UP} />
       </div>
     </div>
   );

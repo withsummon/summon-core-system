@@ -75,30 +75,26 @@ export const ProjectCardList = observer(function ProjectCardList(props: TProject
       />
     );
 
-  if (filteredProjectIds.length === 0)
+  if (filteredProjectIds.length === 0) {
+    const isArchivedViewWithoutFilters =
+      !!currentWorkspaceDisplayFilters?.archived_projects && calculateTotalFilters(currentWorkspaceFilters ?? {}) === 0;
     return (
       <EmptyStateDetailed
         title={
-          currentWorkspaceDisplayFilters?.archived_projects &&
-          calculateTotalFilters(currentWorkspaceFilters ?? {}) === 0
+          isArchivedViewWithoutFilters
             ? t("workspace_empty_state.projects_archived.title")
             : t("common_empty_state.search.title")
         }
         description={
-          currentWorkspaceDisplayFilters?.archived_projects &&
-          calculateTotalFilters(currentWorkspaceFilters ?? {}) === 0
+          isArchivedViewWithoutFilters
             ? t("workspace_empty_state.projects_archived.description")
             : t("common_empty_state.search.description")
         }
-        assetKey={
-          currentWorkspaceDisplayFilters?.archived_projects &&
-          calculateTotalFilters(currentWorkspaceFilters ?? {}) === 0
-            ? "archived-work-item"
-            : "search"
-        }
+        assetKey={isArchivedViewWithoutFilters ? "archived-work-item" : "search"}
         assetClassName="size-40"
       />
     );
+  }
 
   return (
     <ContentWrapper>

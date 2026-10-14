@@ -24,6 +24,7 @@ export function MobileLayoutSelection({
 }) {
   const { t } = useTranslation();
   const selectedLayout = ISSUE_LAYOUTS.find((layout) => layout.key === activeLayout);
+  const layoutSet = new Set(layouts);
   return (
     <CustomMenu
       maxHeight={"md"}
@@ -41,7 +42,7 @@ export function MobileLayoutSelection({
       customButtonClassName="flex text-secondary text-13"
       closeOnSelect
     >
-      {ISSUE_LAYOUTS.filter((l) => layouts.includes(l.key)).map((layout) => (
+      {ISSUE_LAYOUTS.filter((l) => layoutSet.has(l.key)).map((layout) => (
         <CustomMenu.MenuItem
           key={layout.key}
           onClick={() => {

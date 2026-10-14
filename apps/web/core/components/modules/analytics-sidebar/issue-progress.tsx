@@ -12,7 +12,7 @@ import { CollapsiblePrimitive } from "@plane/propel/collapsible";
 import { EEstimateSystem } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { ChevronUpIcon, ChevronDownIcon } from "@plane/propel/icons";
-import type { TModulePlotType } from "@plane/types";
+import type { IModule, TModulePlotType } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
 import { CustomSelect, Spinner } from "@plane/ui";
 // components
@@ -36,6 +36,130 @@ const moduleBurnDownChartOptions = [
   { value: "burndown", i18n_label: "issues" },
   { value: "points", i18n_label: "points" },
 ];
+
+function getModuleProgressMetrics(moduleDetails: IModule | null | undefined, plotType: TModulePlotType) {
+  const completedIssues = moduleDetails?.completed_issues || 0;
+  const totalIssues = moduleDetails?.total_issues || 0;
+  const completedEstimatePoints = moduleDetails?.completed_estimate_points || 0;
+  const totalEstimatePoints = moduleDetails?.total_estimate_points || 0;
+
+  let progressHeaderPercentage = 0;
+  if (moduleDetails && plotType === "points") {
+    if (completedEstimatePoints != 0 && totalEstimatePoints != 0)
+      progressHeaderPercentage = Math.round((completedEstimatePoints / totalEstimatePoints) * 100);
+  } else if (moduleDetails && completedIssues != 0) {
+    progressHeaderPercentage = Math.round((completedIssues / totalIssues) * 100);
+  }
+
+  const chartDistributionData =
+    plotType === "points" ? moduleDetails?.estimate_distribution : moduleDetails?.distribution || undefined;
+
+  return {
+    totalIssues,
+    totalEstimatePoints,
+    progressHeaderPercentage,
+    chartDistributionData,
+    completionChartDistributionData: chartDistributionData?.completion_chart || undefined,
+  };
+}
+
+function getGroupedIssues(moduleDetails: IModule | null | undefined, plotType: TModulePlotType) {
+  const isPoints = plotType === "points";
+  return {
+    backlog: (isPoints ? moduleDetails?.backlog_estimate_points : moduleDetails?.backlog_issues) || 0,
+    unstarted: (isPoints ? moduleDetails?.unstarted_estimate_points : moduleDetails?.unstarted_issues) || 0,
+    started: (isPoints ? moduleDetails?.started_estimate_points : moduleDetails?.started_issues) || 0,
+    completed: (isPoints ? moduleDetails?.completed_estimate_points : moduleDetails?.completed_issues) || 0,
+    cancelled: (isPoints ? moduleDetails?.cancelled_estimate_points : moduleDetails?.cancelled_issues) || 0,
+  };
+}
+
+function getModuleDateValidity(moduleDetails: IModule | null | undefined) {
+  const moduleStartDate = getDate(moduleDetails?.start_date);
+  const moduleEndDate = getDate(moduleDetails?.target_date);
+  const isModuleStartDateValid = moduleStartDate && moduleStartDate <= new Date();
+  const isModuleEndDateValid = moduleStartDate && moduleEndDate && moduleEndDate >= moduleStartDate;
+  return { moduleStartDate, moduleEndDate, isModuleDateValid: isModuleStartDateValid && isModuleEndDateValid };
+}
+
+type TModuleProgressHeaderProps = {
+  isOpen: boolean;
+  isModuleDateValid: boolean;
+  hasDates: boolean;
+  progressHeaderPercentage: number;
+  showPlotTypeSelect: boolean;
+  plotType: TModulePlotType;
+  onPlotTypeChange: (value: TModulePlotType) => void;
+  isLoading: boolean;
+};
+
+function ModuleProgressHeader(props: TModuleProgressHeaderProps) {
+  const {
+    isOpen,
+    isModuleDateValid,
+    hasDates,
+    progressHeaderPercentage,
+    showPlotTypeSelect,
+    plotType,
+    onPlotTypeChange,
+    isLoading,
+  } = props;
+  const { t } = useTranslation();
+
+  if (!isModuleDateValid)
+    return (
+      <div className="relative flex w-full items-center justify-between gap-2">
+        <div className="text-13 font-medium text-secondary">Progress</div>
+        <div className="flex items-center gap-1">
+          <AlertCircle height={14} width={14} className="text-secondary" />
+          <span className="text-11 text-secondary italic">
+            {hasDates
+              ? t("project_module.empty_state.sidebar.in_active")
+              : t("project_module.empty_state.sidebar.invalid_date")}
+          </span>
+        </div>
+      </div>
+    );
+
+  return (
+    <div className="relative flex w-full items-center justify-between gap-2">
+      <CollapsiblePrimitive.Trigger className="relative flex w-full items-center gap-2">
+        <div className="text-13 font-medium text-secondary">{t("common.progress")}</div>
+        {progressHeaderPercentage > 0 && (
+          <div className="flex h-5 w-9 items-center justify-center rounded-sm bg-warning-subtle text-11 font-medium text-warning-primary tabular-nums">{`${progressHeaderPercentage}%`}</div>
+        )}
+      </CollapsiblePrimitive.Trigger>
+      {showPlotTypeSelect && (
+        <>
+          <div>
+            <CustomSelect
+              value={plotType}
+              label={
+                <span>{t(moduleBurnDownChartOptions.find((v) => v.value === plotType)?.i18n_label || "none")}</span>
+              }
+              onChange={onPlotTypeChange}
+              maxHeight="lg"
+            >
+              {moduleBurnDownChartOptions.map((item) => (
+                <CustomSelect.Option key={item.value} value={item.value}>
+                  {t(item.i18n_label)}
+                </CustomSelect.Option>
+              ))}
+            </CustomSelect>
+          </div>
+          {isLoading && <Spinner className="h-3 w-3" />}
+        </>
+      )}
+      <CollapsiblePrimitive.Trigger className="ml-auto">
+        {isOpen ? (
+          <ChevronUpIcon className="h-3.5 w-3.5" aria-hidden="true" />
+        ) : (
+          <ChevronDownIcon className="h-3.5 w-3.5" aria-hidden="true" />
+        )}
+      </CollapsiblePrimitive.Trigger>
+    </div>
+  );
+}
 
 export const ModuleAnalyticsProgress = observer(function ModuleAnalyticsProgress(props: TModuleAnalyticsProgress) {
   // props
@@ -63,40 +187,15 @@ export const ModuleAnalyticsProgress = observer(function ModuleAnalyticsProgress
   const estimateDetails =
     isCurrentProjectEstimateEnabled && currentActiveEstimateId && estimateById(currentActiveEstimateId);
   const isCurrentEstimateTypeIsPoints = estimateDetails && estimateDetails?.type === EEstimateSystem.POINTS;
-  const completedIssues = moduleDetails?.completed_issues || 0;
-  const totalIssues = moduleDetails?.total_issues || 0;
-  const completedEstimatePoints = moduleDetails?.completed_estimate_points || 0;
-  const totalEstimatePoints = moduleDetails?.total_estimate_points || 0;
-  const progressHeaderPercentage = moduleDetails
-    ? plotType === "points"
-      ? completedEstimatePoints != 0 && totalEstimatePoints != 0
-        ? Math.round((completedEstimatePoints / totalEstimatePoints) * 100)
-        : 0
-      : completedIssues != 0 && completedIssues != 0
-        ? Math.round((completedIssues / totalIssues) * 100)
-        : 0
-    : 0;
-  const chartDistributionData =
-    plotType === "points" ? moduleDetails?.estimate_distribution : moduleDetails?.distribution || undefined;
-  const completionChartDistributionData = chartDistributionData?.completion_chart || undefined;
-  const groupedIssues = useMemo(
-    () => ({
-      backlog: plotType === "points" ? moduleDetails?.backlog_estimate_points || 0 : moduleDetails?.backlog_issues || 0,
-      unstarted:
-        plotType === "points" ? moduleDetails?.unstarted_estimate_points || 0 : moduleDetails?.unstarted_issues || 0,
-      started: plotType === "points" ? moduleDetails?.started_estimate_points || 0 : moduleDetails?.started_issues || 0,
-      completed:
-        plotType === "points" ? moduleDetails?.completed_estimate_points || 0 : moduleDetails?.completed_issues || 0,
-      cancelled:
-        plotType === "points" ? moduleDetails?.cancelled_estimate_points || 0 : moduleDetails?.cancelled_issues || 0,
-    }),
-    [plotType, moduleDetails]
-  );
-  const moduleStartDate = getDate(moduleDetails?.start_date);
-  const moduleEndDate = getDate(moduleDetails?.target_date);
-  const isModuleStartDateValid = moduleStartDate && moduleStartDate <= new Date();
-  const isModuleEndDateValid = moduleStartDate && moduleEndDate && moduleEndDate >= moduleStartDate;
-  const isModuleDateValid = isModuleStartDateValid && isModuleEndDateValid;
+  const {
+    totalIssues,
+    totalEstimatePoints,
+    progressHeaderPercentage,
+    chartDistributionData,
+    completionChartDistributionData,
+  } = getModuleProgressMetrics(moduleDetails, plotType);
+  const groupedIssues = useMemo(() => getGroupedIssues(moduleDetails, plotType), [plotType, moduleDetails]);
+  const { moduleStartDate, moduleEndDate, isModuleDateValid } = getModuleDateValidity(moduleDetails);
   const isArchived = !!moduleDetails?.archived_at;
 
   // handlers
@@ -127,58 +226,16 @@ export const ModuleAnalyticsProgress = observer(function ModuleAnalyticsProgress
             {
               <div className="space-y-6">
                 {/* progress bar header */}
-                {isModuleDateValid ? (
-                  <div className="relative flex w-full items-center justify-between gap-2">
-                    <CollapsiblePrimitive.Trigger className="relative flex w-full items-center gap-2">
-                      <div className="text-13 font-medium text-secondary">{t("common.progress")}</div>
-                      {progressHeaderPercentage > 0 && (
-                        <div className="flex h-5 w-9 items-center justify-center rounded-sm bg-warning-subtle text-11 font-medium text-warning-primary tabular-nums">{`${progressHeaderPercentage}%`}</div>
-                      )}
-                    </CollapsiblePrimitive.Trigger>
-                    {isCurrentEstimateTypeIsPoints && (
-                      <>
-                        <div>
-                          <CustomSelect
-                            value={plotType}
-                            label={
-                              <span>
-                                {t(moduleBurnDownChartOptions.find((v) => v.value === plotType)?.i18n_label || "none")}
-                              </span>
-                            }
-                            onChange={onChange}
-                            maxHeight="lg"
-                          >
-                            {moduleBurnDownChartOptions.map((item) => (
-                              <CustomSelect.Option key={item.value} value={item.value}>
-                                {t(item.i18n_label)}
-                              </CustomSelect.Option>
-                            ))}
-                          </CustomSelect>
-                        </div>
-                        {loader && <Spinner className="h-3 w-3" />}
-                      </>
-                    )}
-                    <CollapsiblePrimitive.Trigger className="ml-auto">
-                      {open ? (
-                        <ChevronUpIcon className="h-3.5 w-3.5" aria-hidden="true" />
-                      ) : (
-                        <ChevronDownIcon className="h-3.5 w-3.5" aria-hidden="true" />
-                      )}
-                    </CollapsiblePrimitive.Trigger>
-                  </div>
-                ) : (
-                  <div className="relative flex w-full items-center justify-between gap-2">
-                    <div className="text-13 font-medium text-secondary">Progress</div>
-                    <div className="flex items-center gap-1">
-                      <AlertCircle height={14} width={14} className="text-secondary" />
-                      <span className="text-11 text-secondary italic">
-                        {moduleDetails?.start_date && moduleDetails?.target_date
-                          ? t("project_module.empty_state.sidebar.in_active")
-                          : t("project_module.empty_state.sidebar.invalid_date")}
-                      </span>
-                    </div>
-                  </div>
-                )}
+                <ModuleProgressHeader
+                  isOpen={open}
+                  isModuleDateValid={!!isModuleDateValid}
+                  hasDates={!!moduleDetails?.start_date && !!moduleDetails?.target_date}
+                  progressHeaderPercentage={progressHeaderPercentage}
+                  showPlotTypeSelect={!!isCurrentEstimateTypeIsPoints}
+                  plotType={plotType}
+                  onPlotTypeChange={onChange}
+                  isLoading={loader}
+                />
 
                 {open && (
                   <>

@@ -64,29 +64,26 @@ export const shouldFilterModule = (
   filters: TModuleFilters
 ): boolean => {
   let fallsInFilters = true;
-  Object.keys(filters).forEach((key) => {
-    const filterKey = key as keyof TModuleFilters;
-    if (filterKey === "status" && filters.status && filters.status.length > 0)
-      fallsInFilters = fallsInFilters && filters.status.includes(module.status?.toLowerCase() ?? "");
-    if (filterKey === "lead" && filters.lead && filters.lead.length > 0)
-      fallsInFilters = fallsInFilters && filters.lead.includes(`${module.lead_id}`);
-    if (filterKey === "members" && filters.members && filters.members.length > 0) {
-      const memberIds = module.member_ids ?? [];
-      fallsInFilters = fallsInFilters && filters.members.some((memberId) => memberIds.includes(memberId));
-    }
-    if (filterKey === "start_date" && filters.start_date && filters.start_date.length > 0) {
-      const startDate = getDate(module.start_date);
-      filters.start_date.forEach((dateFilter) => {
-        fallsInFilters = fallsInFilters && !!startDate && satisfiesDateFilter(startDate, dateFilter);
-      });
-    }
-    if (filterKey === "target_date" && filters.target_date && filters.target_date.length > 0) {
-      const endDate = getDate(module.target_date);
-      filters.target_date.forEach((dateFilter) => {
-        fallsInFilters = fallsInFilters && !!endDate && satisfiesDateFilter(endDate, dateFilter);
-      });
-    }
-  });
+  if (filters.status && filters.status.length > 0)
+    fallsInFilters = fallsInFilters && filters.status.includes(module.status?.toLowerCase() ?? "");
+  if (filters.lead && filters.lead.length > 0)
+    fallsInFilters = fallsInFilters && filters.lead.includes(`${module.lead_id}`);
+  if (filters.members && filters.members.length > 0) {
+    const memberIds = new Set(module.member_ids ?? []);
+    fallsInFilters = fallsInFilters && filters.members.some((memberId) => memberIds.has(memberId));
+  }
+  if (filters.start_date && filters.start_date.length > 0) {
+    const startDate = getDate(module.start_date);
+    filters.start_date.forEach((dateFilter) => {
+      fallsInFilters = fallsInFilters && !!startDate && satisfiesDateFilter(startDate, dateFilter);
+    });
+  }
+  if (filters.target_date && filters.target_date.length > 0) {
+    const endDate = getDate(module.target_date);
+    filters.target_date.forEach((dateFilter) => {
+      fallsInFilters = fallsInFilters && !!endDate && satisfiesDateFilter(endDate, dateFilter);
+    });
+  }
   if (displayFilters.favorites && !module.is_favorite) fallsInFilters = false;
 
   return fallsInFilters;

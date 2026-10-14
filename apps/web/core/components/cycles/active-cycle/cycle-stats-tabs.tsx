@@ -1,0 +1,314 @@
+/**
+ * Copyright (c) 2023-present Plane Software, Inc. and contributors
+ * SPDX-License-Identifier: AGPL-3.0-only
+ * See the LICENSE file for details.
+ */
+
+import { useCallback, useRef, useState } from "react";
+import { isEmpty } from "lodash-es";
+import { observer } from "mobx-react";
+import { CalendarCheck } from "lucide-react";
+// plane imports
+import { useTranslation } from "@plane/i18n";
+import { PriorityIcon } from "@plane/propel/icons";
+import { Tabs } from "@plane/propel/tabs";
+import { Tooltip } from "@plane/propel/tooltip";
+import type { TWorkItemFilterCondition } from "@plane/shared-state";
+import type { ICycle, TIssue } from "@plane/types";
+import { EIssuesStoreType } from "@plane/types";
+import { Loader, Avatar } from "@plane/ui";
+import { cn, renderFormattedDate, renderFormattedDateWithoutYear, getFileURL } from "@plane/utils";
+// assets
+import userImage from "@/app/assets/user.png?url";
+// components
+import { SingleProgressStats } from "@/components/core/sidebar/single-progress-stats";
+import { StateDropdown } from "@/components/dropdowns/state/dropdown";
+import { SimpleEmptyState } from "@/components/empty-state/simple-empty-state-root";
+import { IssueIdentifier } from "@/components/issues/issue-detail/issue-identifier";
+// hooks
+import { useIssueDetail } from "@/hooks/store/use-issue-detail";
+import { useIssues } from "@/hooks/store/use-issues";
+import { useIntersectionObserver } from "@/hooks/use-intersection-observer";
+// store
+import type { ActiveCycleIssueDetails } from "@/store/issue/cycle";
+
+type THandleFiltersUpdate = (conditions: TWorkItemFilterCondition[]) => void;
+
+const TAB_CONTENT_CLASSNAME =
+  "vertical-scrollbar flex scrollbar-sm h-52 w-full flex-col gap-1 overflow-y-auto text-secondary";
+
+function StatsLoader() {
+  return (
+    <Loader className="space-y-3">
+      <Loader.Item height="30px" />
+      <Loader.Item height="30px" />
+      <Loader.Item height="30px" />
+    </Loader>
+  );
+}
+
+function StatsEmptyState({ title, assetPath }: { title: string; assetPath: string }) {
+  return (
+    <div className="flex h-full w-full items-center justify-center">
+      <SimpleEmptyState title={title} assetPath={assetPath} />
+    </div>
+  );
+}
+
+export function StatsTabTrigger({ value, activeTab, label }: { value: string; activeTab: string; label: string }) {
+  return (
+    <Tabs.Trigger
+      value={value}
+      className={cn(
+        "relative z-[1] rounded-[3px] py-1.5 text-11 font-semibold text-placeholder transition-colors duration-500 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
+        {
+          "bg-surface-1 text-tertiary": activeTab === value,
+          "hover:text-tertiary": activeTab !== value,
+        }
+      )}
+    >
+      {label}
+    </Tabs.Trigger>
+  );
+}
+
+type TPriorityIssueRowProps = {
+  issue: TIssue;
+  workspaceSlug: string;
+  projectId: string;
+  handleFiltersUpdate: THandleFiltersUpdate;
+};
+
+const PriorityIssueRow = observer(function PriorityIssueRow(props: TPriorityIssueRowProps) {
+  const { issue, workspaceSlug, projectId, handleFiltersUpdate } = props;
+  const { setPeekIssue } = useIssueDetail();
+
+  const handleOpen = () => {
+    if (!issue.id) return;
+    setPeekIssue({
+      workspaceSlug,
+      projectId,
+      issueId: issue.id,
+      isArchived: !!issue.archived_at,
+    });
+    handleFiltersUpdate([{ property: "priority", operator: "in", value: ["urgent", "high"] }]);
+  };
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      className="group flex cursor-pointer items-center justify-between gap-2 rounded-md p-1 hover:bg-surface-2"
+      onClick={handleOpen}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget || (e.key !== "Enter" && e.key !== " ")) return;
+        e.preventDefault();
+        handleOpen();
+      }}
+    >
+      <div className="flex w-full min-w-24 flex-grow items-center gap-1.5 truncate">
+        <IssueIdentifier issueId={issue.id} projectId={projectId} size="xs" variant="secondary" />
+        <Tooltip position="top-start" tooltipHeading="Title" tooltipContent={issue.name}>
+          <span className="truncate text-13 text-primary">{issue.name}</span>
+        </Tooltip>
+      </div>
+      <PriorityIcon priority={issue.priority} withContainer size={12} />
+      <div className="flex flex-shrink-0 items-center gap-1.5">
+        <StateDropdown
+          value={issue.state_id}
+          onChange={() => {}}
+          projectId={projectId?.toString() ?? ""}
+          disabled
+          buttonVariant="background-with-text"
+          buttonContainerClassName="cursor-pointer max-w-24"
+          showTooltip
+        />
+        {issue.target_date && (
+          <Tooltip tooltipHeading="Target Date" tooltipContent={renderFormattedDate(issue.target_date)}>
+            <div className="flex h-full cursor-pointer items-center gap-1.5 truncate rounded-sm bg-layer-1 px-2 py-0.5 text-11 group-hover:bg-surface-1">
+              <CalendarCheck className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate text-11">{renderFormattedDateWithoutYear(issue.target_date)}</span>
+            </div>
+          </Tooltip>
+        )}
+      </div>
+    </div>
+  );
+});
+
+type TPriorityIssuesTabProps = {
+  workspaceSlug: string;
+  projectId: string;
+  cycleId: string;
+  cycleIssueDetails?: ActiveCycleIssueDetails | { nextPageResults: boolean };
+  handleFiltersUpdate: THandleFiltersUpdate;
+  emptyStateAssetPath: string;
+};
+
+export const PriorityIssuesTab = observer(function PriorityIssuesTab(props: TPriorityIssuesTabProps) {
+  const { workspaceSlug, projectId, cycleId, cycleIssueDetails, handleFiltersUpdate, emptyStateAssetPath } = props;
+  // refs
+  const issuesContainerRef = useRef<HTMLDivElement | null>(null);
+  // states
+  const [issuesLoaderElement, setIssueLoaderElement] = useState<HTMLDivElement | null>(null);
+  // plane hooks
+  const { t } = useTranslation();
+  // store hooks
+  const {
+    issues: { fetchNextActiveCycleIssues },
+  } = useIssues(EIssuesStoreType.CYCLE);
+  const {
+    issue: { getIssueById },
+  } = useIssueDetail();
+
+  const loadMoreIssues = useCallback(() => {
+    fetchNextActiveCycleIssues(workspaceSlug, projectId, cycleId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceSlug, projectId, cycleId, issuesLoaderElement, cycleIssueDetails?.nextPageResults]);
+
+  useIntersectionObserver(issuesContainerRef, issuesLoaderElement, loadMoreIssues, `0% 0% 100% 0%`);
+
+  const renderContent = () => {
+    if (!cycleIssueDetails || !("issueIds" in cycleIssueDetails)) return <StatsLoader />;
+    if (cycleIssueDetails.issueCount <= 0)
+      return (
+        <StatsEmptyState title={t("active_cycle.empty_state.priority_issue.title")} assetPath={emptyStateAssetPath} />
+      );
+    return (
+      <>
+        {cycleIssueDetails.issueIds.map((issueId: string) => {
+          const issue = getIssueById(issueId);
+          if (!issue) return null;
+          return (
+            <PriorityIssueRow
+              key={issue.id}
+              issue={issue}
+              workspaceSlug={workspaceSlug}
+              projectId={projectId}
+              handleFiltersUpdate={handleFiltersUpdate}
+            />
+          );
+        })}
+        {(cycleIssueDetails.nextPageResults === undefined || cycleIssueDetails.nextPageResults) && (
+          <div
+            ref={setIssueLoaderElement}
+            className={"relative flex h-11 animate-pulse cursor-pointer items-center gap-3 bg-layer-1 p-3 text-13"}
+          />
+        )}
+      </>
+    );
+  };
+
+  return (
+    <Tabs.Content value="Priority-Issues" className={TAB_CONTENT_CLASSNAME}>
+      <div
+        ref={issuesContainerRef}
+        className="vertical-scrollbar flex scrollbar-sm h-full w-full flex-col gap-1 overflow-y-auto"
+      >
+        {renderContent()}
+      </div>
+    </Tabs.Content>
+  );
+});
+
+type TDistributionTabProps = {
+  cycle: ICycle | null;
+  handleFiltersUpdate: THandleFiltersUpdate;
+  emptyStateAssetPath: string;
+};
+
+export function AssigneesTab({ cycle, handleFiltersUpdate, emptyStateAssetPath }: TDistributionTabProps) {
+  const { t } = useTranslation();
+  const assignees = cycle?.distribution?.assignees;
+
+  const renderContent = () => {
+    if (!cycle || isEmpty(cycle.distribution)) return <StatsLoader />;
+    if (!assignees || assignees.length === 0)
+      return <StatsEmptyState title={t("active_cycle.empty_state.assignee.title")} assetPath={emptyStateAssetPath} />;
+    return assignees.map((assignee) => {
+      const assigneeId = assignee.assignee_id;
+      if (assigneeId)
+        return (
+          <SingleProgressStats
+            key={assigneeId}
+            title={
+              <div className="flex items-center gap-2">
+                <Avatar name={assignee?.display_name ?? undefined} src={getFileURL(assignee?.avatar_url ?? "")} />
+
+                <span>{assignee.display_name}</span>
+              </div>
+            }
+            completed={assignee.completed_issues}
+            total={assignee.total_issues}
+            onClick={() => {
+              handleFiltersUpdate([{ property: "assignee_id", operator: "in", value: [assigneeId] }]);
+            }}
+          />
+        );
+      return (
+        <SingleProgressStats
+          key="unassigned"
+          title={
+            <div className="flex items-center gap-2">
+              <div className="h-5 w-5 rounded-full border-2 border-subtle bg-layer-1">
+                <img src={userImage} height="100%" width="100%" className="rounded-full" alt="User" />
+              </div>
+              <span>{t("no_assignee")}</span>
+            </div>
+          }
+          completed={assignee.completed_issues}
+          total={assignee.total_issues}
+        />
+      );
+    });
+  };
+
+  return (
+    <Tabs.Content value="Assignees" className={TAB_CONTENT_CLASSNAME}>
+      {renderContent()}
+    </Tabs.Content>
+  );
+}
+
+export function LabelsTab({ cycle, handleFiltersUpdate, emptyStateAssetPath }: TDistributionTabProps) {
+  const { t } = useTranslation();
+  const labels = cycle?.distribution?.labels;
+
+  const renderContent = () => {
+    if (!cycle || isEmpty(cycle.distribution)) return <StatsLoader />;
+    if (!labels || labels.length === 0)
+      return <StatsEmptyState title={t("active_cycle.empty_state.label.title")} assetPath={emptyStateAssetPath} />;
+    return labels.map((label) => {
+      const labelId = label.label_id;
+      return (
+        <SingleProgressStats
+          key={labelId ?? "no-label"}
+          title={
+            <div className="flex items-center gap-2 truncate">
+              <span
+                className="block h-3 w-3 flex-shrink-0 rounded-full"
+                style={{
+                  backgroundColor: label.color ?? "#000000",
+                }}
+              />
+              <span className="truncate text-11 text-ellipsis">{label.label_name ?? "No labels"}</span>
+            </div>
+          }
+          completed={label.completed_issues}
+          total={label.total_issues}
+          onClick={
+            labelId
+              ? () => handleFiltersUpdate([{ property: "label_id", operator: "in", value: [labelId] }])
+              : undefined
+          }
+        />
+      );
+    });
+  };
+
+  return (
+    <Tabs.Content value="Labels" className={TAB_CONTENT_CLASSNAME}>
+      {renderContent()}
+    </Tabs.Content>
+  );
+}

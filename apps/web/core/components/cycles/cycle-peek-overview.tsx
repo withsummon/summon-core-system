@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { observer } from "mobx-react";
 import { usePathname, useSearchParams } from "next/navigation";
 // hooks
@@ -21,6 +21,11 @@ type Props = {
   isArchived?: boolean;
 };
 
+// The portal host lives in the workspace layout; read it on every render like a DOM ref, with no server value.
+const subscribeToNothing = () => () => {};
+const getFullScreenPortal = () => document.getElementById("full-screen-portal");
+const getServerPortal = () => null;
+
 export const CyclePeekOverview = observer(function CyclePeekOverview(props: Props) {
   const { projectId: propsProjectId, workspaceSlug, isArchived } = props;
   // router
@@ -36,6 +41,7 @@ export const CyclePeekOverview = observer(function CyclePeekOverview(props: Prop
   // derived values
   const cycleDetails = shownCycle ? getCycleById(shownCycle) : undefined;
   const projectId = propsProjectId || cycleDetails?.project_id;
+  const portalContainer = useSyncExternalStore(subscribeToNothing, getFullScreenPortal, getServerPortal);
 
   const handleClose = () => {
     const query = generateQueryParams(searchParams, ["peekCycle"]);
@@ -57,7 +63,7 @@ export const CyclePeekOverview = observer(function CyclePeekOverview(props: Prop
       onOpenChangeComplete={(open) => !open && setShownCycle(null)}
     >
       <DrawerContent
-        container={document.getElementById("full-screen-portal")}
+        container={portalContainer}
         initialFocus={false}
         finalFocus={false}
         aria-label={cycleDetails?.name ?? "Cycle details"}

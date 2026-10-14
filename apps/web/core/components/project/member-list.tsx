@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel, MEMBER_TRACKER_ELEMENTS } from "@plane/constants";
@@ -31,6 +31,13 @@ export const ProjectMemberList = observer(function ProjectMemberList(props: TPro
   // states
   const [inviteModal, setInviteModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  // refs
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // focus the member search when the list opens
+  useEffect(() => {
+    searchInputRef.current?.focus();
+  }, []);
   const {
     project: { projectMemberIds, getFilteredProjectMemberDetails, filters },
   } = useMember();
@@ -87,10 +94,11 @@ export const ProjectMemberList = observer(function ProjectMemberList(props: TPro
           <div className="flex items-center justify-start gap-1.5 rounded-md border border-subtle bg-surface-1 px-2 py-1 focus-within:border-accent-strong">
             <SearchIcon className="h-3.5 w-3.5" />
             <input
+              ref={searchInputRef}
               className="w-full max-w-[234px] border-none bg-transparent text-13 outline-none placeholder:text-placeholder"
               placeholder="Search"
+              aria-label="Search members"
               value={searchQuery}
-              autoFocus
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>

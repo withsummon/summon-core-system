@@ -5,7 +5,7 @@
  */
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Toast, ToastStatic, setToast, updateToast, setPromiseToast, TOAST_TYPE } from "./toast";
+import { Toast, ToastStatic, setToast, updateToast, setPromiseToast, TOAST_TYPE } from ".";
 
 const meta = {
   title: "Components/Toast",

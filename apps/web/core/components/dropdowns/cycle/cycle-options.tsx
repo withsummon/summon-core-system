@@ -8,25 +8,19 @@ import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // components
-import { ComboboxPrimitive as Combobox } from "@plane/propel/combobox";
 // i18n
 import { useTranslation } from "@plane/i18n";
 // icon
-import { CheckIcon, CycleGroupIcon, CycleIcon, SearchIcon } from "@plane/propel/icons";
-import { POPUP_OPTION_CLASSNAME, POPUP_SEARCH_CLASSNAME, POPUP_SEARCH_INPUT_CLASSNAME } from "@plane/propel/popover";
+import { CycleGroupIcon, CycleIcon } from "@plane/propel/icons";
+import { filterOptionsByQuery, SearchableOptionsPanel } from "../searchable-options-panel";
+import type { TSearchableOption } from "../searchable-options-panel";
 import type { TCycleGroups } from "@plane/types";
 // ui
 // store hooks
 import { useCycle } from "@/hooks/store/use-cycle";
 // types
 
-type DropdownOptions =
-  | {
-      value: string | null;
-      query: string;
-      content: React.ReactNode;
-    }[]
-  | undefined;
+type DropdownOptions = TSearchableOption<string | null>[] | undefined;
 
 type CycleOptionsProps = {
   projectId: string;
@@ -88,49 +82,15 @@ export const CycleOptions = observer(function CycleOptions(props: CycleOptionsPr
     });
   }
 
-  const filteredOptions =
-    query === "" ? options : options?.filter((o) => o.query.toLowerCase().includes(query.toLowerCase()));
+  const filteredOptions = filterOptionsByQuery(options, query);
 
   return (
-    <div className="z-10">
-      <div className="w-56 max-w-[calc(100vw-2rem)]">
-        <div className={POPUP_SEARCH_CLASSNAME}>
-          <SearchIcon className="size-3.5 flex-none" />
-          <Combobox.Input
-            className={POPUP_SEARCH_INPUT_CLASSNAME}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t("common.search.label")}
-          />
-        </div>
-        <Combobox.List className="max-h-60 overflow-y-auto">
-          {filteredOptions ? (
-            filteredOptions.length > 0 ? (
-              filteredOptions.map((option) => (
-                <Combobox.Item
-                  key={option.value}
-                  value={option.value}
-                  className={POPUP_OPTION_CLASSNAME}
-                  render={(itemProps, { selected }) => (
-                    <div {...itemProps}>
-                      {
-                        <>
-                          <span className="flex-grow truncate">{option.content}</span>
-                          {selected && <CheckIcon className="h-3.5 w-3.5 flex-shrink-0" />}
-                        </>
-                      }
-                    </div>
-                  )}
-                ></Combobox.Item>
-              ))
-            ) : (
-              <p className="px-2 py-1.5 text-placeholder">{t("common.search.no_matches_found")}</p>
-            )
-          ) : (
-            <p className="px-2 py-1.5 text-placeholder">{t("common.loading")}</p>
-          )}
-        </Combobox.List>
-      </div>
-    </div>
+    <SearchableOptionsPanel
+      query={query}
+      onQueryChange={setQuery}
+      options={filteredOptions}
+      searchPlaceholder={t("common.search.label")}
+      noResultsLabel={t("common.search.no_matches_found")}
+    />
   );
 });

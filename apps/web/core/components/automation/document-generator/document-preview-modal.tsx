@@ -19,6 +19,16 @@ interface IDocumentPreviewModalProps {
   onClose: () => void;
 }
 
+/** Keys text blocks by content plus occurrence, so repeated blocks stay distinct without using indices. */
+function keyByContent(parts: string[]) {
+  const seen = new Map<string, number>();
+  return parts.map((text) => {
+    const occurrence = seen.get(text) ?? 0;
+    seen.set(text, occurrence + 1);
+    return { key: `${occurrence}:${text}`, text };
+  });
+}
+
 export const DocumentPreviewModal: React.FC<IDocumentPreviewModalProps> = ({ document, isOpen, onClose }) => {
   const [isCopied, setIsCopied] = React.useState(false);
 
@@ -78,50 +88,48 @@ export const DocumentPreviewModal: React.FC<IDocumentPreviewModalProps> = ({ doc
           <div className="mx-auto max-w-3xl space-y-6 text-sm text-primary">
             {document.content ? (
               <div className="prose-sm dark:prose-invert max-w-none space-y-4 prose">
-                {document.content.split("\n\n").map((paragraph, idx) => {
+                {keyByContent(document.content.split("\n\n")).map(({ key, text: paragraph }) => {
                   if (paragraph.startsWith("# ")) {
                     return (
-                      <h1 key={idx} className="border-b border-subtle pb-2 text-2xl font-bold text-primary">
+                      <h1 key={key} className="border-b border-subtle pb-2 text-2xl font-bold text-primary">
                         {paragraph.replace("# ", "")}
                       </h1>
                     );
                   }
                   if (paragraph.startsWith("## ")) {
                     return (
-                      <h2 key={idx} className="mt-4 text-lg font-semibold text-primary">
+                      <h2 key={key} className="mt-4 text-lg font-semibold text-primary">
                         {paragraph.replace("## ", "")}
                       </h2>
                     );
                   }
                   if (paragraph.startsWith("### ")) {
                     return (
-                      <h3 key={idx} className="mt-3 text-sm font-semibold text-primary">
+                      <h3 key={key} className="mt-3 text-sm font-semibold text-primary">
                         {paragraph.replace("### ", "")}
                       </h3>
                     );
                   }
                   if (paragraph.startsWith("- ")) {
-                    const items = paragraph.split("\n");
                     return (
-                      <ul key={idx} className="list-disc space-y-1 pl-5 text-secondary">
-                        {items.map((item, i) => (
-                          <li key={i}>{item.replace(/^-\s*/, "")}</li>
+                      <ul key={key} className="list-disc space-y-1 pl-5 text-secondary">
+                        {keyByContent(paragraph.split("\n")).map(({ key: itemKey, text: item }) => (
+                          <li key={itemKey}>{item.replace(/^-\s*/, "")}</li>
                         ))}
                       </ul>
                     );
                   }
                   if (paragraph.startsWith("1. ")) {
-                    const items = paragraph.split("\n");
                     return (
-                      <ol key={idx} className="list-decimal space-y-1 pl-5 text-secondary">
-                        {items.map((item, i) => (
-                          <li key={i}>{item.replace(/^\d+\.\s*/, "")}</li>
+                      <ol key={key} className="list-decimal space-y-1 pl-5 text-secondary">
+                        {keyByContent(paragraph.split("\n")).map(({ key: itemKey, text: item }) => (
+                          <li key={itemKey}>{item.replace(/^\d+\.\s*/, "")}</li>
                         ))}
                       </ol>
                     );
                   }
                   return (
-                    <p key={idx} className="leading-relaxed text-secondary">
+                    <p key={key} className="leading-relaxed text-secondary">
                       {paragraph}
                     </p>
                   );

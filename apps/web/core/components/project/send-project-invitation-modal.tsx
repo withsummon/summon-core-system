@@ -196,7 +196,10 @@ export const SendProjectInvitationModal = observer(function SendProjectInvitatio
                         <CustomSearchSelect
                           value={value}
                           render={
-                            <button className="flex w-full items-center justify-between gap-1 rounded-md border border-subtle px-3 py-2 text-left text-13 text-secondary shadow-sm duration-300 hover:bg-layer-1 hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid">
+                            <button
+                              type="button"
+                              className="flex w-full items-center justify-between gap-1 rounded-md border border-subtle px-3 py-2 text-left text-13 text-secondary shadow-sm duration-300 hover:bg-layer-1 hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
+                            >
                               {value && value !== "" ? (
                                 <div className="flex items-center gap-2">
                                   <Avatar

@@ -8,21 +8,7 @@ import { forwardRef, memo, useMemo } from "react";
 import { Dialog as BaseDialog } from "@base-ui/react";
 import { BOTTOM_SHEET_CLASSNAME, SHEET_TRANSITION_CLASSNAME } from "../drawer/drawer";
 import { cn } from "../utils/classname";
-
-// enums
-
-export enum EDialogWidth {
-  SM = "md:max-w-sm",
-  MD = "md:max-w-md",
-  LG = "md:max-w-lg",
-  XL = "md:max-w-xl",
-  XXL = "md:max-w-2xl",
-  XXXL = "md:max-w-3xl",
-  XXXXL = "md:max-w-4xl",
-  VXL = "md:max-w-5xl",
-  VIXL = "md:max-w-6xl",
-  VIIXL = "md:max-w-7xl",
-}
+import { EDialogWidth } from "./constants";
 
 // Types
 export type DialogPosition = "center" | "top";

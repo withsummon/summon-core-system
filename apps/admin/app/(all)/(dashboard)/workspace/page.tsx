@@ -13,9 +13,10 @@ import { Loader as LoaderIcon } from "lucide-react";
 import { Button, getButtonStyling } from "@plane/propel/button";
 import { setPromiseToast } from "@plane/propel/toast";
 import type { TInstanceConfigurationKeys } from "@plane/types";
-import { Loader, ToggleSwitch } from "@plane/ui";
+import { Loader } from "@plane/ui";
 import { cn } from "@plane/utils";
 // components
+import { InstanceSettingToggle } from "@/components/common/instance-setting-toggle";
 import { PageWrapper } from "@/components/common/page-wrapper";
 import { WorkspaceListItem } from "@/components/workspace/list-item";
 // hooks
@@ -83,32 +84,13 @@ const WorkspaceManagementPage = observer(function WorkspaceManagementPage(_props
     >
       <div className="space-y-3">
         {formattedConfig ? (
-          <div className={cn("flex w-full items-center gap-14 rounded-sm")}>
-            <div className="flex grow items-center gap-4">
-              <div className="grow">
-                <div className="pb-1 text-16 font-medium">Prevent anyone else from creating a workspace.</div>
-                <div className={cn("text-11 leading-5 font-regular text-tertiary")}>
-                  Toggling this on will let only you create workspaces. You will have to invite users to new workspaces.
-                </div>
-              </div>
-            </div>
-            <div className={`shrink-0 pr-4 ${isSubmitting && "opacity-70"}`}>
-              <div className="flex items-center gap-4">
-                <ToggleSwitch
-                  value={Boolean(parseInt(disableWorkspaceCreation))}
-                  onChange={() => {
-                    if (Boolean(parseInt(disableWorkspaceCreation)) === true) {
-                      updateConfig("DISABLE_WORKSPACE_CREATION", "0");
-                    } else {
-                      updateConfig("DISABLE_WORKSPACE_CREATION", "1");
-                    }
-                  }}
-                  size="sm"
-                  disabled={isSubmitting}
-                />
-              </div>
-            </div>
-          </div>
+          <InstanceSettingToggle
+            title="Prevent anyone else from creating a workspace."
+            description="Toggling this on will let only you create workspaces. You will have to invite users to new workspaces."
+            value={Boolean(parseInt(disableWorkspaceCreation))}
+            onChange={(value) => updateConfig("DISABLE_WORKSPACE_CREATION", value ? "1" : "0")}
+            disabled={isSubmitting}
+          />
         ) : (
           <Loader>
             <Loader.Item height="50px" width="100%" />
