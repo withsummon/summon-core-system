@@ -3124,6 +3124,75 @@
         "x-summon-tool": "write"
       }
     },
+    "/api/summon/workspaces/{slug}/meetings/import/tldv/": {
+      "post": {
+        "operationId": "meeting_import_tldv",
+        "description": "Import tl;dv meetings this workspace has not seen yet, with their speaker transcript, AI notes and attendees. Each meeting is filed under the client project its attendees or title match, else under `project`. Imports a batch per call; `remaining` counts what the next call will pick up.",
+        "summary": "Import tl;dv meetings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "tags": ["collaboration"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TldvImportRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {
+            "ApiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TldvImportResult"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorCode"
+                }
+              }
+            },
+            "description": ""
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorCode"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "x-summon-tool": "none"
+      }
+    },
     "/api/summon/workspaces/{slug}/meetings/{meeting_id}/summary/": {
       "post": {
         "operationId": "meeting_summary",
@@ -7198,6 +7267,29 @@
             "type": "string",
             "readOnly": true
           },
+          "transcript_segments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TranscriptSegment"
+            },
+            "readOnly": true
+          },
+          "external_source": {
+            "type": ["string", "null"],
+            "readOnly": true
+          },
+          "external_url": {
+            "type": "string",
+            "description": "Where the source recording lives when the meeting was imported (tl;dv keeps the video).",
+            "readOnly": true
+          },
+          "attendees": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeetingAttendee"
+            },
+            "readOnly": true
+          },
           "organizer": {
             "type": ["string", "null"],
             "format": "uuid",
@@ -7230,7 +7322,10 @@
           }
         },
         "required": [
+          "attendees",
           "created_at",
+          "external_source",
+          "external_url",
           "id",
           "organizer",
           "participants",
@@ -7240,10 +7335,40 @@
           "summary_page_detail",
           "title",
           "transcript_asset_detail",
+          "transcript_segments",
           "transcript_text",
           "updated_at",
           "work_items"
         ],
+        "additionalProperties": false
+      },
+      "MeetingAttendee": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "required": ["email", "name"],
+        "additionalProperties": false
+      },
+      "MeetingAttendeeRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "minLength": 1
+          }
+        },
+        "required": ["email", "name"],
         "additionalProperties": false
       },
       "MeetingParticipantRef": {
@@ -7480,6 +7605,29 @@
             "type": "string",
             "readOnly": true
           },
+          "transcript_segments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TranscriptSegment"
+            },
+            "readOnly": true
+          },
+          "external_source": {
+            "type": ["string", "null"],
+            "readOnly": true
+          },
+          "external_url": {
+            "type": "string",
+            "description": "Where the source recording lives when the meeting was imported (tl;dv keeps the video).",
+            "readOnly": true
+          },
+          "attendees": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeetingAttendee"
+            },
+            "readOnly": true
+          },
           "organizer": {
             "type": ["string", "null"],
             "format": "uuid",
@@ -7515,8 +7663,11 @@
           }
         },
         "required": [
+          "attendees",
           "created_at",
           "error_code",
+          "external_source",
+          "external_url",
           "id",
           "organizer",
           "participants",
@@ -7526,6 +7677,7 @@
           "summary_page_detail",
           "title",
           "transcript_asset_detail",
+          "transcript_segments",
           "transcript_text",
           "updated_at",
           "work_items"
@@ -9507,6 +9659,58 @@
           "UTC"
         ],
         "type": "string"
+      },
+      "TldvImportRequestRequest": {
+        "type": "object",
+        "properties": {
+          "credential": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "project": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": ["credential", "project"],
+        "additionalProperties": false
+      },
+      "TldvImportResult": {
+        "type": "object",
+        "properties": {
+          "meetings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Meeting"
+            }
+          },
+          "remaining": {
+            "type": "integer"
+          }
+        },
+        "required": ["meetings", "remaining"],
+        "additionalProperties": false
+      },
+      "TranscriptSegment": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": ["number", "null"],
+            "format": "double"
+          },
+          "end": {
+            "type": ["number", "null"],
+            "format": "double"
+          },
+          "speaker": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": ["end", "speaker", "start", "text"],
+        "additionalProperties": false
       },
       "TranscriptSourceEnum": {
         "enum": ["text", "asset"],

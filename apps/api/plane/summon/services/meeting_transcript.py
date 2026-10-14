@@ -1,10 +1,14 @@
+import re
+
 from django.utils.html import escape
 
 from plane.db.models import Page, ProjectPage
 from plane.summon.services.page_document import write_page_document
 
 
-def write_meeting_transcript(meeting, actor, transcript, language=""):
+def write_meeting_transcript(meeting, actor, transcript, language="", segments=None):
+    """Store the transcript on the meeting's page. `segments` ({start, end, speaker, text}, seconds) keep speaker
+    turns from an importer; without them the reader falls back to the `[HH:MM:SS] text` lines Whisper writes."""
     page = meeting.summary_page
     marker = str(meeting.id)
     props = page.view_props if page and isinstance(page.view_props, dict) else {}
@@ -33,11 +37,13 @@ def write_meeting_transcript(meeting, actor, transcript, language=""):
     }
     write_page_document(
         page,
-        escape(transcript).replace("\n", "<br />"),
+        # One paragraph per line: Plane Live rejects HTML without a tag, which a one-line transcript would be.
+        "".join(f"<p>{escape(line)}</p>" for line in transcript.splitlines() if line.strip()) or "<p></p>",
         {
             "kind": "summon_meeting_transcript",
             "source_transcript": transcript,
             "transcription_language": language,
+            **({"source_segments": segments} if segments else {}),
         },
     )
     ProjectPage.objects.get_or_create(workspace=meeting.workspace, project=meeting.project, page=page)
@@ -59,3 +65,26 @@ def write_meeting_transcript(meeting, actor, transcript, language=""):
         ]
     )
     return page
+
+
+_WHISPER_LINE = re.compile(r"^\[(?:(\d+):)?(\d{1,2}):(\d{2})(?:\.\d+)?\]\s*(.*)$")
+
+
+def transcript_segments(metadata, transcript):
+    """Speaker turns for display: an importer's stored segments, else Whisper's timed lines, else plain lines."""
+    stored = metadata.get("source_segments")
+    if isinstance(stored, list):
+        return stored
+    segments = []
+    for line in transcript.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        match = _WHISPER_LINE.match(line)
+        if match:
+            hours, minutes, seconds, text = match.groups()
+            start = int(hours or 0) * 3600 + int(minutes) * 60 + int(seconds)
+            segments.append({"start": start, "end": None, "speaker": "", "text": text})
+        else:
+            segments.append({"start": None, "end": None, "speaker": "", "text": line})
+    return segments

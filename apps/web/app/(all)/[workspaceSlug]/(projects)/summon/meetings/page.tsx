@@ -8,7 +8,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
-import { Link2, ListChecks, Plus } from "lucide-react";
+import { DownloadCloud, Link2, ListChecks, Plus } from "lucide-react";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/ui";
 import { SummonField } from "@/components/summon/forms";
@@ -42,6 +42,19 @@ const meetingTime = (value: string) => {
   return `${day} · ${renderFormattedTime(date)}${zone ? ` ${zone}` : ""}`;
 };
 
+const TLDV_IMPORT_ERRORS: Record<string, string> = {
+  tldv_credential_required: "Select a tl;dv API key you can use.",
+  tldv_unauthorized: "tl;dv rejected the key. Check it in Credentials; API access needs a tl;dv Pro plan or higher.",
+  tldv_unreachable: "tl;dv could not be reached. Try again shortly.",
+  project_required: "Select a project you are a member of.",
+};
+
+const tldvImportError = (error: unknown) => {
+  const code = error && typeof error === "object" && "error_code" in error ? String(error.error_code) : "";
+  if (TLDV_IMPORT_ERRORS[code]) return TLDV_IMPORT_ERRORS[code];
+  return code ? `tl;dv returned an error (${code}). Try again shortly.` : summonErrorMessage(error);
+};
+
 const actionItemsLabel = (count: number) =>
   count ? `${count} action ${count === 1 ? "item" : "items"}` : "No action items";
 
@@ -55,8 +68,11 @@ export default function SummonMeetingsPage({ params }: Route.ComponentProps) {
   const [issueId, setIssueId] = useState("");
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [panel, setPanel] = useState<"schedule" | "link" | null>(null);
-  const openPanel = (next: "schedule" | "link" | null) => {
+  const [panel, setPanel] = useState<"schedule" | "link" | "tldv" | null>(null);
+  const [credential, setCredential] = useState("");
+  const [importResult, setImportResult] = useState("");
+  const openPanel = (next: "schedule" | "link" | "tldv" | null) => {
+    setImportResult("");
     setFormError("");
     setPanel(next);
   };
@@ -66,6 +82,16 @@ export default function SummonMeetingsPage({ params }: Route.ComponentProps) {
     isLoading,
     mutate,
   } = useSWR(["summon-meetings", params.workspaceSlug], () => summonService.listMeetings(params.workspaceSlug));
+  // Only the import drawer needs the vault, so it loads when that drawer opens.
+  const { data: tldvCredentials } = useSWR(
+    panel === "tldv" ? ["summon-credentials", params.workspaceSlug] : null,
+    () => summonService.listCredentials(params.workspaceSlug),
+    {
+      onSuccess: (credentials) =>
+        setCredential((current) => current || credentials.find((item) => item.provider === "tldv")?.id || ""),
+    }
+  );
+  const tldvKeys = (tldvCredentials ?? []).filter((item) => item.provider === "tldv" && item.status === "active");
 
   const createMeeting = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -83,6 +109,26 @@ export default function SummonMeetingsPage({ params }: Route.ComponentProps) {
       await mutate();
     } catch (requestError) {
       setFormError(summonErrorMessage(requestError));
+    } finally {
+      setSaving(false);
+    }
+  };
+  const importTldv = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSaving(true);
+    setFormError("");
+    setImportResult("");
+    try {
+      const result = await summonService.importTldvMeetings(params.workspaceSlug, { credential, project });
+      const count = result.meetings.length;
+      setImportResult(
+        `${count ? `Imported ${count} ${count === 1 ? "meeting" : "meetings"}.` : "Everything from tl;dv is already here."}${
+          result.remaining ? ` ${result.remaining} more remain; import again to continue.` : ""
+        }`
+      );
+      await mutate();
+    } catch (requestError) {
+      setFormError(tldvImportError(requestError));
     } finally {
       setSaving(false);
     }
@@ -109,6 +155,10 @@ export default function SummonMeetingsPage({ params }: Route.ComponentProps) {
       description="Meeting schedules, notes and the tasks that come out of them."
       actions={
         <>
+          <Button variant="secondary" size="lg" onClick={() => openPanel("tldv")}>
+            <DownloadCloud />
+            Import from tl;dv
+          </Button>
           <Button variant="secondary" size="lg" onClick={() => openPanel("link")} disabled={!data.length}>
             <Link2 />
             Link action item
@@ -219,6 +269,61 @@ export default function SummonMeetingsPage({ params }: Route.ComponentProps) {
           {formError ? <p className="text-12 text-danger-primary">{formError}</p> : null}
           <Button size="lg" type="submit" loading={saving}>
             Create meeting
+          </Button>
+        </form>
+      </SummonDrawer>
+      <SummonDrawer
+        open={panel === "tldv"}
+        onOpenChange={(open) => openPanel(open ? "tldv" : null)}
+        title="Import from tl;dv"
+        description="Brings in tl;dv meetings with their speaker transcript, AI notes and attendees. The video stays in tl;dv."
+      >
+        <form onSubmit={importTldv} className="grid gap-3">
+          {tldvCredentials && !tldvKeys.length ? (
+            <p className="rounded-md bg-layer-1 px-3 py-2 text-12 text-secondary">
+              Add your tl;dv API key in{" "}
+              <Link href={`/${params.workspaceSlug}/summon/credentials/`} className="text-accent-primary underline">
+                Credentials
+              </Link>{" "}
+              first, with the provider set to tl;dv. tl;dv creates keys under Settings › Personal settings › API keys
+              (Pro plan or higher).
+            </p>
+          ) : (
+            <SummonField label="tl;dv API key">
+              <Select
+                required
+                value={credential}
+                onValueChange={(value) => setCredential(value)}
+                options={[
+                  { value: "", label: tldvCredentials ? "Select a key" : "Loading keys…" },
+                  ...tldvKeys.map((item) => ({ value: item.id, label: item.name })),
+                ]}
+              />
+            </SummonField>
+          )}
+          <SummonField label="Project for unmatched meetings">
+            <Select
+              required
+              value={project}
+              onValueChange={(value) => setProject(value)}
+              options={[
+                { value: "", label: "Select project" },
+                ...joinedProjectIds.map((id) => ({ value: id, label: getProjectById(id)?.name ?? id })),
+              ]}
+            />
+          </SummonField>
+          <p className="text-12 text-tertiary">
+            A meeting goes to its client&apos;s project when an attendee&apos;s email or the meeting title matches that
+            client. You can move any meeting later from its page.
+          </p>
+          {formError ? <p className="text-12 text-danger-primary">{formError}</p> : null}
+          {importResult ? (
+            <p className="text-12 text-secondary" role="status">
+              {importResult}
+            </p>
+          ) : null}
+          <Button size="lg" type="submit" loading={saving} disabled={!credential || !project}>
+            Import meetings
           </Button>
         </form>
       </SummonDrawer>

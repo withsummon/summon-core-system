@@ -1222,6 +1222,29 @@ export const MeetingSummaryPage = Schema.Struct({
   context_truncated: Schema.Boolean,
   href: Schema.String,
 }).annotate({ identifier: "MeetingSummaryPage" });
+export type TranscriptSegment = {
+  readonly start: number | null;
+  readonly end: number | null;
+  readonly speaker: string;
+  readonly text: string;
+};
+export const TranscriptSegment = Schema.Struct({
+  start: Schema.Union([
+    Schema.Number.check(Schema.isFinite().annotate({ expected: "a finite number" })),
+    Schema.Null,
+  ]).annotate({ format: "double" }),
+  end: Schema.Union([
+    Schema.Number.check(Schema.isFinite().annotate({ expected: "a finite number" })),
+    Schema.Null,
+  ]).annotate({ format: "double" }),
+  speaker: Schema.String,
+  text: Schema.String,
+}).annotate({ identifier: "TranscriptSegment" });
+export type MeetingAttendee = { readonly name: string; readonly email: string };
+export const MeetingAttendee = Schema.Struct({
+  name: Schema.String,
+  email: Schema.String.annotate({ format: "email" }),
+}).annotate({ identifier: "MeetingAttendee" });
 export type MemberRef = { readonly id: string; readonly display_name: string };
 export const MemberRef = Schema.Struct({
   id: Schema.String.annotate({ format: "uuid" }),
@@ -1313,6 +1336,11 @@ export type OpportunityDeliveryRequest = { readonly project: string };
 export const OpportunityDeliveryRequest = Schema.Struct({
   project: Schema.String.annotate({ format: "uuid" }),
 }).annotate({ identifier: "OpportunityDeliveryRequest" });
+export type TldvImportRequestRequest = { readonly credential: string; readonly project: string };
+export const TldvImportRequestRequest = Schema.Struct({
+  credential: Schema.String.annotate({ format: "uuid" }),
+  project: Schema.String.annotate({ format: "uuid" }),
+}).annotate({ identifier: "TldvImportRequestRequest" });
 export type TranscriptSourceEnum = "text" | "asset";
 export const TranscriptSourceEnum = Schema.Literals(["text", "asset"]).annotate({ identifier: "TranscriptSourceEnum" });
 export type MeetingWorkItemLinkRequestRequest = { readonly issue: string };
@@ -2973,6 +3001,10 @@ export type Meeting = {
   readonly summary_input_tokens?: number | null;
   readonly summary_output_tokens?: number | null;
   readonly transcript_text: string;
+  readonly transcript_segments: ReadonlyArray<TranscriptSegment>;
+  readonly external_source: string | null;
+  readonly external_url: string;
+  readonly attendees: ReadonlyArray<MeetingAttendee>;
   readonly organizer: string | null;
   readonly participants: ReadonlyArray<MeetingParticipantRef>;
   readonly work_items: ReadonlyArray<MeetingWorkItemRead>;
@@ -3035,6 +3067,13 @@ export const Meeting = Schema.Struct({
     ])
   ),
   transcript_text: Schema.String.annotate({ readOnly: true }),
+  transcript_segments: Schema.Array(TranscriptSegment).annotate({ readOnly: true }),
+  external_source: Schema.Union([Schema.String, Schema.Null]).annotate({ readOnly: true }),
+  external_url: Schema.String.annotate({
+    description: "Where the source recording lives when the meeting was imported (tl;dv keeps the video).",
+    readOnly: true,
+  }),
+  attendees: Schema.Array(MeetingAttendee).annotate({ readOnly: true }),
   organizer: Schema.Union([Schema.String, Schema.Null]).annotate({ readOnly: true, format: "uuid" }),
   participants: Schema.Array(MeetingParticipantRef).annotate({ readOnly: true }),
   work_items: Schema.Array(MeetingWorkItemRead).annotate({ readOnly: true }),
@@ -3065,6 +3104,10 @@ export type MeetingSummaryFailure = {
   readonly summary_input_tokens?: number | null;
   readonly summary_output_tokens?: number | null;
   readonly transcript_text: string;
+  readonly transcript_segments: ReadonlyArray<TranscriptSegment>;
+  readonly external_source: string | null;
+  readonly external_url: string;
+  readonly attendees: ReadonlyArray<MeetingAttendee>;
   readonly organizer: string | null;
   readonly participants: ReadonlyArray<MeetingParticipantRef>;
   readonly work_items: ReadonlyArray<MeetingWorkItemRead>;
@@ -3128,6 +3171,13 @@ export const MeetingSummaryFailure = Schema.Struct({
     ])
   ),
   transcript_text: Schema.String.annotate({ readOnly: true }),
+  transcript_segments: Schema.Array(TranscriptSegment).annotate({ readOnly: true }),
+  external_source: Schema.Union([Schema.String, Schema.Null]).annotate({ readOnly: true }),
+  external_url: Schema.String.annotate({
+    description: "Where the source recording lives when the meeting was imported (tl;dv keeps the video).",
+    readOnly: true,
+  }),
+  attendees: Schema.Array(MeetingAttendee).annotate({ readOnly: true }),
   organizer: Schema.Union([Schema.String, Schema.Null]).annotate({ readOnly: true, format: "uuid" }),
   participants: Schema.Array(MeetingParticipantRef).annotate({ readOnly: true }),
   work_items: Schema.Array(MeetingWorkItemRead).annotate({ readOnly: true }),
@@ -3360,6 +3410,11 @@ export const OpportunityDetail = Schema.Struct({
   client: Schema.optionalKey(Schema.Union([Schema.String, Schema.Null]).annotate({ format: "uuid" })),
   owner: Schema.optionalKey(Schema.Union([Schema.String, Schema.Null]).annotate({ format: "uuid" })),
 }).annotate({ identifier: "OpportunityDetail" });
+export type TldvImportResult = { readonly meetings: ReadonlyArray<Meeting>; readonly remaining: number };
+export const TldvImportResult = Schema.Struct({
+  meetings: Schema.Array(Meeting),
+  remaining: Schema.Number.check(Schema.isInt().annotate({ expected: "an integer" })),
+}).annotate({ identifier: "TldvImportResult" });
 // schemas
 export type AssistantConversationList200 = ReadonlyArray<AssistantConversationList>;
 export const AssistantConversationList200 = Schema.Array(AssistantConversationList);
@@ -3561,6 +3616,14 @@ export type MeetingUpdateRequestJson = PatchedMeetingRequest;
 export const MeetingUpdateRequestJson = PatchedMeetingRequest;
 export type MeetingUpdate200 = Meeting;
 export const MeetingUpdate200 = Meeting;
+export type MeetingImportTldvRequestJson = TldvImportRequestRequest;
+export const MeetingImportTldvRequestJson = TldvImportRequestRequest;
+export type MeetingImportTldv200 = TldvImportResult;
+export const MeetingImportTldv200 = TldvImportResult;
+export type MeetingImportTldv400 = ErrorCode;
+export const MeetingImportTldv400 = ErrorCode;
+export type MeetingImportTldv502 = ErrorCode;
+export const MeetingImportTldv502 = ErrorCode;
 export type MeetingSummaryRequestJson = MeetingSummaryRequestRequest;
 export const MeetingSummaryRequestJson = MeetingSummaryRequestRequest;
 export type MeetingSummary200 = Meeting;
@@ -5013,6 +5076,26 @@ export const make = (
             withResponse(options.config)(
               HttpClientResponse.matchStatus({
                 "2xx": decodeSuccess(MeetingUpdate200),
+                orElse: unexpectedStatus,
+              })
+            )
+          )
+        )
+      ),
+    meetingImportTldv: (slug, options: Parameters<SummonClient["meetingImportTldv"]>[1]) =>
+      __makePathRequest(
+        HttpClientRequest.post,
+        [slug],
+        () => "/api/summon/workspaces/" + __encodePathParam(slug) + "/meetings/import/tldv/"
+      ).pipe(
+        Effect.flatMap((request) =>
+          request.pipe(
+            HttpClientRequest.bodyJsonUnsafe(options.payload),
+            withResponse(options.config)(
+              HttpClientResponse.matchStatus({
+                "2xx": decodeSuccess(MeetingImportTldv200),
+                "400": decodeError("MeetingImportTldv400", MeetingImportTldv400),
+                "502": decodeError("MeetingImportTldv502", MeetingImportTldv502),
                 orElse: unexpectedStatus,
               })
             )
@@ -7081,6 +7164,31 @@ export interface SummonClient {
     ): Effect.Effect<
       WithOptionalResponse<typeof MeetingUpdate200.Type, Config | undefined>,
       HttpClientError.HttpClientError | SchemaError
+    >;
+  };
+  /**
+   * Import tl;dv meetings this workspace has not seen yet, with their speaker transcript, AI notes and attendees. Each meeting is filed under the client project its attendees or title match, else under `project`. Imports a batch per call; `remaining` counts what the next call will pick up.
+   */
+  readonly meetingImportTldv: {
+    <Config extends OperationConfig | undefined = undefined>(
+      slug: string,
+      options: { readonly payload: typeof MeetingImportTldvRequestJson.Encoded; readonly config: Config }
+    ): Effect.Effect<
+      WithOptionalResponse<typeof MeetingImportTldv200.Type, Config>,
+      | HttpClientError.HttpClientError
+      | SchemaError
+      | SummonClientError<"MeetingImportTldv400", typeof MeetingImportTldv400.Type>
+      | SummonClientError<"MeetingImportTldv502", typeof MeetingImportTldv502.Type>
+    >;
+    <Config extends OperationConfig | undefined = undefined>(
+      slug: string,
+      options: { readonly payload: typeof MeetingImportTldvRequestJson.Encoded; readonly config?: Config | undefined }
+    ): Effect.Effect<
+      WithOptionalResponse<typeof MeetingImportTldv200.Type, Config | undefined>,
+      | HttpClientError.HttpClientError
+      | SchemaError
+      | SummonClientError<"MeetingImportTldv400", typeof MeetingImportTldv400.Type>
+      | SummonClientError<"MeetingImportTldv502", typeof MeetingImportTldv502.Type>
     >;
   };
   /**
