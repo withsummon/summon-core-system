@@ -11,7 +11,7 @@ import { IconButton } from "@plane/propel/icon-button";
 import { PageHead } from "@/components/core/page-title";
 
 /** The one card surface: every Summon card, panel and table draws this border, radius and shadow. */
-const summonSurfaceClassName = "rounded-xl border border-subtle bg-surface-1 shadow-xs";
+export const summonSurfaceClassName = "rounded-xl border border-subtle bg-surface-1 shadow-xs";
 
 /** The one gutter and width every Summon page uses. */
 export const summonPageClassName = "mx-auto flex min-h-full w-full max-w-[1600px] flex-col gap-4 p-4 lg:p-5";

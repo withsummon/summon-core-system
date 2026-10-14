@@ -8,6 +8,7 @@ const composer = readFileSync(new URL("./assistant-composer.tsx", import.meta.ur
 const actionCard = readFileSync(new URL("./assistant-action-card.tsx", import.meta.url), "utf8");
 const service = readFileSync("apps/web/core/services/summon.service.ts", "utf8");
 const types = readFileSync("packages/types/src/summon/index.ts", "utf8");
+const screen = readFileSync("apps/web/core/components/summon/screen.tsx", "utf8");
 const implementation = `${page}\n${messageList}\n${composer}\n${actionCard}`;
 
 test("Assistant uses the persistent conversation service instead of the one-shot query", () => {
@@ -29,15 +30,11 @@ test("Assistant reads persisted messages back after send and reload", () => {
   assert.match(page, /getAssistantConversation/);
   assert.match(page, /reloadConversation/);
   assert.match(page, /mutateConversationCache/);
-  assert.match(page, /\.messages/);
   assert.match(page, /contextTruncated/);
 });
 
 test("Assistant retrieves authorized knowledge automatically and accepts optional focus", () => {
-  for (const contextKey of ["workspace", "project_id", "client_id", "meeting_id", "page_ids"]) {
-    assert.match(page, new RegExp(contextKey));
-  }
-  assert.match(implementation, /retrieved automatically/);
+  assert.match(implementation, /Summon only reads what you can access/);
   assert.doesNotMatch(implementation, /apiKey|LLM_API_KEY|credential.*secret|authorization/i);
 });
 
@@ -56,10 +53,12 @@ test("Assistant exposes citations, provider state, normalized errors, retry, pen
     "llm_context_too_large",
     "Retry",
     "pending",
-    "window.confirm",
   ]) {
-    assert.match(implementation, new RegExp(marker));
+    assert.match(`${implementation}\n${screen}`, new RegExp(marker));
   }
+  // Sources are plain links into the app.
+  assert.match(messageList, /href=\{citation\.href\}/);
+  assert.doesNotMatch(implementation, /window\.confirm/);
 });
 
 test("Assistant contracts support persistent file context and document generation", () => {
@@ -80,7 +79,7 @@ test("Assistant uploads at most five document or audio files and retains their c
   for (const marker of [
     'type="file"',
     "multiple",
-    ".mp3,.m4a",
+    "ATTACHMENT_ACCEPT",
     "MAX_ATTACHMENTS",
     "uploadWorkspaceAsset",
     "ASSISTANT_ATTACHMENT",

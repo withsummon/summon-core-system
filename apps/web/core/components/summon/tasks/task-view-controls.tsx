@@ -12,7 +12,6 @@ import {
   Calendar,
   CalendarClock,
   CalendarPlus,
-  Check,
   ChevronRight,
   CircleDashed,
   History,
@@ -33,6 +32,7 @@ import { Popover } from "@plane/propel/popover";
 import { Select } from "@plane/propel/select";
 import { Switch } from "@plane/propel/switch";
 import { cn } from "@plane/utils";
+import { OptionSubmenu } from "@/components/summon/option-menu";
 import {
   DEFAULT_TASK_DISPLAY,
   type TTaskDisplay,
@@ -119,15 +119,21 @@ export function TaskFilterMenu(props: {
   onToggle: (field: TTaskFilterField, value: string) => void;
 }) {
   const available = (fields: TTaskFilterField[]) => fields.filter((field) => props.options[field].length > 0);
-  const fieldMenu = (field: TTaskFilterField) => (
-    <FieldSubmenu
-      key={field}
-      field={field}
-      selected={props.filters[field] ?? []}
-      options={props.options[field]}
-      onToggle={props.onToggle}
-    />
-  );
+  const fieldMenu = (field: TTaskFilterField) => {
+    const selected = props.filters[field] ?? [];
+    return (
+      <OptionSubmenu
+        key={field}
+        icon={FIELD_META[field].Icon}
+        label={FIELD_META[field].label}
+        options={props.options[field].map(({ value, ...option }) => ({ id: value, ...option }))}
+        trailing={<SelectedCount count={selected.length} />}
+        isChecked={(value) => selected.includes(value)}
+        onPick={(value) => props.onToggle(field, value)}
+        multiple
+      />
+    );
+  };
 
   return (
     <Menu.FilterProvider autoHighlight>
@@ -164,69 +170,6 @@ export function TaskFilterMenu(props: {
         </Menu.Portal>
       </Menu.Root>
     </Menu.FilterProvider>
-  );
-}
-
-function FieldSubmenu(props: {
-  field: TTaskFilterField;
-  selected: string[];
-  options: TTaskFilterOption[];
-  onToggle: (field: TTaskFilterField, value: string) => void;
-}) {
-  const { label, Icon } = FIELD_META[props.field];
-  // Short fixed lists (priority, due windows) read faster without a search field.
-  const searchable = props.options.length > 6;
-  const selected = new Set(props.selected);
-  const items = props.options.map((option) => (
-    <Menu.CheckboxItem
-      key={option.value}
-      label={option.label}
-      checked={selected.has(option.value)}
-      onCheckedChange={() => props.onToggle(props.field, option.value)}
-      className={MENU_ITEM_CLASSNAME}
-    >
-      {option.icon}
-      <span className="min-w-0 flex-1 truncate">{option.label}</span>
-      <Menu.CheckboxItemIndicator className="flex-none text-accent-primary">
-        <Check aria-hidden="true" className="size-4" />
-      </Menu.CheckboxItemIndicator>
-    </Menu.CheckboxItem>
-  ));
-  const submenu = (
-    <Menu.SubmenuRoot>
-      <Menu.SubmenuTrigger label={label} className={MENU_ITEM_CLASSNAME}>
-        <Icon aria-hidden="true" className="size-4 text-secondary" />
-        <span className="flex-1">{label}</span>
-        <SelectedCount count={props.selected.length} />
-        <ChevronRight aria-hidden="true" className="size-3.5 text-tertiary" />
-      </Menu.SubmenuTrigger>
-      <Menu.Portal>
-        <Menu.Positioner side="right" align="start" sideOffset={4} className="z-[130]">
-          <Menu.Popup className={POPUP_CLASSNAME}>
-            {searchable ? (
-              <>
-                <Menu.Input
-                  aria-label={`Filter ${label.toLowerCase()}`}
-                  placeholder={`${label}…`}
-                  className={INPUT_CLASSNAME}
-                />
-                <Menu.List>{items}</Menu.List>
-                <Menu.Empty className="px-2 py-1.5 text-13 text-placeholder">No matches</Menu.Empty>
-              </>
-            ) : (
-              items
-            )}
-          </Menu.Popup>
-        </Menu.Positioner>
-      </Menu.Portal>
-    </Menu.SubmenuRoot>
-  );
-  return searchable ? (
-    <Menu.FilterProvider key={props.field} autoHighlight>
-      {submenu}
-    </Menu.FilterProvider>
-  ) : (
-    submenu
   );
 }
 
