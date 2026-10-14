@@ -4,6 +4,7 @@
 
 # Django imports
 from django.conf import settings
+from django.contrib.postgres.indexes import GinIndex
 from django.db import models
 
 # Module import
@@ -74,6 +75,7 @@ class IssueView(WorkspaceBaseModel):
         verbose_name = "Issue View"
         verbose_name_plural = "Issue Views"
         db_table = "issue_views"
+        indexes = [GinIndex(fields=["name"], name="issue_view_name_trgm_idx", opclasses=["gin_trgm_ops"])]
         ordering = ("-created_at",)
 
     def save(self, *args, **kwargs):

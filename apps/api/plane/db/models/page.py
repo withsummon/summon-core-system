@@ -8,6 +8,7 @@ from django.conf import settings
 from django.utils import timezone
 
 # Django imports
+from django.contrib.postgres.indexes import GinIndex
 from django.db import models
 
 # Module imports
@@ -61,6 +62,7 @@ class Page(BaseModel):
         verbose_name = "Page"
         verbose_name_plural = "Pages"
         db_table = "pages"
+        indexes = [GinIndex(fields=["name"], name="page_name_trgm_idx", opclasses=["gin_trgm_ops"])]
         ordering = ("-created_at",)
 
     def __str__(self):

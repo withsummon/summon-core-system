@@ -10,6 +10,7 @@ from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
+from django.contrib.postgres.indexes import GinIndex
 from django.db import models, transaction, connection
 from django.utils import timezone
 from django.db.models import Q
@@ -175,6 +176,10 @@ class Issue(ChangeTrackerMixin, ProjectBaseModel):
         verbose_name = "Issue"
         verbose_name_plural = "Issues"
         db_table = "issues"
+        indexes = [
+            GinIndex(fields=["name"], name="issue_name_trgm_idx", opclasses=["gin_trgm_ops"]),
+            models.Index(fields=["project", "sequence_id"], name="issue_project_sequence_idx"),
+        ]
         ordering = ("-created_at",)
 
     def save(self, *args, **kwargs):
