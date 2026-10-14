@@ -156,6 +156,7 @@ test("attachments are checked for count, type, emptiness and size before upload"
   assert.match(attachmentProblem([{ name: "empty.md", size: 0 }], 0, 5), /unsupported or empty/);
   assert.match(attachmentProblem([{ name: "big.docx", size: 11 * mb }], 0, 5), /10 MB/);
   assert.match(attachmentProblem([{ name: "long.mp3", size: 251 * mb }], 0, 5), /250 MB/);
+  assert.equal(model.ATTACHMENT_ACCEPT, ".pdf,.docx,.xlsx,.pptx,.txt,.md,.csv,.mp3,.m4a");
 });
 
 test("a new chat shows nothing even while the previous conversation is cached", () => {
