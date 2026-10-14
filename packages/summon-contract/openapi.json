@@ -5456,6 +5456,14 @@
           "context": {
             "$ref": "#/components/schemas/AssistantContextRequest"
           },
+          "attachment_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "maxItems": 5
+          },
           "intent": {
             "type": "string",
             "default": "",
@@ -5466,15 +5474,7 @@
             "default": "",
             "maxLength": 120
           },
-          "arguments": {},
-          "attachment_ids": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "maxItems": 5
-          }
+          "arguments": {}
         },
         "required": ["content"],
         "additionalProperties": false

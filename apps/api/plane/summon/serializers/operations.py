@@ -289,25 +289,6 @@ class AssistantConversationSerializer(AssistantConversationListSerializer):
         ]
 
 
-class AssistantMessageRequestSerializer(serializers.Serializer):
-    content = serializers.CharField(max_length=20000, trim_whitespace=False)
-    context = AssistantContextSerializer(required=False, default=dict)
-    intent = serializers.CharField(max_length=80, required=False, allow_blank=True, default="")
-    tool = serializers.CharField(max_length=120, required=False, allow_blank=True, default="")
-    arguments = serializers.JSONField(required=False, default=dict)
-    attachment_ids = serializers.ListField(
-        child=serializers.UUIDField(),
-        required=False,
-        default=list,
-        max_length=5,
-    )
-
-    def validate_arguments(self, value):
-        if not isinstance(value, dict):
-            raise serializers.ValidationError("Tool arguments must be an object.")
-        return value
-
-
 class AssistantTurnStartSerializer(serializers.Serializer):
     content = serializers.CharField(max_length=20000, trim_whitespace=False)
     context = AssistantContextSerializer(required=False, default=dict)
@@ -317,6 +298,17 @@ class AssistantTurnStartSerializer(serializers.Serializer):
         default=list,
         max_length=5,
     )
+
+
+class AssistantMessageRequestSerializer(AssistantTurnStartSerializer):
+    intent = serializers.CharField(max_length=80, required=False, allow_blank=True, default="")
+    tool = serializers.CharField(max_length=120, required=False, allow_blank=True, default="")
+    arguments = serializers.JSONField(required=False, default=dict)
+
+    def validate_arguments(self, value):
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Tool arguments must be an object.")
+        return value
 
 
 class TurnHistoryEntrySerializer(serializers.Serializer):

@@ -1693,16 +1693,21 @@ export const AssistantAction = Schema.Struct({
 export type AssistantMessageRequestRequest = {
   readonly content: string;
   readonly context?: AssistantContextRequest;
+  readonly attachment_ids?: ReadonlyArray<string>;
   readonly intent?: string;
   readonly tool?: string;
   readonly arguments?: Schema.Json;
-  readonly attachment_ids?: ReadonlyArray<string>;
 };
 export const AssistantMessageRequestRequest = Schema.Struct({
   content: Schema.String.check(
     Schema.isMinLength(1).annotate({ expected: "a value with a length of at least 1" })
   ).check(Schema.isMaxCodePoints(20000).annotate({ expected: "a string with at most 20000 code points" })),
   context: Schema.optionalKey(AssistantContextRequest),
+  attachment_ids: Schema.optionalKey(
+    Schema.Array(Schema.String.annotate({ format: "uuid" })).check(
+      Schema.isMaxLength(5).annotate({ expected: "a value with a length of at most 5" })
+    )
+  ),
   intent: Schema.optionalKey(
     Schema.String.annotate({ default: "" }).check(
       Schema.isMaxCodePoints(80).annotate({ expected: "a string with at most 80 code points" })
@@ -1714,11 +1719,6 @@ export const AssistantMessageRequestRequest = Schema.Struct({
     )
   ),
   arguments: Schema.optionalKey(Schema.Json.annotate({ expected: "JSON value" })),
-  attachment_ids: Schema.optionalKey(
-    Schema.Array(Schema.String.annotate({ format: "uuid" })).check(
-      Schema.isMaxLength(5).annotate({ expected: "a value with a length of at most 5" })
-    )
-  ),
 }).annotate({ identifier: "AssistantMessageRequestRequest" });
 export type AssistantTurnStartRequest = {
   readonly content: string;

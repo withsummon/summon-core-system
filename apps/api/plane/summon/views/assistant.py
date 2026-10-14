@@ -93,10 +93,7 @@ class AssistantConversationViewSet(WorkspaceContextMixin, SummonViewSet):
         serializer.save(workspace=self.get_workspace(), owner=self.request.user)
 
 
-class AssistantMessageView(WorkspaceContextMixin, SummonAPIView):
-    summon_tool = {"POST": "none"}  # the blocking chat endpoint; tools never start chats
-    permission_classes = [SummonWorkspacePermission]
-
+class ConversationMixin(WorkspaceContextMixin):
     def get_conversation(self):
         return get_object_or_404(
             AssistantConversation,
@@ -104,6 +101,11 @@ class AssistantMessageView(WorkspaceContextMixin, SummonAPIView):
             workspace=self.get_workspace(),
             owner=self.request.user,
         )
+
+
+class AssistantMessageView(ConversationMixin, SummonAPIView):
+    summon_tool = {"POST": "none"}  # the blocking chat endpoint; tools never start chats
+    permission_classes = [SummonWorkspacePermission]
 
     @extend_schema(
         description="List the messages in one of your assistant conversations, oldest first.",
@@ -191,17 +193,9 @@ class AssistantMessageView(WorkspaceContextMixin, SummonAPIView):
         return Response(data, status=status.HTTP_201_CREATED)
 
 
-class AssistantAttachmentView(WorkspaceContextMixin, SummonAPIView):
+class AssistantAttachmentView(ConversationMixin, SummonAPIView):
     summon_tool = {"POST": "none"}  # needs an uploaded asset
     permission_classes = [SummonWorkspacePermission]
-
-    def get_conversation(self):
-        return get_object_or_404(
-            AssistantConversation,
-            id=self.kwargs["conversation_id"],
-            workspace=self.get_workspace(),
-            owner=self.request.user,
-        )
 
     @extend_schema(
         description="List the files attached to one of your assistant conversations.",
@@ -336,16 +330,6 @@ class AssistantActionView(WorkspaceContextMixin, SummonAPIView):
                 action.error = ""
             action.save(update_fields=["status", "result", "error", "updated_at"])
         return Response(AssistantActionSerializer(action).data)
-
-
-class ConversationMixin(WorkspaceContextMixin):
-    def get_conversation(self):
-        return get_object_or_404(
-            AssistantConversation,
-            id=self.kwargs["conversation_id"],
-            workspace=self.get_workspace(),
-            owner=self.request.user,
-        )
 
 
 class AssistantTurnView(ConversationMixin, SummonAPIView):
