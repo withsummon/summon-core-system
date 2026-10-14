@@ -7763,6 +7763,9 @@ export interface SummonClient {
       HttpClientError.HttpClientError | SchemaError
     >;
   };
+  /**
+   * Credential reveal
+   */
   readonly credentialReveal: {
     <Config extends OperationConfig | undefined = undefined>(
       slug: string,
@@ -7781,6 +7784,9 @@ export interface SummonClient {
       HttpClientError.HttpClientError | SchemaError | SummonClientError<"403", undefined>
     >;
   };
+  /**
+   * Credential rotate
+   */
   readonly credentialRotate: {
     <Config extends OperationConfig | undefined = undefined>(
       slug: string,
@@ -7799,6 +7805,9 @@ export interface SummonClient {
       HttpClientError.HttpClientError | SchemaError | SummonClientError<"403", undefined>
     >;
   };
+  /**
+   * List credential grants
+   */
   readonly credentialGrantList: {
     <Config extends OperationConfig | undefined = undefined>(
       slug: string,
@@ -7817,6 +7826,9 @@ export interface SummonClient {
       HttpClientError.HttpClientError | SchemaError | SummonClientError<"403", undefined>
     >;
   };
+  /**
+   * Create credential grant
+   */
   readonly credentialGrantCreate: {
     <Config extends OperationConfig | undefined = undefined>(
       slug: string,
@@ -7838,6 +7850,9 @@ export interface SummonClient {
       HttpClientError.HttpClientError | SchemaError | SummonClientError<"403", undefined>
     >;
   };
+  /**
+   * Delete credential grant
+   */
   readonly credentialGrantDelete: {
     <Config extends OperationConfig | undefined = undefined>(
       slug: string,
@@ -7858,6 +7873,9 @@ export interface SummonClient {
       HttpClientError.HttpClientError | SchemaError | SummonClientError<"403", undefined>
     >;
   };
+  /**
+   * Credential audit
+   */
   readonly credentialAudit: {
     <Config extends OperationConfig | undefined = undefined>(
       slug: string,

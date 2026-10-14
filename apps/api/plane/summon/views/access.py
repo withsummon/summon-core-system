@@ -159,6 +159,7 @@ class AccessMeView(SummonAPIView):
     permission_classes = [require_capability("workspace.view")]
 
     @extend_schema(
+        summary="My workspace access",
         description="Your role in this workspace and what Summon lets you do.", responses={200: AccessMeSerializer}
     )
     def get(self, request, slug):
@@ -171,6 +172,7 @@ class WorkspaceUsersView(WorkspaceContextMixin, SummonAPIView):
     permission_classes = [require_capability("users.view", "users.manage")]
 
     @extend_schema(
+        summary="List workspace members",
         description="Workspace members with their roles and projects, plus pending invites.",
         responses={200: WorkspaceUsersSerializer},
     )
@@ -321,6 +323,7 @@ class ProjectPeopleView(ProjectContextMixin, SummonAPIView):
     permission_classes = [require_capability("workspace.view", "workspace.edit")]
 
     @extend_schema(
+        summary="List project members",
         description="Members of one project and the people invited to it.",
         responses={200: ProjectPeopleSerializer, 404: ErrorCodeSerializer},
     )
@@ -395,6 +398,7 @@ class WorkspaceAccessHistoryView(WorkspaceContextMixin, SummonAPIView):
     permission_classes = [require_capability("users.view")]
 
     @extend_schema(
+        summary="Workspace access history",
         description="Recent access changes in this workspace: invites, role changes and removals.",
         responses={200: AccessEventSerializer(many=True)},
     )

@@ -144,6 +144,7 @@ class MeetingSummaryView(WorkspaceContextMixin, SummonAPIView):
         )
 
     @extend_schema(
+        summary="Summarize meeting",
         description="Generate minutes for a meeting from its transcript or notes. Slow: runs the AI model.",
         request=MeetingSummaryRequestSerializer,
         responses={200: MeetingSerializer, 400: ErrorCodeSerializer, 503: MeetingSummaryFailureSerializer},

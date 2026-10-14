@@ -166,6 +166,7 @@ class AutomationPublishView(WorkspaceContextMixin, SummonAPIView):
     permission_classes = [SummonWorkspacePermission]
 
     @extend_schema(
+        summary="Publish automation job",
         description="Publish a generated preview you requested as a Plane page or file.",
         request=None,
         responses={200: AutomationJobSerializer},
@@ -261,6 +262,7 @@ class LLMStatusView(SummonAPIView):
     permission_classes = [require_capability("settings.view")]
 
     @extend_schema(
+        summary="AI provider status",
         description="Whether the workspace AI provider is configured, and which provider and model it uses.",
         responses={200: LLMStatusSerializer},
     )

@@ -27,7 +27,10 @@ interface OpenApiParameter {
 
 interface OpenApiOperation {
   operationId: string;
+  summary: string;
   description?: string;
+  tags: [string];
+  responses: Record<string, { content?: Record<string, { schema: JsonObject }> }>;
   parameters?: OpenApiParameter[];
   requestBody?: { required?: boolean; content: Record<string, { schema: JsonObject }> };
   "x-summon-tool": "read" | "write" | "none";
@@ -106,7 +109,10 @@ function operation(method: string, route: string, op: OpenApiOperation): SummonO
     method: method.toUpperCase() as SummonOperation["method"],
     path: route,
     tool: op["x-summon-tool"] as SummonOperation["tool"],
+    title: op.summary,
     description: op.description ?? "",
+    toolset: op.tags[0],
+    list: op.responses["200"]?.content?.["application/json"]?.schema.type === "array",
     pathParams: params.filter((param) => param.in === "path").map((param) => param.name),
     queryParams: params.filter((param) => param.in === "query").map((param) => param.name),
     body,

@@ -19,6 +19,7 @@
       "get": {
         "operationId": "assistant_conversation_list",
         "description": "List the assistant conversations in this workspace that you can see.",
+        "summary": "List assistant conversations",
         "parameters": [
           {
             "in": "path",
@@ -29,7 +30,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["assistant"],
         "security": [
           {
             "SessionCookie": []
@@ -58,6 +59,7 @@
       "post": {
         "operationId": "assistant_conversation_create",
         "description": "Create an assistant conversation.",
+        "summary": "Create assistant conversation",
         "parameters": [
           {
             "in": "path",
@@ -68,7 +70,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["assistant"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -106,6 +108,7 @@
       "get": {
         "operationId": "assistant_conversation_get",
         "description": "Get one assistant conversation by id.",
+        "summary": "Get assistant conversation",
         "parameters": [
           {
             "in": "path",
@@ -125,7 +128,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["assistant"],
         "security": [
           {
             "SessionCookie": []
@@ -151,6 +154,7 @@
       "patch": {
         "operationId": "assistant_conversation_update",
         "description": "Update fields on an assistant conversation; omitted fields are unchanged.",
+        "summary": "Update assistant conversation",
         "parameters": [
           {
             "in": "path",
@@ -170,7 +174,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["assistant"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -205,6 +209,7 @@
       "delete": {
         "operationId": "assistant_conversation_delete",
         "description": "Delete an assistant conversation.",
+        "summary": "Delete assistant conversation",
         "parameters": [
           {
             "in": "path",
@@ -224,7 +229,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["assistant"],
         "security": [
           {
             "SessionCookie": []
@@ -245,6 +250,7 @@
       "get": {
         "operationId": "assistant_message_list",
         "description": "List the messages in one of your assistant conversations, oldest first.",
+        "summary": "List assistant messages",
         "parameters": [
           {
             "in": "path",
@@ -264,7 +270,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["assistant"],
         "security": [
           {
             "SessionCookie": []
@@ -293,6 +299,7 @@
       "post": {
         "operationId": "assistant_message_create",
         "description": "Send a message in one of your assistant conversations and wait for the reply.",
+        "summary": "Create assistant message",
         "parameters": [
           {
             "in": "path",
@@ -312,7 +319,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["assistant"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -360,6 +367,7 @@
       "get": {
         "operationId": "assistant_attachment_list",
         "description": "List the files attached to one of your assistant conversations.",
+        "summary": "List assistant attachments",
         "parameters": [
           {
             "in": "path",
@@ -379,7 +387,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["assistant"],
         "security": [
           {
             "SessionCookie": []
@@ -408,6 +416,7 @@
       "post": {
         "operationId": "assistant_attachment_create",
         "description": "Attach an uploaded workspace file to one of your assistant conversations.",
+        "summary": "Create assistant attachment",
         "parameters": [
           {
             "in": "path",
@@ -427,7 +436,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["assistant"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -465,6 +474,7 @@
       "delete": {
         "operationId": "assistant_attachment_delete",
         "description": "Remove a file from one of your assistant conversations.",
+        "summary": "Delete assistant attachment",
         "parameters": [
           {
             "in": "path",
@@ -493,7 +503,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["assistant"],
         "security": [
           {
             "SessionCookie": []
@@ -524,6 +534,7 @@
       "post": {
         "operationId": "assistant_action_confirm",
         "description": "Confirm, choose an option for, retry or cancel an action the assistant proposed.",
+        "summary": "Assistant action confirm",
         "parameters": [
           {
             "in": "path",
@@ -552,7 +563,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["assistant"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -609,6 +620,7 @@
       "post": {
         "operationId": "assistant_action_select",
         "description": "Confirm, choose an option for, retry or cancel an action the assistant proposed.",
+        "summary": "Assistant action select",
         "parameters": [
           {
             "in": "path",
@@ -637,7 +649,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["assistant"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -694,6 +706,7 @@
       "post": {
         "operationId": "assistant_action_retry",
         "description": "Confirm, choose an option for, retry or cancel an action the assistant proposed.",
+        "summary": "Assistant action retry",
         "parameters": [
           {
             "in": "path",
@@ -722,7 +735,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["assistant"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -779,6 +792,7 @@
       "post": {
         "operationId": "assistant_action_cancel",
         "description": "Confirm, choose an option for, retry or cancel an action the assistant proposed.",
+        "summary": "Assistant action cancel",
         "parameters": [
           {
             "in": "path",
@@ -807,7 +821,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["assistant"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -864,6 +878,7 @@
       "post": {
         "operationId": "assistant_turn_start",
         "description": "Starts a streamed turn for the AI service, on behalf of the signed-in user.",
+        "summary": "Assistant turn start",
         "parameters": [
           {
             "in": "path",
@@ -883,7 +898,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["assistant"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -921,6 +936,7 @@
       "post": {
         "operationId": "assistant_turn_complete",
         "description": "Settles a streamed reply once; repeating the call returns the settled message unchanged.",
+        "summary": "Assistant turn complete",
         "parameters": [
           {
             "in": "path",
@@ -949,7 +965,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["assistant"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -987,6 +1003,7 @@
       "post": {
         "operationId": "assistant_plane_tool_call",
         "description": "Runs a Plane MCP read with the conversation's PAT, or queues a write for confirmation.",
+        "summary": "Assistant plane tool call",
         "parameters": [
           {
             "in": "path",
@@ -1006,7 +1023,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["assistant"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1064,6 +1081,7 @@
       "get": {
         "operationId": "internal_ai_config",
         "description": "Provider settings for the AI service. God-mode's AI form stays the only place they are edited.",
+        "summary": "Internal ai config",
         "tags": ["internal"],
         "responses": {
           "200": {
@@ -1094,6 +1112,7 @@
       "get": {
         "operationId": "home_summary",
         "description": "Your workspace home: the projects you can see with their health, work due soon, and recent meetings.",
+        "summary": "Home summary",
         "parameters": [
           {
             "in": "path",
@@ -1104,7 +1123,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["overview"],
         "security": [
           {
             "SessionCookie": []
@@ -1133,6 +1152,7 @@
       "get": {
         "operationId": "ai_status",
         "description": "Whether the workspace AI provider is configured, and which provider and model it uses.",
+        "summary": "AI provider status",
         "parameters": [
           {
             "in": "path",
@@ -1143,7 +1163,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["operations"],
         "security": [
           {
             "SessionCookie": []
@@ -1171,6 +1191,7 @@
       "get": {
         "operationId": "workspace_settings_get",
         "description": "Summon settings for this workspace.",
+        "summary": "Get workspace settings",
         "parameters": [
           {
             "in": "path",
@@ -1181,7 +1202,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["settings"],
         "security": [
           {
             "SessionCookie": []
@@ -1207,6 +1228,7 @@
       "patch": {
         "operationId": "workspace_settings_patch",
         "description": "Change Summon settings for this workspace (workspace admins).",
+        "summary": "Workspace settings patch",
         "parameters": [
           {
             "in": "path",
@@ -1217,7 +1239,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["settings"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1254,6 +1276,7 @@
       "get": {
         "operationId": "mcp_status",
         "description": "Whether the Plane MCP server is configured for this instance.",
+        "summary": "Plane MCP status",
         "parameters": [
           {
             "in": "path",
@@ -1264,7 +1287,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["settings"],
         "security": [
           {
             "SessionCookie": []
@@ -1292,6 +1315,7 @@
       "get": {
         "operationId": "access_me",
         "description": "Your role in this workspace and what Summon lets you do.",
+        "summary": "My workspace access",
         "parameters": [
           {
             "in": "path",
@@ -1302,7 +1326,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["access"],
         "security": [
           {
             "SessionCookie": []
@@ -1330,6 +1354,7 @@
       "get": {
         "operationId": "project_people_get",
         "description": "Members of one project and the people invited to it.",
+        "summary": "List project members",
         "parameters": [
           {
             "in": "path",
@@ -1349,7 +1374,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["access"],
         "security": [
           {
             "SessionCookie": []
@@ -1385,6 +1410,7 @@
       "post": {
         "operationId": "project_people_post",
         "description": "Add a workspace member to a project, or invite a guest to it by email.",
+        "summary": "Project people post",
         "parameters": [
           {
             "in": "path",
@@ -1404,7 +1430,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["access"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1471,6 +1497,7 @@
       "delete": {
         "operationId": "project_people_invite",
         "description": "Cancel a pending project invite.",
+        "summary": "Project people invite",
         "parameters": [
           {
             "in": "path",
@@ -1499,7 +1526,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["access"],
         "security": [
           {
             "SessionCookie": []
@@ -1530,6 +1557,7 @@
       "get": {
         "operationId": "users_get",
         "description": "Workspace members with their roles and projects, plus pending invites.",
+        "summary": "List workspace members",
         "parameters": [
           {
             "in": "path",
@@ -1540,7 +1568,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["access"],
         "security": [
           {
             "SessionCookie": []
@@ -1566,6 +1594,7 @@
       "post": {
         "operationId": "users_post",
         "description": "Invite people to the workspace by email, optionally onto projects.",
+        "summary": "Users post",
         "parameters": [
           {
             "in": "path",
@@ -1576,7 +1605,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["access"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1624,6 +1653,7 @@
       "get": {
         "operationId": "users_history",
         "description": "Recent access changes in this workspace: invites, role changes and removals.",
+        "summary": "Workspace access history",
         "parameters": [
           {
             "in": "path",
@@ -1634,7 +1664,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["access"],
         "security": [
           {
             "SessionCookie": []
@@ -1665,6 +1695,7 @@
       "delete": {
         "operationId": "users_invite_delete",
         "description": "Cancel a pending workspace invite.",
+        "summary": "Delete users invite",
         "parameters": [
           {
             "in": "path",
@@ -1684,7 +1715,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["access"],
         "security": [
           {
             "SessionCookie": []
@@ -1715,6 +1746,7 @@
       "patch": {
         "operationId": "users_update",
         "description": "Change a member's workspace role or project access.",
+        "summary": "Update users",
         "parameters": [
           {
             "in": "path",
@@ -1734,7 +1766,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["access"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1791,6 +1823,7 @@
       "get": {
         "operationId": "client_list",
         "description": "List the clients in this workspace that you can see.",
+        "summary": "List clients",
         "parameters": [
           {
             "in": "path",
@@ -1801,7 +1834,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["commercial"],
         "security": [
           {
             "SessionCookie": []
@@ -1830,6 +1863,7 @@
       "post": {
         "operationId": "client_create",
         "description": "Create a client.",
+        "summary": "Create client",
         "parameters": [
           {
             "in": "path",
@@ -1840,7 +1874,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["commercial"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1878,6 +1912,7 @@
       "get": {
         "operationId": "client_get",
         "description": "Get one client by id.",
+        "summary": "Get client",
         "parameters": [
           {
             "in": "path",
@@ -1897,7 +1932,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["commercial"],
         "security": [
           {
             "SessionCookie": []
@@ -1923,6 +1958,7 @@
       "patch": {
         "operationId": "client_update",
         "description": "Update fields on a client; omitted fields are unchanged.",
+        "summary": "Update client",
         "parameters": [
           {
             "in": "path",
@@ -1942,7 +1978,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["commercial"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1977,6 +2013,7 @@
       "delete": {
         "operationId": "client_delete",
         "description": "Delete a client.",
+        "summary": "Delete client",
         "parameters": [
           {
             "in": "path",
@@ -1996,7 +2033,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["commercial"],
         "security": [
           {
             "SessionCookie": []
@@ -2017,6 +2054,7 @@
       "get": {
         "operationId": "client_contact_list",
         "description": "List the client contacts in this workspace that you can see.",
+        "summary": "List client contacts",
         "parameters": [
           {
             "in": "path",
@@ -2036,7 +2074,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["commercial"],
         "security": [
           {
             "SessionCookie": []
@@ -2065,6 +2103,7 @@
       "post": {
         "operationId": "client_contact_create",
         "description": "Create a client contact.",
+        "summary": "Create client contact",
         "parameters": [
           {
             "in": "path",
@@ -2084,7 +2123,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["commercial"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2122,6 +2161,7 @@
       "get": {
         "operationId": "client_contact_get",
         "description": "Get one client contact by id.",
+        "summary": "Get client contact",
         "parameters": [
           {
             "in": "path",
@@ -2150,7 +2190,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["commercial"],
         "security": [
           {
             "SessionCookie": []
@@ -2176,6 +2216,7 @@
       "patch": {
         "operationId": "client_contact_update",
         "description": "Update fields on a client contact; omitted fields are unchanged.",
+        "summary": "Update client contact",
         "parameters": [
           {
             "in": "path",
@@ -2204,7 +2245,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["commercial"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2239,6 +2280,7 @@
       "delete": {
         "operationId": "client_contact_delete",
         "description": "Delete a client contact.",
+        "summary": "Delete client contact",
         "parameters": [
           {
             "in": "path",
@@ -2267,7 +2309,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["commercial"],
         "security": [
           {
             "SessionCookie": []
@@ -2288,6 +2330,7 @@
       "get": {
         "operationId": "opportunity_list",
         "description": "List the opportunities in this workspace that you can see.",
+        "summary": "List opportunities",
         "parameters": [
           {
             "in": "path",
@@ -2298,7 +2341,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["commercial"],
         "security": [
           {
             "SessionCookie": []
@@ -2327,6 +2370,7 @@
       "post": {
         "operationId": "opportunity_create",
         "description": "Create an opportunity.",
+        "summary": "Create opportunity",
         "parameters": [
           {
             "in": "path",
@@ -2337,7 +2381,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["commercial"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2375,6 +2419,7 @@
       "get": {
         "operationId": "opportunity_get",
         "description": "Get one opportunity by id.",
+        "summary": "Get opportunity",
         "parameters": [
           {
             "in": "path",
@@ -2394,7 +2439,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["commercial"],
         "security": [
           {
             "SessionCookie": []
@@ -2420,6 +2465,7 @@
       "patch": {
         "operationId": "opportunity_update",
         "description": "Update fields on an opportunity; omitted fields are unchanged.",
+        "summary": "Update opportunity",
         "parameters": [
           {
             "in": "path",
@@ -2439,7 +2485,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["commercial"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2474,6 +2520,7 @@
       "delete": {
         "operationId": "opportunity_delete",
         "description": "Delete an opportunity.",
+        "summary": "Delete opportunity",
         "parameters": [
           {
             "in": "path",
@@ -2493,7 +2540,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["commercial"],
         "security": [
           {
             "SessionCookie": []
@@ -2514,6 +2561,7 @@
       "post": {
         "operationId": "opportunity_transition",
         "description": "Move an opportunity to another pipeline stage, optionally updating its win probability.",
+        "summary": "Move opportunity to a stage",
         "parameters": [
           {
             "in": "path",
@@ -2533,7 +2581,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["commercial"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2571,6 +2619,7 @@
       "post": {
         "operationId": "opportunity_delivery",
         "description": "Start delivery for an opportunity on a Plane project, creating the project's Summon profile.",
+        "summary": "Start delivery for opportunity",
         "parameters": [
           {
             "in": "path",
@@ -2590,7 +2639,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["commercial"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2638,6 +2687,7 @@
       "get": {
         "operationId": "project_profile_get",
         "description": "Summon profile of one project: client, opportunity, commercial and budget fields.",
+        "summary": "Get project profile",
         "parameters": [
           {
             "in": "path",
@@ -2657,7 +2707,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["commercial"],
         "security": [
           {
             "SessionCookie": []
@@ -2683,6 +2733,7 @@
       "post": {
         "operationId": "project_profile_post",
         "description": "Create the Summon profile for a project (project admins).",
+        "summary": "Create project profile",
         "parameters": [
           {
             "in": "path",
@@ -2702,7 +2753,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["commercial"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2737,6 +2788,7 @@
       "patch": {
         "operationId": "project_profile_patch",
         "description": "Update a project's Summon profile (project admins).",
+        "summary": "Update project profile",
         "parameters": [
           {
             "in": "path",
@@ -2756,7 +2808,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["commercial"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2793,6 +2845,7 @@
       "get": {
         "operationId": "project_overview",
         "description": "Delivery overview of one project you can see: progress, health, due work and recent meetings.",
+        "summary": "Project overview",
         "parameters": [
           {
             "in": "path",
@@ -2812,7 +2865,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["overview"],
         "security": [
           {
             "SessionCookie": []
@@ -2844,6 +2897,7 @@
       "get": {
         "operationId": "meeting_list",
         "description": "List the meetings in this workspace that you can see.",
+        "summary": "List meetings",
         "parameters": [
           {
             "in": "path",
@@ -2854,7 +2908,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["collaboration"],
         "security": [
           {
             "SessionCookie": []
@@ -2883,6 +2937,7 @@
       "post": {
         "operationId": "meeting_create",
         "description": "Create a meeting.",
+        "summary": "Create meeting",
         "parameters": [
           {
             "in": "path",
@@ -2893,7 +2948,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["collaboration"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2931,6 +2986,7 @@
       "get": {
         "operationId": "meeting_get",
         "description": "Get one meeting by id.",
+        "summary": "Get meeting",
         "parameters": [
           {
             "in": "path",
@@ -2950,7 +3006,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["collaboration"],
         "security": [
           {
             "SessionCookie": []
@@ -2976,6 +3032,7 @@
       "patch": {
         "operationId": "meeting_update",
         "description": "Update fields on a meeting; omitted fields are unchanged.",
+        "summary": "Update meeting",
         "parameters": [
           {
             "in": "path",
@@ -2995,7 +3052,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["collaboration"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -3030,6 +3087,7 @@
       "delete": {
         "operationId": "meeting_delete",
         "description": "Delete a meeting.",
+        "summary": "Delete meeting",
         "parameters": [
           {
             "in": "path",
@@ -3049,7 +3107,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["collaboration"],
         "security": [
           {
             "SessionCookie": []
@@ -3070,6 +3128,7 @@
       "post": {
         "operationId": "meeting_summary",
         "description": "Generate minutes for a meeting from its transcript or notes. Slow: runs the AI model.",
+        "summary": "Summarize meeting",
         "parameters": [
           {
             "in": "path",
@@ -3089,7 +3148,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["collaboration"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -3146,6 +3205,7 @@
       "get": {
         "operationId": "meeting_work_item_list",
         "description": "List the Plane work items linked to a meeting.",
+        "summary": "List meeting work items",
         "parameters": [
           {
             "in": "path",
@@ -3165,7 +3225,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["collaboration"],
         "security": [
           {
             "SessionCookie": []
@@ -3194,6 +3254,7 @@
       "post": {
         "operationId": "meeting_work_item_create",
         "description": "Link a Plane work item to a meeting.",
+        "summary": "Create meeting work item",
         "parameters": [
           {
             "in": "path",
@@ -3213,7 +3274,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["collaboration"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -3251,6 +3312,7 @@
       "delete": {
         "operationId": "meeting_work_item_delete",
         "description": "Unlink a work item from a meeting.",
+        "summary": "Delete meeting work item",
         "parameters": [
           {
             "in": "path",
@@ -3279,7 +3341,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["collaboration"],
         "security": [
           {
             "SessionCookie": []
@@ -3300,6 +3362,7 @@
       "get": {
         "operationId": "page_list",
         "description": "List the Plane Pages you can read, newest first (at most 50). Use page_get to read one.",
+        "summary": "List pages",
         "parameters": [
           {
             "in": "query",
@@ -3328,7 +3391,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["collaboration"],
         "security": [
           {
             "SessionCookie": []
@@ -3359,6 +3422,7 @@
       "get": {
         "operationId": "page_get",
         "description": "Read one Plane Page you can see: its text, such as meeting notes or a project doc.",
+        "summary": "Get page",
         "parameters": [
           {
             "in": "path",
@@ -3378,7 +3442,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["collaboration"],
         "security": [
           {
             "SessionCookie": []
@@ -3409,6 +3473,7 @@
       "get": {
         "operationId": "page_context_list",
         "description": "List the page contexts in this workspace that you can see.",
+        "summary": "List page contexts",
         "parameters": [
           {
             "in": "path",
@@ -3419,7 +3484,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["collaboration"],
         "security": [
           {
             "SessionCookie": []
@@ -3448,6 +3513,7 @@
       "post": {
         "operationId": "page_context_create",
         "description": "Create a page context.",
+        "summary": "Create page context",
         "parameters": [
           {
             "in": "path",
@@ -3458,7 +3524,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["collaboration"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -3496,6 +3562,7 @@
       "get": {
         "operationId": "page_context_get",
         "description": "Get one page context by id.",
+        "summary": "Get page context",
         "parameters": [
           {
             "in": "path",
@@ -3515,7 +3582,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["collaboration"],
         "security": [
           {
             "SessionCookie": []
@@ -3541,6 +3608,7 @@
       "patch": {
         "operationId": "page_context_update",
         "description": "Update fields on a page context; omitted fields are unchanged.",
+        "summary": "Update page context",
         "parameters": [
           {
             "in": "path",
@@ -3560,7 +3628,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["collaboration"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -3595,6 +3663,7 @@
       "delete": {
         "operationId": "page_context_delete",
         "description": "Delete a page context.",
+        "summary": "Delete page context",
         "parameters": [
           {
             "in": "path",
@@ -3614,7 +3683,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["collaboration"],
         "security": [
           {
             "SessionCookie": []
@@ -3635,6 +3704,7 @@
       "get": {
         "operationId": "resource_list",
         "description": "List the resource links in this workspace that you can see.",
+        "summary": "List resource links",
         "parameters": [
           {
             "in": "path",
@@ -3645,7 +3715,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["collaboration"],
         "security": [
           {
             "SessionCookie": []
@@ -3674,6 +3744,7 @@
       "post": {
         "operationId": "resource_create",
         "description": "Create a resource link.",
+        "summary": "Create resource link",
         "parameters": [
           {
             "in": "path",
@@ -3684,7 +3755,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["collaboration"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -3722,6 +3793,7 @@
       "get": {
         "operationId": "resource_get",
         "description": "Get one resource link by id.",
+        "summary": "Get resource link",
         "parameters": [
           {
             "in": "path",
@@ -3741,7 +3813,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["collaboration"],
         "security": [
           {
             "SessionCookie": []
@@ -3767,6 +3839,7 @@
       "patch": {
         "operationId": "resource_update",
         "description": "Update fields on a resource link; omitted fields are unchanged.",
+        "summary": "Update resource link",
         "parameters": [
           {
             "in": "path",
@@ -3786,7 +3859,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["collaboration"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -3821,6 +3894,7 @@
       "delete": {
         "operationId": "resource_delete",
         "description": "Delete a resource link.",
+        "summary": "Delete resource link",
         "parameters": [
           {
             "in": "path",
@@ -3840,7 +3914,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["collaboration"],
         "security": [
           {
             "SessionCookie": []
@@ -3861,6 +3935,7 @@
       "get": {
         "operationId": "automation_template_list",
         "description": "List the automation templates in this workspace that you can see.",
+        "summary": "List automation templates",
         "parameters": [
           {
             "in": "path",
@@ -3871,7 +3946,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["operations"],
         "security": [
           {
             "SessionCookie": []
@@ -3900,6 +3975,7 @@
       "post": {
         "operationId": "automation_template_create",
         "description": "Create an automation template.",
+        "summary": "Create automation template",
         "parameters": [
           {
             "in": "path",
@@ -3910,7 +3986,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["operations"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -3948,6 +4024,7 @@
       "get": {
         "operationId": "automation_template_get",
         "description": "Get one automation template by id.",
+        "summary": "Get automation template",
         "parameters": [
           {
             "in": "path",
@@ -3967,7 +4044,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["operations"],
         "security": [
           {
             "SessionCookie": []
@@ -3993,6 +4070,7 @@
       "patch": {
         "operationId": "automation_template_update",
         "description": "Update fields on an automation template; omitted fields are unchanged.",
+        "summary": "Update automation template",
         "parameters": [
           {
             "in": "path",
@@ -4012,7 +4090,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["operations"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -4047,6 +4125,7 @@
       "delete": {
         "operationId": "automation_template_delete",
         "description": "Delete an automation template.",
+        "summary": "Delete automation template",
         "parameters": [
           {
             "in": "path",
@@ -4066,7 +4145,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["operations"],
         "security": [
           {
             "SessionCookie": []
@@ -4087,6 +4166,7 @@
       "post": {
         "operationId": "automation_context_extract",
         "description": "Extract text from an uploaded document to use as automation context.",
+        "summary": "Automation context extract",
         "parameters": [
           {
             "in": "path",
@@ -4097,7 +4177,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["operations"],
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -4135,6 +4215,7 @@
       "get": {
         "operationId": "automation_job_list",
         "description": "List document automation jobs you can see.",
+        "summary": "List automation jobs",
         "parameters": [
           {
             "in": "path",
@@ -4145,7 +4226,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["operations"],
         "security": [
           {
             "SessionCookie": []
@@ -4174,6 +4255,7 @@
       "post": {
         "operationId": "automation_job_create",
         "description": "Generate a document preview from an automation template for a project. Slow: runs the AI model.",
+        "summary": "Create automation job",
         "parameters": [
           {
             "in": "path",
@@ -4184,7 +4266,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["operations"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -4242,6 +4324,7 @@
       "get": {
         "operationId": "automation_job_get",
         "description": "Get one document automation job and its generated artifacts.",
+        "summary": "Get automation job",
         "parameters": [
           {
             "in": "path",
@@ -4261,7 +4344,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["operations"],
         "security": [
           {
             "SessionCookie": []
@@ -4289,6 +4372,7 @@
       "post": {
         "operationId": "automation_job_publish",
         "description": "Publish a generated preview you requested as a Plane page or file.",
+        "summary": "Publish automation job",
         "parameters": [
           {
             "in": "path",
@@ -4308,7 +4392,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["operations"],
         "security": [
           {
             "SessionCookie": []
@@ -4336,6 +4420,7 @@
       "get": {
         "operationId": "report_summary",
         "description": "Delivery and commercial report for the workspace, filterable by project, client and date range.",
+        "summary": "Report summary",
         "parameters": [
           {
             "in": "query",
@@ -4378,7 +4463,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["operations"],
         "security": [
           {
             "SessionCookie": []
@@ -4407,6 +4492,7 @@
       "get": {
         "operationId": "report_export",
         "description": "The report as CSV.",
+        "summary": "Report export",
         "parameters": [
           {
             "in": "query",
@@ -4449,7 +4535,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["operations"],
         "security": [
           {
             "SessionCookie": []
@@ -4477,6 +4563,7 @@
       "post": {
         "operationId": "assistant_query",
         "description": "Answer a structured question from Summon data without the AI model; see `intent` for the supported questions.",
+        "summary": "Assistant query",
         "parameters": [
           {
             "in": "path",
@@ -4487,7 +4574,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["operations"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -4525,6 +4612,7 @@
       "get": {
         "operationId": "credential_list",
         "description": "List the credentials in this workspace that you can see.",
+        "summary": "List credentials",
         "parameters": [
           {
             "in": "path",
@@ -4535,7 +4623,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["credential"],
         "security": [
           {
             "SessionCookie": []
@@ -4561,6 +4649,7 @@
       "post": {
         "operationId": "credential_create",
         "description": "Create a credential.",
+        "summary": "Create credential",
         "parameters": [
           {
             "in": "path",
@@ -4571,7 +4660,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["credential"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -4606,6 +4695,7 @@
       "get": {
         "operationId": "credential_get",
         "description": "Get one credential by id.",
+        "summary": "Get credential",
         "parameters": [
           {
             "in": "path",
@@ -4625,7 +4715,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["credential"],
         "security": [
           {
             "SessionCookie": []
@@ -4648,6 +4738,7 @@
       "patch": {
         "operationId": "credential_update",
         "description": "Update fields on a credential; omitted fields are unchanged.",
+        "summary": "Update credential",
         "parameters": [
           {
             "in": "path",
@@ -4667,7 +4758,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["credential"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -4699,6 +4790,7 @@
       "delete": {
         "operationId": "credential_delete",
         "description": "Delete a credential.",
+        "summary": "Delete credential",
         "parameters": [
           {
             "in": "path",
@@ -4718,7 +4810,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["credential"],
         "security": [
           {
             "SessionCookie": []
@@ -4735,6 +4827,7 @@
     "/api/summon/workspaces/{slug}/credentials/{credential_id}/reveal/": {
       "post": {
         "operationId": "credential_reveal",
+        "summary": "Credential reveal",
         "parameters": [
           {
             "in": "path",
@@ -4754,7 +4847,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["credential"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -4791,6 +4884,7 @@
     "/api/summon/workspaces/{slug}/credentials/{credential_id}/rotate/": {
       "post": {
         "operationId": "credential_rotate",
+        "summary": "Credential rotate",
         "parameters": [
           {
             "in": "path",
@@ -4810,7 +4904,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["credential"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -4847,6 +4941,7 @@
     "/api/summon/workspaces/{slug}/credentials/{credential_id}/grants/": {
       "get": {
         "operationId": "credential_grant_list",
+        "summary": "List credential grants",
         "parameters": [
           {
             "in": "path",
@@ -4866,7 +4961,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["credential"],
         "security": [
           {
             "SessionCookie": []
@@ -4894,6 +4989,7 @@
       },
       "post": {
         "operationId": "credential_grant_create",
+        "summary": "Create credential grant",
         "parameters": [
           {
             "in": "path",
@@ -4913,7 +5009,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["credential"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -4950,6 +5046,7 @@
     "/api/summon/workspaces/{slug}/credentials/{credential_id}/grants/{pk}/": {
       "delete": {
         "operationId": "credential_grant_delete",
+        "summary": "Delete credential grant",
         "parameters": [
           {
             "in": "path",
@@ -4978,7 +5075,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["credential"],
         "security": [
           {
             "SessionCookie": []
@@ -4998,6 +5095,7 @@
     "/api/summon/workspaces/{slug}/credentials/{credential_id}/audit/": {
       "get": {
         "operationId": "credential_audit",
+        "summary": "Credential audit",
         "parameters": [
           {
             "in": "path",
@@ -5017,7 +5115,7 @@
             "required": true
           }
         ],
-        "tags": ["workspaces"],
+        "tags": ["credential"],
         "security": [
           {
             "SessionCookie": []

@@ -113,6 +113,7 @@ class OpportunityTransitionView(WorkspaceContextMixin, SummonAPIView):
     permission_classes = [CommercialPermission]
 
     @extend_schema(
+        summary="Move opportunity to a stage",
         description="Move an opportunity to another pipeline stage, optionally updating its win probability.",
         request=OpportunityTransitionSerializer,
         responses={200: OpportunityDetailSerializer},
@@ -137,6 +138,7 @@ class OpportunityDeliveryView(WorkspaceContextMixin, SummonAPIView):
     permission_classes = [CommercialPermission]
 
     @extend_schema(
+        summary="Start delivery for opportunity",
         description="Start delivery for an opportunity on a Plane project, creating the project's Summon profile.",
         request=OpportunityDeliverySerializer,
         responses={200: SummonProjectProfileSerializer, 201: SummonProjectProfileSerializer},
@@ -192,6 +194,7 @@ class SummonProjectProfileView(WorkspaceContextMixin, SummonAPIView):
         return Response(SummonProjectProfileSerializer(profile, context=self.get_serializer_context()).data)
 
     @extend_schema(
+        summary="Create project profile",
         description="Create the Summon profile for a project (project admins).",
         request=SummonProjectProfileSerializer,
         responses={201: SummonProjectProfileSerializer},
@@ -204,6 +207,7 @@ class SummonProjectProfileView(WorkspaceContextMixin, SummonAPIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @extend_schema(
+        summary="Update project profile",
         description="Update a project's Summon profile (project admins).",
         request=SummonProjectProfileSerializer,
         responses={200: SummonProjectProfileSerializer},

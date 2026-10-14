@@ -51,6 +51,7 @@ class MCPStatusView(SummonAPIView):
     permission_classes = [require_capability("settings.view")]
 
     @extend_schema(
+        summary="Plane MCP status",
         description="Whether the Plane MCP server is configured for this instance.",
         responses={200: MCPStatusSerializer},
     )
