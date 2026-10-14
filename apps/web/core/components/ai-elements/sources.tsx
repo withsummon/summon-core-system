@@ -36,7 +36,7 @@ export function Source(props: { href: string; icon: ReactNode; label: string; ki
     <li className="min-w-0">
       <Link
         href={props.href}
-        className="flex min-w-0 items-center gap-2 rounded-lg border border-subtle bg-surface-1 px-2.5 py-2 text-12 transition-colors hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong"
+        className="flex min-w-0 items-center gap-2 rounded-lg border border-subtle bg-surface-1 px-2.5 py-2 text-12 transition-colors hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
       >
         <span className="flex-none text-secondary">{props.icon}</span>
         <span className="min-w-0 flex-1 truncate font-medium text-primary">{props.label}</span>

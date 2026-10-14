@@ -39,7 +39,7 @@ export function AssistantTemplates(props: {
           <Menu.Root>
             <Menu.Trigger
               disabled={!options.length}
-              className="group flex h-full w-full items-start gap-3 rounded-xl border border-subtle bg-surface-1 p-3 text-left shadow-xs transition-colors hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong disabled:cursor-not-allowed disabled:opacity-60 data-[popup-open]:bg-layer-1"
+              className="group flex h-full w-full items-start gap-3 rounded-xl border border-subtle bg-surface-1 p-3 text-left shadow-xs transition-colors hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid disabled:cursor-not-allowed disabled:opacity-60 data-[popup-open]:bg-layer-1"
             >
               <TemplateIcon id={template.id} />
               <span className="min-w-0">
