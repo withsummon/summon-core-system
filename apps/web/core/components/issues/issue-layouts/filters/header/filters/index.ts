@@ -5,8 +5,6 @@
  */
 
 export * from "./assignee";
-export * from "./mentions";
-export * from "./created-by";
 export * from "./due-date";
 export * from "./labels";
 export * from "./priority";

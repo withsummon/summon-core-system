@@ -5,10 +5,10 @@
  */
 
 import { observer } from "mobx-react";
-// local imports
-import type { TMemberFilterProps } from "./member-filter";
-import { MemberFilter } from "./member-filter";
+// components
+import type { TMemberFilterProps } from "@/components/common/filters/member-filter";
+import { MemberFilter } from "@/components/common/filters/member-filter";
 
 export const FilterLead = observer(function FilterLead(props: TMemberFilterProps) {
-  return <MemberFilter {...props} title="Lead" keyPrefix="lead" />;
+  return <MemberFilter {...props} title="Lead" />;
 });
