@@ -1,1 +1,25 @@
-{ "ignore": { "files": ["public/**"] } }
+{
+  "ignore": {
+    "files": ["public/**"],
+    "overrides": [
+      {
+        "files": [
+          "core/components/home/user-greetings.tsx",
+          "core/components/user/user-greetings.tsx",
+          "core/components/workspace-notifications/sidebar/notification-card/options/snooze/modal.tsx",
+          "core/components/pages/editor/editor-body.tsx",
+          "app/**/summon/meetings/page.tsx"
+        ],
+        "rules": [
+          "react-doctor/no-locale-format-in-render",
+          "react-doctor/rendering-hydration-mismatch-time",
+          "react-doctor/no-hydration-branch-on-browser-global"
+        ]
+      },
+      {
+        "files": ["src/empty-state/assets/vertical-stack/**"],
+        "rules": ["react-doctor/no-giant-component"]
+      }
+    ]
+  }
+}

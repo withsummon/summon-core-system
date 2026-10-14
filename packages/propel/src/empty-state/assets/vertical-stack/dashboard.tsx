@@ -7,10 +7,16 @@
 import { ILLUSTRATION_COLOR_TOKEN_MAP } from "../helper";
 import type { TIllustrationAssetProps } from "../helper";
 
-/** Stacked platform layers the illustration sits on */
-function DashboardPlatform() {
+export function DashboardVerticalStackIllustration({ className }: TIllustrationAssetProps) {
   return (
-    <>
+    <svg
+      width="162"
+      height="165"
+      viewBox="0 0 162 165"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
       <g opacity="0.2">
         <path
           d="M14.2806 131.177C14.2806 133.122 15.737 135.062 18.6448 136.55L56.0858 155.628C61.9065 158.592 71.3401 158.592 77.1608 155.628L155.836 115.542C158.744 114.06 160.2 112.119 160.2 110.174V116.386C160.2 118.331 158.744 120.271 155.836 121.754L77.1608 161.84C71.3401 164.804 61.9065 164.804 56.0858 161.84L18.6448 142.762C15.7319 141.279 14.2806 139.334 14.2806 137.389V131.177Z"
@@ -47,14 +53,6 @@ function DashboardPlatform() {
           strokeLinejoin="round"
         />
       </g>
-    </>
-  );
-}
-
-/** Main artwork, painted above the platform */
-function DashboardBody() {
-  return (
-    <>
       <path
         d="M14.2806 91.9307C14.2806 93.8761 15.737 95.8163 18.6448 97.3037L56.0858 116.382C61.9065 119.346 71.3401 119.346 77.1608 116.382L155.836 76.2957C158.744 74.8135 160.2 72.8731 160.2 70.9277V77.1396C160.2 79.085 158.744 81.0252 155.836 82.5074L77.1608 122.594C71.3401 125.558 61.9065 125.558 56.0858 122.594L18.6448 103.516C15.7319 102.033 14.2806 100.088 14.2806 98.1426V91.9307Z"
         fill={ILLUSTRATION_COLOR_TOKEN_MAP.fill.secondary}
@@ -191,14 +189,6 @@ function DashboardBody() {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-    </>
-  );
-}
-
-/** Foreground details, painted last */
-function DashboardForeground() {
-  return (
-    <>
       <path
         d="M82.6626 26.1809C84.0521 26.8911 84.9374 28.5637 84.9374 30.9414V41.2345C84.9374 45.4958 82.0965 50.4005 78.5917 52.1863L70.1308 56.494C68.5817 57.2814 67.1612 57.3328 66.0599 56.7718C64.6703 56.0616 63.7852 54.389 63.7852 52.0113V41.7182C63.7852 37.4569 66.626 32.5522 70.1308 30.7664L78.5917 26.4588C80.1408 25.6714 81.5612 25.6199 82.6626 26.1809Z"
         fill={ILLUSTRATION_COLOR_TOKEN_MAP.fill.primary}
@@ -331,23 +321,6 @@ function DashboardForeground() {
         d="M39.5144 14.4006C39.4218 14.447 39.3291 14.4521 39.2571 14.4006C39.113 14.2977 39.113 14.0198 39.2571 13.7728L41.6245 9.69149C41.7686 9.44446 41.995 9.33123 42.1391 9.42901L43.7037 10.5356L46.5394 5.64124C46.6835 5.39421 46.91 5.28098 47.0541 5.37876C47.1982 5.48169 47.1982 5.75959 47.0541 6.00662L43.961 11.3487C43.8169 11.5957 43.5904 11.7089 43.4463 11.6111L41.8818 10.5047L39.7717 14.1433C39.6997 14.2668 39.607 14.3543 39.5144 14.4058V14.4006Z"
         fill={ILLUSTRATION_COLOR_TOKEN_MAP.fill.quaternary}
       />
-    </>
-  );
-}
-
-export function DashboardVerticalStackIllustration({ className }: TIllustrationAssetProps) {
-  return (
-    <svg
-      width="162"
-      height="165"
-      viewBox="0 0 162 165"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
-      <DashboardPlatform />
-      <DashboardBody />
-      <DashboardForeground />
     </svg>
   );
 }

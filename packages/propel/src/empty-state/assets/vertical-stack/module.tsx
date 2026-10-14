@@ -7,10 +7,16 @@
 import { ILLUSTRATION_COLOR_TOKEN_MAP } from "../helper";
 import type { TIllustrationAssetProps } from "../helper";
 
-/** Stacked platform layers the illustration sits on */
-function ModulePlatform() {
+export function ModuleVerticalStackIllustration({ className }: TIllustrationAssetProps) {
   return (
-    <>
+    <svg
+      width="162"
+      height="168"
+      viewBox="0 0 162 168"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
       <g opacity="0.2">
         <path
           d="M12.7461 135.993C12.7461 137.824 14.1171 139.651 16.8542 141.051L52.0981 159.009C57.5773 161.8 66.4573 161.8 71.9364 159.009L145.995 121.275C148.732 119.88 150.103 118.054 150.103 116.223V122.07C150.103 123.901 148.732 125.728 145.995 127.123L71.9364 164.857C66.4573 167.647 57.5773 167.647 52.0981 164.857L16.8542 146.898C14.1122 145.503 12.7461 143.672 12.7461 141.84V135.993Z"
@@ -47,14 +53,6 @@ function ModulePlatform() {
           strokeLinejoin="round"
         />
       </g>
-    </>
-  );
-}
-
-/** Main artwork, painted above the platform */
-function ModuleBody() {
-  return (
-    <>
       <path
         d="M12.7461 99.0489C12.7461 100.88 14.1171 102.706 16.8542 104.107L52.0981 122.065C57.5773 124.856 66.4573 124.856 71.9364 122.065L145.995 84.3312C148.732 82.936 150.103 81.1096 150.103 79.2784V85.1256C150.103 86.9569 148.732 88.7833 145.995 90.1785L71.9364 127.912C66.4573 130.703 57.5773 130.703 52.0981 127.912L16.8542 109.954C14.1122 108.559 12.7461 106.727 12.7461 104.896V99.0489Z"
         fill={ILLUSTRATION_COLOR_TOKEN_MAP.fill.secondary}
@@ -223,14 +221,6 @@ function ModuleBody() {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-    </>
-  );
-}
-
-/** Foreground details, painted last */
-function ModuleForeground() {
-  return (
-    <>
       <path
         d="M51.4298 8.83903C52.8687 9.57055 53.7794 11.3049 53.7794 13.7659C53.7794 18.1744 50.8388 23.2514 47.2151 25.0972L10.8425 43.6323C9.23893 44.4511 7.77103 44.4996 6.62772 43.9182C5.1889 43.1867 4.27814 41.4523 4.27814 38.9913C4.27814 34.5827 7.21876 29.5057 10.8425 27.66L47.2151 9.12484C48.8187 8.30612 50.2865 8.25769 51.4298 8.83903Z"
         fill={ILLUSTRATION_COLOR_TOKEN_MAP.fill.primary}
@@ -387,23 +377,6 @@ function ModuleForeground() {
         d="M131.307 12.143C131.219 12.0219 131.113 11.9492 131.016 11.9492L128.957 11.8911C128.836 11.8911 128.753 11.9977 128.753 12.1527V14.9286C128.753 15.0594 128.802 15.2048 128.889 15.321C128.981 15.4421 129.088 15.5148 129.185 15.5148L131.239 15.573C131.365 15.5826 131.447 15.476 131.447 15.3113V12.5354C131.447 12.4046 131.399 12.2593 131.307 12.143ZM130.812 14.7203L129.388 14.6767V12.7534L130.812 12.797V14.7203Z"
         fill={ILLUSTRATION_COLOR_TOKEN_MAP.fill.quaternary}
       />
-    </>
-  );
-}
-
-export function ModuleVerticalStackIllustration({ className }: TIllustrationAssetProps) {
-  return (
-    <svg
-      width="162"
-      height="168"
-      viewBox="0 0 162 168"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
-      <ModulePlatform />
-      <ModuleBody />
-      <ModuleForeground />
     </svg>
   );
 }

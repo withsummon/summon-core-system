@@ -191,7 +191,6 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
     // The collaboration URL is derived from window.location, so it can only be
     // built on the client. There is no socket to connect to during SSR anyway —
     // the config is recomputed on hydration.
-    // react-doctor-disable-next-line no-hydration-branch-on-browser-global -- web builds with `ssr: false` (react-router.config.ts), so there is no hydration pass for this branch to diverge in
     if (typeof window === "undefined") return undefined;
 
     // Construct the WebSocket Collaboration URL

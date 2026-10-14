@@ -40,11 +40,8 @@ export function UserGreetingsView(props: IUserGreetingsView) {
 
   const { hour, date, weekDay, timeString } = useMemo(
     () => ({
-      // react-doctor-disable-next-line no-locale-format-in-render -- client-only SPA (react-router ssr: false), never server-rendered
       hour: HOUR_FORMATTER.format(currentTime),
-      // react-doctor-disable-next-line no-locale-format-in-render -- client-only SPA (react-router ssr: false), never server-rendered
       date: DATE_FORMATTER.format(currentTime),
-      // react-doctor-disable-next-line no-locale-format-in-render -- client-only SPA (react-router ssr: false), never server-rendered
       weekDay: WEEKDAY_FORMATTER.format(currentTime),
       timeString: getTimeFormatter(user?.user_timezone).format(currentTime),
     }),

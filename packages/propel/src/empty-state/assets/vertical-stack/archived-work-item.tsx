@@ -7,10 +7,16 @@
 import { ILLUSTRATION_COLOR_TOKEN_MAP } from "../helper";
 import type { TIllustrationAssetProps } from "../helper";
 
-/** Stacked platform layers the illustration sits on */
-function ArchivedWorkItemPlatform() {
+export function ArchivedWorkItemVerticalStackIllustration({ className }: TIllustrationAssetProps) {
   return (
-    <>
+    <svg
+      width="161"
+      height="176"
+      viewBox="0 0 161 176"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
       <g opacity="0.2">
         <path
           d="M0.25 141.667C0.25 143.636 1.72405 145.599 4.66695 147.105L42.56 166.413C48.4511 169.413 57.9986 169.413 63.8896 166.413L143.515 125.843C146.457 124.343 147.931 122.379 147.931 120.41V126.697C147.931 128.666 146.457 130.63 143.515 132.13L63.8896 172.7C57.9986 175.7 48.4511 175.7 42.56 172.7L4.66695 153.391C1.71885 151.891 0.25 149.922 0.25 147.954V141.667Z"
@@ -47,14 +53,6 @@ function ArchivedWorkItemPlatform() {
           strokeLinejoin="round"
         />
       </g>
-    </>
-  );
-}
-
-/** Main artwork, painted above the platform */
-function ArchivedWorkItemBody() {
-  return (
-    <>
       <path
         d="M0.25 101.94C0.25 103.909 1.72405 105.873 4.66695 107.378L42.56 126.687C48.4511 129.687 57.9986 129.687 63.8896 126.687L143.515 86.1162C146.457 84.6161 147.931 82.6525 147.931 80.6836V86.9705C147.931 88.9393 146.457 90.903 143.515 92.4031L63.8896 132.973C57.9986 135.974 48.4511 135.974 42.56 132.973L4.66695 113.665C1.71885 112.165 0.25 110.196 0.25 108.227V101.94Z"
         fill={ILLUSTRATION_COLOR_TOKEN_MAP.fill.secondary}
@@ -195,14 +193,6 @@ function ArchivedWorkItemBody() {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-    </>
-  );
-}
-
-/** Foreground details, painted last */
-function ArchivedWorkItemForeground() {
-  return (
-    <>
       <mask id="path-22-inside-1_637_1592" fill={ILLUSTRATION_COLOR_TOKEN_MAP.fill.primary}>
         <path
           fillRule="evenodd"
@@ -342,23 +332,6 @@ function ArchivedWorkItemForeground() {
         d="M32.0127 30.5806C32.0127 30.7525 31.9294 30.9608 31.7992 31.1015L29.648 33.5131C29.5438 33.6277 29.4292 33.685 29.3407 33.6641C29.2521 33.6433 29.1948 33.5495 29.1948 33.4141V30.5129C29.1948 30.341 29.2782 30.1326 29.4084 29.992L31.5648 27.5752C31.6689 27.4606 31.7835 27.4033 31.8721 27.4241C31.9606 27.445 32.0179 27.5387 32.0179 27.6742V30.5806H32.0127ZM31.3512 28.7055L29.8615 30.3775V32.3932L31.3512 30.7212V28.7055Z"
         fill={ILLUSTRATION_COLOR_TOKEN_MAP.fill.quaternary}
       />
-    </>
-  );
-}
-
-export function ArchivedWorkItemVerticalStackIllustration({ className }: TIllustrationAssetProps) {
-  return (
-    <svg
-      width="161"
-      height="176"
-      viewBox="0 0 161 176"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
-      <ArchivedWorkItemPlatform />
-      <ArchivedWorkItemBody />
-      <ArchivedWorkItemForeground />
     </svg>
   );
 }

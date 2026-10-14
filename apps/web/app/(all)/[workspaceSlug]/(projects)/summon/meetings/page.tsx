@@ -34,7 +34,6 @@ const TIME_ZONE_NAME_FORMATTER = new Intl.DateTimeFormat("en-ID", { timeZoneName
 
 const meetingTime = (value: string) => {
   const date = new Date(value);
-  // react-doctor-disable-next-line no-locale-format-in-render -- apps/web is client-only (react-router ssr: false)
   const zone = TIME_ZONE_NAME_FORMATTER.formatToParts(date).find((part) => part.type === "timeZoneName")?.value;
   const day = renderFormattedDate(
     date,

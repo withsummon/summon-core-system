@@ -138,7 +138,6 @@ export function NotificationSnoozeModal(props: TNotificationSnoozeModal) {
                     setValue("time", undefined);
                     onChange(val);
                   }}
-                  // react-doctor-disable-next-line rendering-hydration-mismatch-time -- client-only SPA (react-router ssr: false); min date is "now" at render by design
                   minDate={new Date()}
                   buttonVariant="border-with-text"
                   buttonContainerClassName="w-full text-left"

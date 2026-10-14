@@ -7,10 +7,16 @@
 import { ILLUSTRATION_COLOR_TOKEN_MAP } from "../helper";
 import type { TIllustrationAssetProps } from "../helper";
 
-/** Stacked platform layers the illustration sits on */
-function ViewPlatform() {
+export function ViewVerticalStackIllustration({ className }: TIllustrationAssetProps) {
   return (
-    <>
+    <svg
+      width="162"
+      height="163"
+      viewBox="0 0 162 163"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
       <path
         d="M62.1863 125.972L61.8748 126.13C61.9412 126.094 62.0076 126.059 62.074 126.023C62.1097 126.003 62.1505 125.987 62.1863 125.972Z"
         fill={ILLUSTRATION_COLOR_TOKEN_MAP.fill.quaternary}
@@ -55,14 +61,6 @@ function ViewPlatform() {
           strokeLinejoin="round"
         />
       </g>
-    </>
-  );
-}
-
-/** Main artwork, painted above the platform */
-function ViewBody() {
-  return (
-    <>
       <path
         d="M12.4695 89.7356C12.4695 91.6656 13.9145 93.5905 16.7993 95.0662L53.9451 113.994C59.72 116.935 69.0792 116.935 74.854 113.994L152.909 74.2237C155.794 72.7532 157.238 70.8282 157.238 68.8982V75.0611C157.238 76.9911 155.794 78.9161 152.909 80.3866L74.854 120.157C69.0792 123.098 59.72 123.098 53.9451 120.157L16.7993 101.229C13.9094 99.7585 12.4695 97.8285 12.4695 95.8984V89.7356Z"
         fill={ILLUSTRATION_COLOR_TOKEN_MAP.fill.secondary}
@@ -193,14 +191,6 @@ function ViewBody() {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-    </>
-  );
-}
-
-/** Foreground details, painted last */
-function ViewForeground() {
-  return (
-    <>
       <path
         fillRule="evenodd"
         clipRule="evenodd"
@@ -331,23 +321,6 @@ function ViewForeground() {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-    </>
-  );
-}
-
-export function ViewVerticalStackIllustration({ className }: TIllustrationAssetProps) {
-  return (
-    <svg
-      width="162"
-      height="163"
-      viewBox="0 0 162 163"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
-      <ViewPlatform />
-      <ViewBody />
-      <ViewForeground />
     </svg>
   );
 }
