@@ -89,7 +89,7 @@ PROJECTS = (
             "Workspace operasional terpadu untuk proyek, klien, rapat, resource, automation, dan laporan Summon."
         ),
         "snapshot": "f88b938538 (2026-08-24)",
-        "live_url": "https://summon-core.withsummon.com",
+        "live_url": "https://core.withsummon.com",
     },
 )
 

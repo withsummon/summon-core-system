@@ -1,7 +1,7 @@
 x-app-environment: &app-environment
-  WEB_URL: ${WEB_URL:-https://summon-core.withsummon.com}
+  WEB_URL: ${WEB_URL:-https://core.withsummon.com}
   DEBUG: "0"
-  CORS_ALLOWED_ORIGINS: ${WEB_URL:-https://summon-core.withsummon.com}
+  CORS_ALLOWED_ORIGINS: ${WEB_URL:-https://core.withsummon.com}
   GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
   USE_MINIO: "1"
   POSTGRES_USER: ${POSTGRES_USER:-plane}
@@ -230,7 +230,7 @@ services:
       PLANE_INTERNAL_BASE_URL: http://api:8000
       PLANE_OAUTH_PROVIDER_CLIENT_ID: summon-core-mcp
       PLANE_OAUTH_PROVIDER_CLIENT_SECRET: ${PLANE_OAUTH_PROVIDER_CLIENT_SECRET:-pat-route-only}
-      PLANE_OAUTH_PROVIDER_BASE_URL: ${WEB_URL:-https://summon-core.withsummon.com}
+      PLANE_OAUTH_PROVIDER_BASE_URL: ${WEB_URL:-https://core.withsummon.com}
       REDIS_HOST: plane-redis
       REDIS_PORT: "6379"
       MCP_PATH_PREFIX: /mcp
@@ -256,7 +256,7 @@ services:
         exec bun dist/main.js
     environment:
       DJANGO_URL: http://api:8000
-      WEB_URL: ${WEB_URL:-https://summon-core.withsummon.com}
+      WEB_URL: ${WEB_URL:-https://core.withsummon.com}
       PLANE_MCP_URL: http://mcp:8211/mcp/http/api-key/mcp
       APP_VERSION: ${SUMMON_IMAGE_TAG:-latest}
     secrets:
