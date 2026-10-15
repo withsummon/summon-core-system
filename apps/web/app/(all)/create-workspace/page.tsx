@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import { getWorkspaceHomePath } from "@plane/constants";
 import { useState } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
@@ -53,7 +54,9 @@ const CreateWorkspacePage = observer(function CreateWorkspacePage() {
   };
 
   const onSubmit = async (workspace: IWorkspace) => {
-    await updateUserProfile({ last_workspace_id: workspace.id }).then(() => router.push(`/${workspace.slug}`));
+    await updateUserProfile({ last_workspace_id: workspace.id }).then(() =>
+      router.push(getWorkspaceHomePath(workspace.slug))
+    );
   };
 
   return (

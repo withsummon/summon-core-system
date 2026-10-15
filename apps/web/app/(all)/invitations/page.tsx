@@ -11,7 +11,7 @@ import Link from "next/link";
 import useSWR, { mutate } from "swr";
 import { CheckCircle2 } from "lucide-react";
 // plane imports
-import { ROLE } from "@plane/constants";
+import { getWorkspaceHomePath, ROLE } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 // types
 import { Button } from "@plane/propel/button";
@@ -84,12 +84,12 @@ function UserInvitationsPage() {
         mutate(USER_WORKSPACES_LIST);
         const firstInviteId = invitationsRespond[0];
         const redirectWorkspace = invitations?.find((i) => i.id === firstInviteId)?.workspace;
-        updateUserProfile({ last_workspace_id: redirectWorkspace?.id })
+        return updateUserProfile({ last_workspace_id: redirectWorkspace?.id })
           .then(() => {
             setIsJoiningWorkspaces(false);
-            fetchWorkspaces().then(() => {
-              router.push(`/${redirectWorkspace?.slug}`);
-            });
+            return fetchWorkspaces().then(() =>
+              router.push(redirectWorkspace ? getWorkspaceHomePath(redirectWorkspace.slug) : "/")
+            );
           })
           .catch(() => {
             setToast({
@@ -177,7 +177,7 @@ function UserInvitationsPage() {
                   >
                     {t("accept_and_join")}
                   </Button>
-                  <Link href={`/${redirectWorkspaceSlug}`}>
+                  <Link href={getWorkspaceHomePath(redirectWorkspaceSlug)}>
                     <span>
                       <Button variant="secondary" size="lg">
                         {t("go_home")}

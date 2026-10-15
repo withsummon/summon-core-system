@@ -24,6 +24,12 @@ export const SUMMON_MODULES = [
   { key: "summon_settings", label: "Settings", path: "settings" },
 ] as const;
 
+/**
+ * Where a workspace opens. `/:workspaceSlug` only redirects here after the workspace
+ * shell has loaded, so linking here directly saves a second round of route loading.
+ */
+export const getWorkspaceHomePath = (workspaceSlug: string) => `/${workspaceSlug}/summon`;
+
 export const SUMMON_ASSISTANT_NAVIGATION_ITEM: IWorkspaceSidebarNavigationItem = {
   key: "summon_assistant",
   labelTranslationKey: "summon.assistant",

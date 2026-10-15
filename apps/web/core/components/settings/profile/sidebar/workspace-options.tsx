@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import { getWorkspaceHomePath } from "@plane/constants";
 import { CirclePlus, Mails } from "lucide-react";
 import { observer } from "mobx-react";
 // plane imports
@@ -28,7 +29,7 @@ export const ProfileSettingsSidebarWorkspaceOptions = observer(function ProfileS
           <SettingsSidebarItem
             key={workspace.id}
             as="link"
-            href={`/${workspace.slug}/`}
+            href={getWorkspaceHomePath(workspace.slug)}
             iconNode={<WorkspaceLogo logo={workspace.logo_url} name={workspace.name} classNames="shrink-0" />}
             label={workspace.name}
             isActive={false}

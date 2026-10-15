@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import { getWorkspaceHomePath } from "@plane/constants";
 import { Briefcase, FileText, Layers, LayoutGrid } from "lucide-react";
 // plane imports
 import { ContrastIcon, DiceIcon } from "@plane/propel/icons";
@@ -108,7 +109,7 @@ export const POWER_K_SEARCH_RESULTS_GROUPS_MAP: Record<TPowerKSearchResultsKeys,
   workspace: {
     icon: LayoutGrid,
     itemName: (workspace: IWorkspaceSearchResult) => workspace?.name,
-    path: (workspace: IWorkspaceSearchResult) => `/${workspace?.slug}/`,
+    path: (workspace: IWorkspaceSearchResult) => getWorkspaceHomePath(workspace?.slug),
     title: "Workspaces",
   },
 };

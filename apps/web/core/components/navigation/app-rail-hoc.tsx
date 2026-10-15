@@ -5,6 +5,7 @@
  */
 
 // hoc/withDockItems.tsx
+import { getWorkspaceHomePath } from "@plane/constants";
 import React from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
@@ -25,7 +26,7 @@ export function withDockItems<P extends WithDockItemsProps>(WrappedComponent: Re
       {
         label: "Projects",
         icon: <PlaneNewIcon className="size-5" />,
-        href: `/${workspaceSlug}/`,
+        href: getWorkspaceHomePath(workspaceSlug),
         isActive: isProjectsPath && !isNotificationsPath,
         shouldRender: true,
       },
