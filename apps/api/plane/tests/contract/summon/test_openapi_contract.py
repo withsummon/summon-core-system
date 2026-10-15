@@ -146,6 +146,7 @@ def test_summon_responses_match_the_openapi_schema(seeded, create_user, session_
         (f"/assistant/conversations/{conversation['id']}/messages/", "assistant_message_list"),
         (f"/assistant/conversations/{conversation['id']}/attachments/", "assistant_attachment_list"),
         ("/credentials/", "credential_list"),
+        ("/drive-folders/", "drive_folder_list"),
         (f"/credentials/{credential['id']}/", "credential_get"),
         (f"/credentials/{credential['id']}/grants/", "credential_grant_list"),
         (f"/credentials/{credential['id']}/audit/", "credential_audit"),

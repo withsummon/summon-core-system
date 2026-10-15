@@ -42,6 +42,10 @@ SUMMON_SPECTACULAR_SETTINGS = {
         "MeetingStatusEnum": "plane.summon.models.Meeting.Status",
         "AutomationJobStatusEnum": "plane.summon.models.AutomationJob.Status",
         "ClientStatusEnum": "plane.summon.models.Client.Status",
+        # Two `health` fields: projects keep the published name, Drive folders get their own.
+        "HealthEnum": "plane.summon.models.SummonProjectProfile.ProjectHealth",
+        "DriveFolderHealthEnum": "plane.summon.models.DriveFolder.Health",
+        "DriveFolderKindEnum": "plane.summon.models.DriveFolder.Kind",
     },
     "SERVERS": [],
     # 3.1 states nullability as JSON Schema (`oneOf: [ref, {type: null}]`). The client generator ignores

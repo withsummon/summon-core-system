@@ -5,6 +5,7 @@
  */
 
 import { API_BASE_URL } from "@plane/constants";
+import type { SummonClient } from "@plane/summon-contract";
 import type {
   ISummonAccess,
   ISummonAccessEvent,
@@ -184,6 +185,29 @@ export class SummonService extends APIService {
 
   importTldvMeetings(workspaceSlug: string, payload: { credential: string; project: string }) {
     return this.data<ISummonTldvImportResult>(this.post(`${this.root(workspaceSlug)}/meetings/import/tldv/`, payload));
+  }
+
+  listDriveFolders(workspaceSlug: string) {
+    return this.data<SummonClient.DriveFolder[]>(this.get(`${this.root(workspaceSlug)}/drive-folders/`));
+  }
+
+  connectDriveFolder(workspaceSlug: string, payload: SummonClient.DriveFolderConnectRequest) {
+    return this.data<SummonClient.DriveFolder>(this.post(`${this.root(workspaceSlug)}/drive-folders/`, payload));
+  }
+
+  syncDriveFolder(workspaceSlug: string, folderId: string) {
+    return this.data<SummonClient.DriveFolder>(
+      this.post(`${this.root(workspaceSlug)}/drive-folders/${folderId}/sync/`)
+    );
+  }
+
+  disconnectDriveFolder(workspaceSlug: string, folderId: string) {
+    return this.data<void>(this.delete(`${this.root(workspaceSlug)}/drive-folders/${folderId}/`));
+  }
+
+  /** A page the browser navigates to: it hands over to Google's consent screen, which returns to Knowledge. */
+  googleDriveConnectUrl(workspaceSlug: string) {
+    return `${API_BASE_URL}${this.root(workspaceSlug)}/google-drive/connect/`;
   }
 
   getMeeting(workspaceSlug: string, meetingId: string) {

@@ -5,7 +5,15 @@
 from .access import SummonAccessEvent
 from .automation import AutomationJob, AutomationTemplate, GeneratedArtifact
 from .assistant import AssistantAction, AssistantAttachment, AssistantConversation, AssistantMessage
-from .collaboration import Meeting, MeetingParticipant, MeetingWorkItem, ResourceLink, SummonPageContext
+from .collaboration import (
+    DriveFile,
+    DriveFolder,
+    Meeting,
+    MeetingParticipant,
+    MeetingWorkItem,
+    ResourceLink,
+    SummonPageContext,
+)
 from .commercial import Client, ClientContact, Opportunity, SummonProjectProfile
 from .credential import Credential, CredentialAccessLog, CredentialGrant
 from .settings import SummonWorkspaceSettings
@@ -22,6 +30,8 @@ __all__ = [
     "Credential",
     "CredentialAccessLog",
     "CredentialGrant",
+    "DriveFile",
+    "DriveFolder",
     "GeneratedArtifact",
     "Meeting",
     "MeetingParticipant",

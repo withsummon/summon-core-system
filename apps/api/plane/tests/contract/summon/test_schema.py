@@ -21,6 +21,8 @@ EXPECTED_MODELS = {
     "Credential",
     "CredentialAccessLog",
     "CredentialGrant",
+    "DriveFile",
+    "DriveFolder",
     "GeneratedArtifact",
     "Meeting",
     "MeetingParticipant",

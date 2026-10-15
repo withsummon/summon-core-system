@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import URLValidator
 from django.db import transaction
+from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
@@ -26,6 +27,7 @@ from plane.summon.serializers.shapes import (
 )
 from plane.db.models import Page, ProjectMember, ProjectPage, WorkspaceMember
 from plane.summon.models import (
+    DriveFolder,
     Meeting,
     MeetingParticipant,
     MeetingWorkItem,
@@ -532,3 +534,48 @@ class ResourceLinkSerializer(CollaborationSerializer):
         if errors:
             raise serializers.ValidationError(errors)
         return attrs
+
+
+class DriveFolderSerializer(serializers.ModelSerializer):
+    folder_url = serializers.SerializerMethodField()
+    account = serializers.CharField(source="credential.account_identifier", read_only=True)
+    file_count = serializers.IntegerField(read_only=True)
+    live = serializers.SerializerMethodField()
+    health = serializers.ChoiceField(choices=DriveFolder.Health.choices, read_only=True)
+
+    class Meta:
+        model = DriveFolder
+        fields = (
+            "id",
+            "project",
+            "credential",
+            "kind",
+            "folder_id",
+            "name",
+            "folder_url",
+            "account",
+            "file_count",
+            "live",
+            "health",
+            "last_synced_at",
+            "sync_error",
+            "created_at",
+        )
+        read_only_fields = fields
+
+    def get_folder_url(self, instance) -> str:
+        if instance.kind == DriveFolder.Kind.FILE:
+            return f"https://drive.google.com/file/d/{instance.folder_id}/view"
+        return f"https://drive.google.com/drive/folders/{instance.folder_id}"
+
+    def get_live(self, instance) -> bool:
+        """Whether Drive pushes changes as they happen; otherwise they arrive with the next periodic sync."""
+        return bool(instance.channel_expires_at and instance.channel_expires_at > timezone.now())
+
+
+class DriveFolderConnectSerializer(serializers.Serializer):
+    credential = serializers.UUIDField()
+    project = serializers.UUIDField()
+    folder = serializers.CharField(
+        max_length=500, help_text="A Drive folder link, a Doc, Sheet or Slides link, or a Drive ID."
+    )

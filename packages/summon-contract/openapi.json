@@ -3193,6 +3193,214 @@
         "x-summon-tool": "none"
       }
     },
+    "/api/summon/workspaces/{slug}/drive-folders/": {
+      "get": {
+        "operationId": "drive_folder_list",
+        "description": "Drive folders and files synced into the projects you can access, with their sync health.",
+        "summary": "List synced Google Drive folders and files",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "tags": ["drive"],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {
+            "ApiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DriveFolder"
+                  }
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "x-summon-tool": "none"
+      },
+      "post": {
+        "operationId": "drive_folder_create",
+        "description": "Copy a Drive folder's Docs, Sheets and Slides, subfolders included, or a single Doc, Sheet or Slides file, into locked pages of `project`, and keep them current as the files change. The credential's Google account must be able to open it.",
+        "summary": "Sync a Google Drive folder or file",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "tags": ["drive"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DriveFolderConnectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {
+            "ApiKey": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriveFolder"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorCode"
+                }
+              }
+            },
+            "description": ""
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorCode"
+                }
+              }
+            },
+            "description": ""
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorCode"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "x-summon-tool": "none"
+      }
+    },
+    "/api/summon/workspaces/{slug}/drive-folders/{folder_id}/": {
+      "delete": {
+        "operationId": "drive_folder_delete",
+        "description": "Stop following it in Drive. Its pages stay, unlocked, as ordinary pages.",
+        "summary": "Stop syncing a Google Drive folder or file",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "folder_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "tags": ["drive"],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {
+            "ApiKey": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "x-summon-tool": "none"
+      }
+    },
+    "/api/summon/workspaces/{slug}/drive-folders/{folder_id}/sync/": {
+      "post": {
+        "operationId": "drive_folder_sync",
+        "description": "Compare every page with its Drive file now, instead of waiting for the next change.",
+        "summary": "Sync a Google Drive folder or file now",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "folder_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "tags": ["drive"],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {
+            "ApiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriveFolder"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "x-summon-tool": "none"
+      }
+    },
     "/api/summon/workspaces/{slug}/meetings/{meeting_id}/summary/": {
       "post": {
         "operationId": "meeting_summary",
@@ -6966,6 +7174,127 @@
       },
       "DeliveryStatusEnum": {
         "enum": ["not_assessed", "planning", "active", "on_hold", "completed"],
+        "type": "string"
+      },
+      "DriveFolder": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "project": {
+            "type": "string",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "credential": {
+            "type": "string",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DriveFolderKindEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "folder_id": {
+            "type": "string",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "readOnly": true
+          },
+          "folder_url": {
+            "type": "string",
+            "readOnly": true
+          },
+          "account": {
+            "type": "string",
+            "readOnly": true
+          },
+          "file_count": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "live": {
+            "type": "boolean",
+            "description": "Whether Drive pushes changes as they happen; otherwise they arrive with the next periodic sync.",
+            "readOnly": true
+          },
+          "health": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DriveFolderHealthEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "last_synced_at": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "readOnly": true
+          },
+          "sync_error": {
+            "type": "string",
+            "readOnly": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          }
+        },
+        "required": [
+          "account",
+          "created_at",
+          "credential",
+          "file_count",
+          "folder_id",
+          "folder_url",
+          "health",
+          "id",
+          "kind",
+          "last_synced_at",
+          "live",
+          "name",
+          "project",
+          "sync_error"
+        ],
+        "additionalProperties": false
+      },
+      "DriveFolderConnectRequest": {
+        "type": "object",
+        "properties": {
+          "credential": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "project": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "folder": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A Drive folder link, a Doc, Sheet or Slides link, or a Drive ID.",
+            "maxLength": 500
+          }
+        },
+        "required": ["credential", "folder", "project"],
+        "additionalProperties": false
+      },
+      "DriveFolderHealthEnum": {
+        "enum": ["ok", "revoked", "error", "stalled"],
+        "type": "string"
+      },
+      "DriveFolderKindEnum": {
+        "enum": ["folder", "file"],
         "type": "string"
       },
       "ErrorCode": {

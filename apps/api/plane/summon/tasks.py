@@ -1,7 +1,16 @@
 from celery import shared_task
+from django.utils import timezone
 
 from plane.db.models import ProjectMember, User
-from plane.summon.models import AssistantAttachment, Meeting
+from plane.summon.models import AssistantAttachment, DriveFolder, Meeting
+from plane.summon.services.google_drive import (
+    CHANNEL_RENEW_WITHIN,
+    GoogleDriveError,
+    record_drive_error,
+    run_drive_sync,
+    watch_drive_folder,
+    webhook_address,
+)
 from plane.summon.services.meeting_transcript import write_meeting_transcript
 from plane.summon.services.transcription import TranscriptionError, transcribe_file_asset
 
@@ -75,3 +84,22 @@ def transcribe_assistant_attachment(attachment_id, actor_id):
         attachment.status = AssistantAttachment.Status.FAILED
         attachment.error = "transcription_failed"
         attachment.save(update_fields=["status", "error", "updated_at"])
+
+
+@shared_task
+def sync_drive_changes(folder_id):
+    run_drive_sync(folder_id)
+
+
+@shared_task
+def refresh_drive_folders():
+    """The safety net under push notifications, which Drive does not promise to deliver: read every folder's
+    change feed, and renew push channels before Drive lets them lapse."""
+    renew_before = timezone.now() + CHANNEL_RENEW_WITHIN
+    for folder_id in DriveFolder.objects.values_list("id", flat=True):
+        folder = run_drive_sync(folder_id)
+        if folder and webhook_address() and (not folder.channel_expires_at or folder.channel_expires_at < renew_before):
+            try:
+                watch_drive_folder(folder)
+            except GoogleDriveError as error:
+                record_drive_error(folder, error)
