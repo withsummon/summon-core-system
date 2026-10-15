@@ -7,5 +7,6 @@ test("maps Next-style prefetch values to React Router prefetch behavior", () => 
   assert.equal(normalizeLinkPrefetch(true), "intent");
   assert.equal(normalizeLinkPrefetch(false), "none");
   assert.equal(normalizeLinkPrefetch("render"), "render");
-  assert.equal(normalizeLinkPrefetch(undefined), undefined);
+  assert.equal(normalizeLinkPrefetch("none"), "none");
+  assert.equal(normalizeLinkPrefetch(undefined), "intent");
 });

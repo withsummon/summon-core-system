@@ -54,7 +54,7 @@ export function TabNavigationOverflowMenu({ overflowItems, isActive, tabPreferen
         return (
           <Menu.MenuItem key={`${item.key}-overflow-${itemIsActive ? "active" : "inactive"}`} className="w-full p-0">
             <div className="group/menu-item flex w-full items-center justify-between">
-              <Link to={item.href} className="w-full min-w-0 flex-1 p-1">
+              <Link to={item.href} prefetch="intent" className="w-full min-w-0 flex-1 p-1">
                 <span className="text-11">{t(item.i18n_key)}</span>
               </Link>
               <div className="flex items-center">

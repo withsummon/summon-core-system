@@ -42,8 +42,11 @@ export function ensureTrailingSlash(url: string): string {
 
 export type LinkPrefetch = boolean | "intent" | "render" | "none" | "viewport";
 
+// Next.js links prefetch unless told not to, and the code here was written against that. React Router's
+// Link defaults to "none", which leaves a route's chunks to load after the click and holds the URL change
+// until they arrive, so an unset prefetch maps to "intent" (hover, focus or touch).
 export function normalizeLinkPrefetch(prefetch: LinkPrefetch | undefined) {
-  if (prefetch === true) return "intent";
+  if (prefetch === undefined || prefetch === true) return "intent";
   if (prefetch === false) return "none";
   return prefetch;
 }
