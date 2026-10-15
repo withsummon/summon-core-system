@@ -5,6 +5,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { groupBy, mapValues } from "lodash-es";
 import { observer } from "mobx-react";
 import { CheckSquareIcon, ListChecksIcon, PencilSimpleLineIcon, UsersThreeIcon } from "@phosphor-icons/react";
 import Link from "next/link";
@@ -215,13 +216,10 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
   );
   const projects = Array.from(new Map(records.map(({ project }) => [project.id, project])).values());
   // Progress counts every task in the project, not just the ones this view shows.
-  const progressByProject = new Map<string, TProgress>();
-  for (const task of tasks) {
-    const progress = progressByProject.get(task.project.id) ?? { total: 0, done: 0 };
-    progress.total += 1;
-    if (isTaskCompleted(task)) progress.done += 1;
-    progressByProject.set(task.project.id, progress);
-  }
+  const progressByProject = mapValues(
+    groupBy(tasks, (task) => task.project.id),
+    (group): TProgress => ({ total: group.length, done: group.filter(isTaskCompleted).length })
+  );
   const memberIds = (ids: string[]) => {
     const unique = [...new Set(ids)];
     unique.sort((a, b) =>
@@ -471,7 +469,7 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
                               <ProjectChip
                                 workspaceSlug={workspaceSlug}
                                 project={task.project}
-                                progress={progressByProject.get(task.project.id) ?? { total: 0, done: 0 }}
+                                progress={progressByProject[task.project.id]}
                               />
                             )}
                             {shows("assignee") && (
