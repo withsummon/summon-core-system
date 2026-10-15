@@ -27,6 +27,7 @@ import { Popover } from "@plane/propel/popover";
 import { CircularProgressIndicator } from "@plane/ui";
 import { getFileURL, renderFormattedDateWithoutYear } from "@plane/utils";
 import { PageHead } from "@/components/core/page-title";
+import { PROJECT_BADGE_CLASSNAME } from "@/components/summon/project-badge";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonPageHeader } from "@/components/summon/screen";
 import { useHashTab } from "@/components/summon/use-hash-tab";
@@ -114,12 +115,7 @@ const ProjectChip = observer(function ProjectChip({
     >
       <Popover.Button
         nativeButton={false}
-        render={
-          <Link
-            href={`/${workspaceSlug}/summon/projects/${project.id}/`}
-            className="max-w-48 truncate rounded border border-subtle px-2 py-0.5 text-12 hover:border-strong hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
-          />
-        }
+        render={<Link href={`/${workspaceSlug}/summon/projects/${project.id}/`} className={PROJECT_BADGE_CLASSNAME} />}
       >
         {project.name}
       </Popover.Button>
