@@ -23,7 +23,7 @@ import { SidebarNavItem } from "@/components/sidebar/sidebar-navigation";
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
 import { useWorkspaceNavigationPreferences } from "@/hooks/use-navigation-preferences";
-import { SidebarProjectPinMenu, SidebarProjectTree } from "./project-tree";
+import { SidebarProjectPinMenu, SidebarProjectTree, useProjectTreeMarksRoute } from "./project-tree";
 import { SidebarItemBase } from "./sidebar-item";
 
 const summonNavigationItemKeys = SUMMON_WORKSPACE_NAVIGATION_ITEMS.map(({ key }) => key);
@@ -43,6 +43,8 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
   );
 
   const slug = workspaceSlug?.toString() || "";
+  // The open project tree highlights the current tab itself, so Projects stands down for those routes.
+  const isRouteInProjectTree = useProjectTreeMarksRoute(slug);
   const itemProps = (item: IWorkspaceSidebarNavigationItem) => {
     const href =
       item.key === "your_work" && currentUser?.id
@@ -57,11 +59,10 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
         {SUMMON_WORKSPACE_NAVIGATION_ITEMS.map((item) =>
           item.key === "summon_projects" ? (
             <Fragment key={item.key}>
-              {/* The project tree highlights the open project's tab, so Projects marks only the list itself. */}
               <div className="group/projects relative">
                 <SidebarItemBase
                   {...itemProps(item)}
-                  isActive={[itemProps(item).href, `${itemProps(item).href}/`].includes(pathname)}
+                  isActive={itemProps(item).isActive && !isRouteInProjectTree}
                   additionalStaticItems={summonNavigationItemKeys}
                 />
                 <SidebarProjectPinMenu

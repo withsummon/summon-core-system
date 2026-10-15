@@ -6,7 +6,7 @@
 
 import { useEffect } from "react";
 import { observer } from "mobx-react";
-import { useParams, usePathname, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import useSWR from "swr";
 // plane constants
 import { EIssueFilterType, ISSUE_DISPLAY_FILTERS_BY_PAGE, PROJECT_VIEW_TRACKER_ELEMENTS } from "@plane/constants";
@@ -19,6 +19,7 @@ import { WorkItemFiltersRow } from "@/components/work-item-filters/filters-row";
 import { useIssues } from "@/hooks/store/use-issues";
 import { useAppRouter } from "@/hooks/use-app-router";
 import { IssuesStoreContext } from "@/hooks/use-issue-layout-store";
+import { useQueryParams } from "@/hooks/use-query-params";
 // local imports
 import { IssuePeekOverview } from "../../peek-overview";
 import { CalendarLayout } from "../calendar/roots/project-root";
@@ -67,7 +68,7 @@ export const ProjectLayoutRoot = observer(function ProjectLayoutRoot() {
 
   // `?layout=` (e.g. the sidebar's Timeline link) switches the saved layout once filters load, then leaves the URL.
   const router = useAppRouter();
-  const pathname = usePathname();
+  const { updateQueryParams } = useQueryParams();
   const layoutParam = useSearchParams().get("layout");
   const requestedLayout = Object.values<string>(EIssueLayoutTypes).includes(layoutParam ?? "")
     ? (layoutParam as EIssueLayoutTypes)
@@ -79,7 +80,7 @@ export const ProjectLayoutRoot = observer(function ProjectLayoutRoot() {
       void issuesFilter.updateFilters(workspaceSlug, projectId, EIssueFilterType.DISPLAY_FILTERS, {
         layout: requestedLayout,
       });
-    router.replace(pathname);
+    router.replace(updateQueryParams({ paramsToRemove: ["layout"] }));
   }, [
     workspaceSlug,
     projectId,
@@ -89,7 +90,7 @@ export const ProjectLayoutRoot = observer(function ProjectLayoutRoot() {
     requestedLayout,
     issuesFilter,
     router,
-    pathname,
+    updateQueryParams,
   ]);
 
   if (!workspaceSlug || !projectId || !workItemFilters) return <></>;

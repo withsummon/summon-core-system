@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useParams, usePathname, useSearchParams } from "next/navigation";
 import {
   ChartBarHorizontalIcon,
   CheckSquareIcon,
@@ -27,6 +27,7 @@ import { cn } from "@plane/utils";
 import { SidebarNavItem } from "@/components/sidebar/sidebar-navigation";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
+import { useFavorite } from "@/hooks/store/use-favorite";
 import { useIssues } from "@/hooks/store/use-issues";
 import { useProject } from "@/hooks/store/use-project";
 // local imports
@@ -39,10 +40,58 @@ const NO_OPEN_PROJECTS: Record<string, boolean> = {};
 
 type TProjectTab = { key: string; label: string; icon: TSelectableIcon; href: string; isActive: boolean };
 
-/** The user's pinned projects, the project favorites the server keeps; first in the user's project order. */
-const usePinnedProjectIds = () => {
-  const { joinedProjectIds, getProjectById } = useProject();
-  return joinedProjectIds.filter((id) => getProjectById(id)?.is_favorite).slice(0, MAX_PINNED);
+/** The user's pinned projects, the project favorites the server keeps, in the user's project order. */
+const useFavoriteProjectIds = () => {
+  const { joinedProjectIds } = useProject();
+  const { entityMap } = useFavorite();
+  return joinedProjectIds.filter((id) => !!entityMap[id]);
+};
+
+/** A pinned project's tabs. Tasks and Timeline share the work items page and each requests its layout. */
+const useProjectTabs = (workspaceSlug: string, projectId: string): TProjectTab[] => {
+  const pathname = usePathname();
+  const layoutParam = useSearchParams().get("layout");
+  const { getProjectById } = useProject();
+  const { issuesFilter } = useIssues(EIssuesStoreType.PROJECT);
+
+  const homeHref = `/${workspaceSlug}/summon/projects/${projectId}`;
+  const issuesHref = `/${workspaceSlug}/projects/${projectId}/issues`;
+  const viewsHref = `/${workspaceSlug}/projects/${projectId}/views`;
+  const isUnder = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  // The saved layout tells Tasks and Timeline apart, or the `?layout=` a just-clicked tab carries until it's saved.
+  const savedLayout = issuesFilter.getIssueFilters(projectId)?.displayFilters?.layout;
+  const isTimeline = ((isUnder(issuesHref) && layoutParam) || savedLayout) === EIssueLayoutTypes.GANTT;
+
+  const tabs: TProjectTab[] = [
+    { key: "home", label: "Home", icon: HouseIcon, href: homeHref, isActive: isUnder(homeHref) },
+    {
+      key: "tasks",
+      label: "Tasks",
+      icon: CheckSquareIcon,
+      href: `${issuesHref}?layout=${EIssueLayoutTypes.LIST}`,
+      isActive: isUnder(issuesHref) && !isTimeline,
+    },
+    {
+      key: "timeline",
+      label: "Timeline",
+      icon: ChartBarHorizontalIcon,
+      href: `${issuesHref}?layout=${EIssueLayoutTypes.GANTT}`,
+      isActive: isUnder(issuesHref) && isTimeline,
+    },
+  ];
+  if (getProjectById(projectId)?.issue_views_view)
+    tabs.push({ key: "views", label: "Views", icon: SquaresFourIcon, href: viewsHref, isActive: isUnder(viewsHref) });
+  return tabs;
+};
+
+/** Whether the project tree visibly marks the current page, so the Projects item needn't. */
+export const useProjectTreeMarksRoute = (workspaceSlug: string) => {
+  const { projectId: routeProjectId } = useParams();
+  const projectId = routeProjectId?.toString() ?? "";
+  const isPinned = useFavoriteProjectIds().slice(0, MAX_PINNED).includes(projectId);
+  const { storedValue: openProjects } = useLocalStorage(OPEN_PROJECTS_KEY, NO_OPEN_PROJECTS);
+  const tabs = useProjectTabs(workspaceSlug, projectId);
+  return isPinned && !!openProjects?.[projectId] && tabs.some((tab) => tab.isActive);
 };
 
 /**
@@ -51,7 +100,7 @@ const usePinnedProjectIds = () => {
  * are open persists in this browser.
  */
 export const SidebarProjectTree = observer(function SidebarProjectTree({ workspaceSlug }: { workspaceSlug: string }) {
-  const pinnedIds = usePinnedProjectIds();
+  const pinnedIds = useFavoriteProjectIds().slice(0, MAX_PINNED);
   const moveProject = useMoveJoinedProject(workspaceSlug);
   const { storedValue: openProjects, setValue: setOpenProjects } = useLocalStorage(OPEN_PROJECTS_KEY, NO_OPEN_PROJECTS);
 
@@ -80,8 +129,8 @@ export const SidebarProjectPinMenu = observer(function SidebarProjectPinMenu(pro
 }) {
   const { workspaceSlug, className } = props;
   const { joinedProjectIds, getPartialProjectById, addProjectToFavorites, removeProjectFromFavorites } = useProject();
-  const pinnedIds = usePinnedProjectIds();
-  const isFull = pinnedIds.length >= MAX_PINNED;
+  const favoriteIds = useFavoriteProjectIds();
+  const isFull = favoriteIds.length >= MAX_PINNED;
 
   if (!joinedProjectIds.length) return null;
   return (
@@ -105,7 +154,7 @@ export const SidebarProjectPinMenu = observer(function SidebarProjectPinMenu(pro
       {joinedProjectIds.map((projectId) => {
         const project = getPartialProjectById(projectId);
         if (!project) return null;
-        const isPinned = pinnedIds.includes(projectId);
+        const isPinned = favoriteIds.includes(projectId);
         return (
           <CustomMenu.MenuItem
             key={projectId}
@@ -143,10 +192,8 @@ type TItemProps = {
 
 const SidebarProjectTreeItem = observer(function SidebarProjectTreeItem(props: TItemProps) {
   const { workspaceSlug, projectId, isOpen, onToggle, isLastChild, onDrop } = props;
-  const pathname = usePathname();
-  const layoutParam = useSearchParams().get("layout");
   const { getPartialProjectById, removeProjectFromFavorites } = useProject();
-  const { issuesFilter } = useIssues(EIssuesStoreType.PROJECT);
+  const tabs = useProjectTabs(workspaceSlug, projectId);
   const { toggleSidebar } = useAppTheme();
   const project = getPartialProjectById(projectId);
   const { projectRef, isDragging, instruction } = useProjectItemDragAndDrop({
@@ -157,34 +204,6 @@ const SidebarProjectTreeItem = observer(function SidebarProjectTreeItem(props: T
     handleOnProjectDrop: onDrop,
   });
   if (!project) return null;
-
-  const homeHref = `/${workspaceSlug}/summon/projects/${projectId}`;
-  const issuesHref = `/${workspaceSlug}/projects/${projectId}/issues`;
-  const viewsHref = `/${workspaceSlug}/projects/${projectId}/views`;
-  const isUnder = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
-
-  // Tasks and Timeline share the work items page; the project's saved layout tells them apart, or the `?layout=`
-  // a just-clicked tab carries until the page saves it.
-  const savedLayout = issuesFilter.getIssueFilters(projectId)?.displayFilters?.layout;
-  const isTimeline = ((isUnder(issuesHref) && layoutParam) || savedLayout) === EIssueLayoutTypes.GANTT;
-  const tabs: TProjectTab[] = [
-    { key: "home", label: "Home", icon: HouseIcon, href: homeHref, isActive: isUnder(homeHref) },
-    {
-      key: "tasks",
-      label: "Tasks",
-      icon: CheckSquareIcon,
-      href: isTimeline ? `${issuesHref}?layout=${EIssueLayoutTypes.LIST}` : issuesHref,
-      isActive: isUnder(issuesHref) && !isTimeline,
-    },
-    {
-      key: "timeline",
-      label: "Timeline",
-      icon: ChartBarHorizontalIcon,
-      href: `${issuesHref}?layout=${EIssueLayoutTypes.GANTT}`,
-      isActive: isUnder(issuesHref) && isTimeline,
-    },
-    { key: "views", label: "Views", icon: SquaresFourIcon, href: viewsHref, isActive: isUnder(viewsHref) },
-  ];
 
   const unpinLabel = `Unpin ${project.name}`;
 

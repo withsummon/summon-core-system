@@ -131,7 +131,7 @@ type TLeadingControlsProps = {
 };
 
 /** Selection checkbox, priority, identifier, sub-work-item toggle and state at the start of a list block. */
-export function ListBlockLeadingControls(props: TLeadingControlsProps) {
+export const ListBlockLeadingControls = observer(function ListBlockLeadingControls(props: TLeadingControlsProps) {
   const {
     issue,
     groupId,
@@ -216,4 +216,4 @@ export function ListBlockLeadingControls(props: TLeadingControlsProps) {
       {isTemporary && <div className="absolute top-0 left-0 z-[99999] h-full w-full animate-pulse bg-surface-1/20" />}
     </div>
   );
-}
+});

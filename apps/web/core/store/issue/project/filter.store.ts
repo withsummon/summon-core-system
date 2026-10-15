@@ -59,8 +59,9 @@ export interface IProjectIssuesFilter extends IBaseIssueFilterStore {
 export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProjectIssuesFilter {
   // observables
   filters: { [projectId: string]: IIssueFilters } = {};
-  // local filter edits per project, so a fetch that started before an edit doesn't overwrite it
-  private filterEditCounts: { [projectId: string]: number } = {};
+  // filter save starts and ends per project, and saves still pending, so a fetch overlapping a save doesn't overwrite it
+  private filterSaveCounts: { [projectId: string]: number } = {};
+  private pendingFilterSaves: { [projectId: string]: number } = {};
   // root store
   rootIssueStore: IIssueRootStore;
   // services
@@ -137,10 +138,10 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
   );
 
   fetchFilters = async (workspaceSlug: string, projectId: string) => {
-    const editCount = this.filterEditCounts[projectId];
+    const saveCount = this.filterSaveCounts[projectId];
     const _filters = await this.projectService.getProjectUserProperties(workspaceSlug, projectId);
-    // the filters were edited while this request was in flight; the local state is newer than the response
-    if (this.filterEditCounts[projectId] !== editCount) return;
+    // a save overlapped this request, so the response may predate it; the local state is newer
+    if (this.filterSaveCounts[projectId] !== saveCount || this.pendingFilterSaves[projectId]) return;
 
     const richFilters = _filters?.rich_filters;
     const displayFilters = this.computedDisplayFilters(_filters?.display_filters);
@@ -171,6 +172,22 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
     });
   };
 
+  /** Saves the user's filters for the project, tracked so overlapping fetches leave the newer local state alone. */
+  private saveFilters = async (
+    workspaceSlug: string,
+    projectId: string,
+    data: Parameters<ProjectService["updateProjectUserProperties"]>[2]
+  ) => {
+    this.filterSaveCounts[projectId] = (this.filterSaveCounts[projectId] ?? 0) + 1;
+    this.pendingFilterSaves[projectId] = (this.pendingFilterSaves[projectId] ?? 0) + 1;
+    try {
+      await this.projectService.updateProjectUserProperties(workspaceSlug, projectId, data);
+    } finally {
+      this.pendingFilterSaves[projectId] -= 1;
+      this.filterSaveCounts[projectId] += 1;
+    }
+  };
+
   /**
    * NOTE: This method is designed as a fallback function for the work item filter store.
    * Only use this method directly when initializing filter instances.
@@ -182,13 +199,12 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
     filters
   ) => {
     try {
-      this.filterEditCounts[projectId] = (this.filterEditCounts[projectId] ?? 0) + 1;
       runInAction(() => {
         set(this.filters, [projectId, "richFilters"], filters);
       });
 
       this.rootIssueStore.projectIssues.fetchIssuesWithExistingPagination(workspaceSlug, projectId, "mutation");
-      await this.projectService.updateProjectUserProperties(workspaceSlug, projectId, {
+      await this.saveFilters(workspaceSlug, projectId, {
         rich_filters: filters,
       });
     } catch (error) {
@@ -200,7 +216,6 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
   updateFilters: IProjectIssuesFilter["updateFilters"] = async (workspaceSlug, projectId, type, filters) => {
     try {
       if (isEmpty(this.filters) || isEmpty(this.filters[projectId])) return;
-      this.filterEditCounts[projectId] = (this.filterEditCounts[projectId] ?? 0) + 1;
 
       const _filters = {
         richFilters: this.filters[projectId].richFilters,
@@ -251,7 +266,7 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
             this.rootIssueStore.projectIssues.fetchIssuesWithExistingPagination(workspaceSlug, projectId, "mutation");
           }
 
-          await this.projectService.updateProjectUserProperties(workspaceSlug, projectId, {
+          await this.saveFilters(workspaceSlug, projectId, {
             display_filters: _filters.displayFilters,
           });
 
@@ -271,7 +286,7 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
             });
           });
 
-          await this.projectService.updateProjectUserProperties(workspaceSlug, projectId, {
+          await this.saveFilters(workspaceSlug, projectId, {
             display_properties: _filters.displayProperties,
           });
           break;
