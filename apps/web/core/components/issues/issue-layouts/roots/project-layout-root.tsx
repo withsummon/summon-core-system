@@ -4,11 +4,12 @@
  * See the LICENSE file for details.
  */
 
+import { useEffect } from "react";
 import { observer } from "mobx-react";
-import { useParams } from "next/navigation";
+import { useParams, usePathname, useSearchParams } from "next/navigation";
 import useSWR from "swr";
 // plane constants
-import { ISSUE_DISPLAY_FILTERS_BY_PAGE, PROJECT_VIEW_TRACKER_ELEMENTS } from "@plane/constants";
+import { EIssueFilterType, ISSUE_DISPLAY_FILTERS_BY_PAGE, PROJECT_VIEW_TRACKER_ELEMENTS } from "@plane/constants";
 import { EIssueLayoutTypes, EIssuesStoreType } from "@plane/types";
 import { Spinner } from "@plane/ui";
 // components
@@ -16,6 +17,7 @@ import { ProjectLevelWorkItemFiltersHOC } from "@/components/work-item-filters/f
 import { WorkItemFiltersRow } from "@/components/work-item-filters/filters-row";
 // hooks
 import { useIssues } from "@/hooks/store/use-issues";
+import { useAppRouter } from "@/hooks/use-app-router";
 import { IssuesStoreContext } from "@/hooks/use-issue-layout-store";
 // local imports
 import { IssuePeekOverview } from "../../peek-overview";
@@ -63,6 +65,33 @@ export const ProjectLayoutRoot = observer(function ProjectLayoutRoot() {
     { revalidateIfStale: false, revalidateOnFocus: false }
   );
 
+  // `?layout=` (e.g. the sidebar's Timeline link) switches the saved layout once filters load, then leaves the URL.
+  const router = useAppRouter();
+  const pathname = usePathname();
+  const layoutParam = useSearchParams().get("layout");
+  const requestedLayout = Object.values<string>(EIssueLayoutTypes).includes(layoutParam ?? "")
+    ? (layoutParam as EIssueLayoutTypes)
+    : undefined;
+  const isSwitchingLayout = !!requestedLayout && requestedLayout !== activeLayout;
+  useEffect(() => {
+    if (!workspaceSlug || !projectId || !workItemFilters || !layoutParam) return;
+    if (isSwitchingLayout)
+      void issuesFilter.updateFilters(workspaceSlug, projectId, EIssueFilterType.DISPLAY_FILTERS, {
+        layout: requestedLayout,
+      });
+    router.replace(pathname);
+  }, [
+    workspaceSlug,
+    projectId,
+    workItemFilters,
+    layoutParam,
+    isSwitchingLayout,
+    requestedLayout,
+    issuesFilter,
+    router,
+    pathname,
+  ]);
+
   if (!workspaceSlug || !projectId || !workItemFilters) return <></>;
   return (
     <IssuesStoreContext.Provider value={EIssuesStoreType.PROJECT}>
@@ -93,7 +122,7 @@ export const ProjectLayoutRoot = observer(function ProjectLayoutRoot() {
                   <Spinner className="h-4 w-4" />
                 </div>
               )}
-              <ProjectIssueLayout activeLayout={activeLayout} />
+              {!isSwitchingLayout && <ProjectIssueLayout activeLayout={activeLayout} />}
             </div>
             {/* peek overview */}
             <IssuePeekOverview />

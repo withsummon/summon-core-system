@@ -16,6 +16,8 @@ import { useAppRouter } from "@/hooks/use-app-router";
 interface IListItemProps {
   id?: string;
   title: string;
+  /** A secondary line under the title. */
+  description?: string;
   itemLink: string;
   onItemClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
   prependTitleElement?: React.ReactNode;
@@ -38,6 +40,7 @@ export function ListItem(props: IListItemProps) {
   const {
     id,
     title,
+    description,
     prependTitleElement,
     appendTitleElement,
     actionableItems,
@@ -86,15 +89,22 @@ export function ListItem(props: IListItemProps) {
           >
             <div className={cn("flex items-center gap-4 truncate", leftElementClassName)}>
               {prependTitleElement && <span className="flex flex-shrink-0 items-center">{prependTitleElement}</span>}
-              <Tooltip tooltipContent={title} position="top" isMobile={isMobile}>
-                <span className="truncate text-13">{title}</span>
-              </Tooltip>
+              {description ? (
+                <span className="flex min-w-0 flex-col">
+                  <span className="truncate text-13">{title}</span>
+                  <span className="truncate text-12 text-tertiary">{description}</span>
+                </span>
+              ) : (
+                <Tooltip tooltipContent={title} position="top" isMobile={isMobile}>
+                  <span className="truncate text-13">{title}</span>
+                </Tooltip>
+              )}
             </div>
             {appendTitleElement && (
               <span className={cn("flex flex-shrink-0 items-center", rightElementClassName)}>{appendTitleElement}</span>
             )}
           </ControlLink>
-          {quickActionElement && quickActionElement}
+          {quickActionElement}
         </div>
         {actionableItems && (
           <div
