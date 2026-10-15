@@ -49,16 +49,14 @@ x-api-service: &api-service
     - minio_password
     - live_server_secret_key
     - summon_ai_internal_token
+  # codex-bridge and transcription are called per request, not at boot. Depending on them made every deploy stop
+  # the api until both rebuilt images turned healthy.
   depends_on:
     plane-db:
       condition: service_healthy
     plane-redis:
       condition: service_healthy
     plane-mq:
-      condition: service_healthy
-    codex-bridge:
-      condition: service_healthy
-    transcription:
       condition: service_healthy
 
 services:
