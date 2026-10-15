@@ -10,7 +10,7 @@ import { Links, Meta, Outlet, Scripts } from "react-router";
 import type { LinksFunction } from "react-router";
 import { ThemeProvider } from "next-themes";
 // plane imports
-import { SITE_DESCRIPTION, SITE_TITLE } from "@plane/constants";
+import { SITE_DESCRIPTION, SITE_TITLE, SITE_URL } from "@plane/constants";
 import { cn } from "@plane/utils";
 // types
 // assets
@@ -19,7 +19,7 @@ import favicon32 from "@/app/assets/favicon/favicon-32x32.png?url";
 import faviconIco from "@/app/assets/favicon/favicon.ico?url";
 import icon180 from "@/app/assets/icons/icon-180x180.png?url";
 import icon512 from "@/app/assets/icons/icon-512x512.png?url";
-import ogImage from "@/app/assets/og-image.png?url";
+import ogImage from "@/app/assets/og-image.jpg?url";
 import globalStyles from "@/styles/globals.css?url";
 import type { Route } from "./+types/root";
 // lib
@@ -104,30 +104,23 @@ export function Layout({ children }: { children: ReactNode }) {
   );
 }
 
+// Link previews are fetched by crawlers, which need an absolute image address.
+const OG_IMAGE = new URL(ogImage, SITE_URL).href;
+const OG_IMAGE_ALT = `${APP_TITLE}: every client, project, and handoff in one place.`;
+
 export const meta: Route.MetaFunction = () => [
   { title: APP_TITLE },
   { name: "description", content: SITE_DESCRIPTION },
   { property: "og:title", content: APP_TITLE },
-  {
-    property: "og:description",
-    content: "Open-source project management tool to manage work items, cycles, and product roadmaps easily",
-  },
-  { property: "og:url", content: "https://app.plane.so/" },
-  { property: "og:image", content: ogImage },
+  { property: "og:description", content: SITE_DESCRIPTION },
+  { property: "og:url", content: SITE_URL },
+  { property: "og:image", content: OG_IMAGE },
   { property: "og:image:width", content: "1200" },
   { property: "og:image:height", content: "630" },
-  { property: "og:image:alt", content: "Plane - Modern project management" },
-  {
-    name: "keywords",
-    content:
-      "software development, plan, ship, software, accelerate, code management, release management, project management, work item tracking, agile, scrum, kanban, collaboration",
-  },
-  { name: "twitter:site", content: "@planepowers" },
+  { property: "og:image:alt", content: OG_IMAGE_ALT },
   { name: "twitter:card", content: "summary_large_image" },
-  { name: "twitter:image", content: ogImage },
-  { name: "twitter:image:width", content: "1200" },
-  { name: "twitter:image:height", content: "630" },
-  { name: "twitter:image:alt", content: "Plane - Modern project management" },
+  { name: "twitter:image", content: OG_IMAGE },
+  { name: "twitter:image:alt", content: OG_IMAGE_ALT },
 ];
 
 export default function Root() {
