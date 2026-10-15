@@ -37,6 +37,8 @@ import { useProjectState } from "@/hooks/store/use-project-state";
 import { useProjectView } from "@/hooks/store/use-project-view";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
 import { useTimeLineChart } from "@/hooks/use-timeline-chart";
+// local imports
+import { shouldWaitForProjectDetails } from "./project-details-gate";
 
 interface IProjectAuthWrapper {
   workspaceSlug: string;
@@ -51,10 +53,10 @@ export const ProjectAuthWrapper = observer(function ProjectAuthWrapper(props: IP
   const [isJoiningProject, setIsJoiningProject] = useState(false);
   // store hooks
   const { fetchUserProjectInfo, allowPermissions, getProjectRoleByWorkspaceSlugAndProjectId } = useUserPermissions();
-  const { fetchProjectDetails } = useProject();
+  const { fetchProjectDetails, getProjectById } = useProject();
   const { joinProject } = useUserPermissions();
   const { fetchAllCycles } = useCycle();
-  const { fetchModulesSlim, fetchModules } = useModule();
+  const { fetchModules } = useModule();
   const { initGantt } = useTimeLineChart(GANTT_TIMELINE_TYPE.MODULE);
   const { fetchViews } = useProjectView();
   const {
@@ -123,13 +125,10 @@ export const ProjectAuthWrapper = observer(function ProjectAuthWrapper(props: IP
     revalidateOnFocus: false,
   });
   // fetching project modules
-  useSWR(
-    PROJECT_MODULES(projectId, currentProjectRole),
-    async () => {
-      await Promise.all([fetchModulesSlim(workspaceSlug, projectId), fetchModules(workspaceSlug, projectId)]);
-    },
-    { revalidateIfStale: false, revalidateOnFocus: false }
-  );
+  useSWR(PROJECT_MODULES(projectId, currentProjectRole), () => fetchModules(workspaceSlug, projectId), {
+    revalidateIfStale: false,
+    revalidateOnFocus: false,
+  });
   // fetching project views
   useSWR(PROJECT_VIEWS(projectId, currentProjectRole), () => fetchViews(workspaceSlug, projectId), {
     revalidateIfStale: false,
@@ -142,7 +141,13 @@ export const ProjectAuthWrapper = observer(function ProjectAuthWrapper(props: IP
     joinProject(workspaceSlug, projectId).finally(() => setIsJoiningProject(false));
   };
 
-  const isProjectLoading = (isParentLoading || isProjectDetailsLoading) && !projectDetailsError;
+  const isProjectLoading = shouldWaitForProjectDetails({
+    isParentLoading,
+    isProjectDetailsLoading,
+    hasProjectDetailsError: !!projectDetailsError,
+    isProjectInStore: !!getProjectById(projectId),
+    hasPermissionToCurrentProject,
+  });
 
   if (isProjectLoading) return null;
 

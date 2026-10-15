@@ -47,7 +47,7 @@ export function TabNavigationVisibleItem({
       <div key={`${item.key}-measure`} ref={itemRef}>
         <ContextMenu>
           <ContextMenu.Trigger>
-            <Link key={`${item.key}-${isActive ? "active" : "inactive"}`} to={item.href}>
+            <Link key={`${item.key}-${isActive ? "active" : "inactive"}`} to={item.href} prefetch="intent">
               <TabNavigationItem isActive={isActive}>
                 <span>{t(item.i18n_key)}</span>
               </TabNavigationItem>

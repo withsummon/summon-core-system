@@ -66,11 +66,7 @@ export const SidebarItemBase = observer(function SidebarItemBase({
   const icon = getSidebarNavigationItemIcon(item.key);
 
   return (
-    <Link
-      href={href}
-      onClick={handleLinkClick}
-      prefetch={additionalStaticItems?.includes(item.key) ? "intent" : undefined}
-    >
+    <Link href={href} onClick={handleLinkClick}>
       <SidebarNavItem isActive={isActive}>
         <div className="flex items-center gap-1.5 py-[1px]">
           {icon}

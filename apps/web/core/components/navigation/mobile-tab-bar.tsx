@@ -49,7 +49,6 @@ export const MobileTabBar = observer(function MobileTabBar() {
           <Link
             key={link.item.key}
             href={link.href}
-            prefetch="intent"
             aria-current={link.isActive ? "page" : undefined}
             className={tabClassName}
           >
@@ -164,7 +163,6 @@ function MoreLink({ link, onNavigate }: { link: TMobileNavLink; onNavigate: () =
     <li className="border-b border-subtle last:border-b-0">
       <Link
         href={link.href}
-        prefetch="intent"
         onClick={onNavigate}
         aria-current={link.isActive ? "page" : undefined}
         className="group/select flex min-h-12 items-center gap-3 px-3 text-14 text-primary outline-none hover:bg-layer-1-hover focus-visible:bg-layer-1-hover aria-[current=page]:font-medium aria-[current=page]:text-accent-primary"

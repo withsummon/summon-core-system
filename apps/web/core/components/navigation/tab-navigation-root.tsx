@@ -237,7 +237,7 @@ export const TabNavigationRoot = observer(function TabNavigationRoot(props: TTab
                     }}
                     className="inline-block"
                   >
-                    <Link to={item.href}>
+                    <Link to={item.href} prefetch="intent">
                       <TabNavigationItem isActive={itemIsActive}>
                         <span>{t(item.i18n_key)}</span>
                       </TabNavigationItem>
