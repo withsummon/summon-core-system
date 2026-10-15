@@ -1,35 +1,61 @@
+# A deploy recreates each app container, so its upstream is unreachable for the seconds it takes to boot
+# (the api runs its startup commands and waits for migrations first). Hold requests and retry the dial
+# instead of answering 502, staying well inside Cloudflare's 100 s origin timeout. Only failed dials are
+# retried, so a request is never sent twice.
+(retry_upstream) {
+	lb_try_duration 60s
+	lb_try_interval 500ms
+}
+
 (plane_proxy) {
 	request_body {
 		max_size {$FILE_SIZE_LIMIT}
 	}
 
   redir /spaces /spaces/ permanent
-	reverse_proxy /spaces/* {$SPACE_HOST:space}:3000
+	reverse_proxy /spaces/* {$SPACE_HOST:space}:3000 {
+		import retry_upstream
+	}
 
   redir /god-mode /god-mode/ permanent
-	reverse_proxy /god-mode/* {$ADMIN_HOST:admin}:3000
+	reverse_proxy /god-mode/* {$ADMIN_HOST:admin}:3000 {
+		import retry_upstream
+	}
 	
-	reverse_proxy /live/* {$LIVE_HOST:live}:3000
-	reverse_proxy /mcp/http/api-key/* {$MCP_HOST:mcp}:8211
+	reverse_proxy /live/* {$LIVE_HOST:live}:3000 {
+		import retry_upstream
+	}
+	reverse_proxy /mcp/http/api-key/* {$MCP_HOST:mcp}:8211 {
+		import retry_upstream
+	}
 
 	# Summon AI service: streamed assistant turns and the Summon MCP server. Flush every chunk.
 	reverse_proxy /ai/* {$AI_HOST:ai}:3300 {
 		flush_interval -1
+		import retry_upstream
 	}
 
 	# Only the AI service calls these, over the internal network.
 	respond /api/summon/internal/* 404
 
-	reverse_proxy /api/* {$API_HOST:api}:8000
+	reverse_proxy /api/* {$API_HOST:api}:8000 {
+		import retry_upstream
+	}
 
-	reverse_proxy /auth/* {$API_HOST:api}:8000
+	reverse_proxy /auth/* {$API_HOST:api}:8000 {
+		import retry_upstream
+	}
 
-	reverse_proxy /static/* {$API_HOST:api}:8000
+	reverse_proxy /static/* {$API_HOST:api}:8000 {
+		import retry_upstream
+	}
 
 	reverse_proxy /{$BUCKET_NAME}/* {$MINIO_HOST:plane-minio}:9000
 	reverse_proxy /{$BUCKET_NAME} {$MINIO_HOST:plane-minio}:9000
 
-	reverse_proxy /* {$WEB_HOST:web}:3000
+	reverse_proxy /* {$WEB_HOST:web}:3000 {
+		import retry_upstream
+	}
 }
 
 {

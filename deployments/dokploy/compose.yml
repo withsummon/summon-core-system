@@ -68,9 +68,8 @@ services:
       context: ../..
       dockerfile: apps/web/Dockerfile.web
     restart: unless-stopped
-    depends_on:
-      api:
-        condition: service_started
+    # Static files only: nothing here needs the api to boot, so a deploy restarts it in seconds instead of
+    # holding it behind the api's restart.
     networks:
       default:
         aliases: [summon-core-web]
@@ -78,9 +77,8 @@ services:
   admin:
     image: makeplane/plane-admin:${PLANE_RELEASE:-stable}
     restart: unless-stopped
-    depends_on:
-      api:
-        condition: service_started
+    # Static files only: nothing here needs the api to boot, so a deploy restarts it in seconds instead of
+    # holding it behind the api's restart.
     networks:
       default:
         aliases: [summon-core-admin]
@@ -88,9 +86,8 @@ services:
   space:
     image: makeplane/plane-space:${PLANE_RELEASE:-stable}
     restart: unless-stopped
-    depends_on:
-      api:
-        condition: service_started
+    # Static files only: nothing here needs the api to boot, so a deploy restarts it in seconds instead of
+    # holding it behind the api's restart.
     networks:
       default:
         aliases: [summon-core-space]
@@ -121,6 +118,13 @@ services:
   api:
     <<: *api-service
     command: ./bin/docker-entrypoint-api.sh
+    # Ready only once gunicorn answers: the entrypoint first waits for migrations and runs its startup commands.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 300s
     volumes:
       - logs_api:/code/plane/logs
     networks:
@@ -316,6 +320,9 @@ services:
     expose:
       - "80"
     environment:
+      # Compose does not notice edits inside the mounted Caddyfile; bump this with every Caddyfile change so the
+      # next deploy recreates the proxy and loads it.
+      CADDYFILE_REVISION: "2"
       SITE_ADDRESS: :80
       FILE_SIZE_LIMIT: ${SUMMON_RECORDING_FILE_SIZE_LIMIT:-262144000}
       BUCKET_NAME: ${AWS_S3_BUCKET_NAME:-uploads}
