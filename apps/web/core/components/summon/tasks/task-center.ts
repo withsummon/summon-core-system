@@ -67,7 +67,7 @@ export const DEFAULT_TASK_DISPLAY: TTaskDisplay = {
   completed: "all",
   showSubIssues: true,
   showEmptyGroups: false,
-  properties: ["id", "priority", "assignee", "project", "due"],
+  properties: ["id", "priority", "status", "assignee", "project", "due"],
 };
 
 export const STATUS_ORDER: TStateGroups[] = ["started", "unstarted", "backlog", "completed", "cancelled"];

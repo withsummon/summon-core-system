@@ -22,12 +22,16 @@ import type { TSelectableIcon } from "@plane/propel/icons";
 import { Tabs } from "@plane/propel/tabs";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Collapsible } from "@plane/propel/collapsible";
+import { Logo } from "@plane/propel/emoji-icon-picker";
+import { Popover } from "@plane/propel/popover";
+import { CircularProgressIndicator } from "@plane/ui";
 import { getFileURL, renderFormattedDateWithoutYear } from "@plane/utils";
 import { PageHead } from "@/components/core/page-title";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonPageHeader } from "@/components/summon/screen";
 import { useHashTab } from "@/components/summon/use-hash-tab";
 import { MemberDropdown } from "@/components/dropdowns/member/dropdown";
+import { StateDropdown } from "@/components/dropdowns/state/dropdown";
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useLabel } from "@/hooks/store/use-label";
 import { useMember } from "@/hooks/store/use-member";
@@ -44,7 +48,6 @@ import {
   groupTasks,
   isTaskCompleted,
   sortTasks,
-  taskStatus,
   type TTaskCenterScope,
   type TTaskDisplay,
   type TTaskFilterField,
@@ -58,6 +61,8 @@ import {
   type TTaskFilterOptions,
 } from "./task-view-controls";
 import { SummonSearchField } from "@/components/summon/search-field";
+import { StatusBadge } from "@/components/summon/status-badge";
+import type { TPlaneIssueIndexItem } from "@/services/summon-plane.service";
 
 const scopes: { value: TTaskCenterScope; label: string; icon: TSelectableIcon }[] = [
   { value: "mine", label: "My tasks", icon: CheckSquareIcon },
@@ -79,6 +84,77 @@ const issueService = new IssueService();
 const metaIcon = ({ Icon, tone }: { Icon: LucideIcon; tone: string }) => (
   <Icon aria-hidden="true" className={`size-4 flex-none ${tone}`} />
 );
+
+type TProgress = { total: number; done: number };
+
+/** Hovering a task's project previews it, as in Linear: what it is, its health and lead, and how far along it is. */
+const ProjectChip = observer(function ProjectChip({
+  workspaceSlug,
+  project,
+  progress,
+}: {
+  workspaceSlug: string;
+  project: TPlaneIssueIndexItem["project"];
+  progress: TProgress;
+}) {
+  const { getProjectById, fetchProjectDetails } = useProject();
+  const { getUserDetails } = useMember();
+  const details = getProjectById(project.id);
+  const leadId = typeof details?.project_lead === "string" ? details.project_lead : details?.project_lead?.id;
+  const lead = leadId ? getUserDetails(leadId) : undefined;
+  const percentage = progress.total ? Math.round((progress.done / progress.total) * 100) : 0;
+  return (
+    <Popover
+      delay={300}
+      openOnHover
+      // The workspace project list leaves out descriptions; the first preview loads the full project.
+      onOpenChange={(open) => {
+        if (open && details?.description === undefined) void fetchProjectDetails(workspaceSlug, project.id);
+      }}
+    >
+      <Popover.Button
+        nativeButton={false}
+        render={
+          <Link
+            href={`/${workspaceSlug}/summon/projects/${project.id}/`}
+            className="max-w-48 truncate rounded border border-subtle px-2 py-0.5 text-12 hover:border-strong hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
+          />
+        }
+      >
+        {project.name}
+      </Popover.Button>
+      <Popover.Panel side="bottom" align="end">
+        <div className="w-80 space-y-3 rounded-lg border-[0.5px] border-strong bg-surface-1 p-4 shadow-raised-200">
+          <p className="text-12 text-tertiary">{project.identifier}</p>
+          <p className="flex items-center gap-2 text-14 font-medium text-primary">
+            {details?.logo_props?.in_use ? <Logo logo={details.logo_props} size={16} /> : null}
+            <span className="min-w-0 truncate">{project.name}</span>
+          </p>
+          {details?.description ? <p className="line-clamp-3 text-13 text-secondary">{details.description}</p> : null}
+          <div className="flex flex-wrap items-center gap-3 border-t border-subtle pt-3 text-12 text-secondary">
+            <StatusBadge status={project.health} />
+            {lead ? (
+              <span className="flex min-w-0 items-center gap-1.5">
+                <Avatar size={16} name={lead.display_name} src={getFileURL(lead.avatar_url ?? "")} />
+                <span className="truncate">{lead.display_name}</span>
+              </span>
+            ) : null}
+          </div>
+          <p className="flex items-center gap-2 text-13 text-secondary tabular-nums">
+            <CircularProgressIndicator
+              size={18}
+              percentage={percentage}
+              strokeWidth={3}
+              strokeColor="stroke-accent-primary"
+            />
+            <span className="font-medium text-primary">{percentage}%</span> of {progress.total}{" "}
+            {progress.total === 1 ? "task" : "tasks"} done
+          </p>
+        </div>
+      </Popover.Panel>
+    </Popover>
+  );
+});
 
 export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { workspaceSlug: string }) {
   const { data: currentUser } = useUser();
@@ -126,7 +202,6 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
       label_ids: issue.label_ids ?? [],
       project,
       stateGroup: state?.group ?? issue.state__group,
-      stateName: state?.name,
       assignees: issue.assignee_ids.map((id) => getUserDetails(id)).filter(Boolean),
     };
   });
@@ -143,6 +218,14 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
       .includes(query.trim().toLowerCase())
   );
   const projects = Array.from(new Map(records.map(({ project }) => [project.id, project])).values());
+  // Progress counts every task in the project, not just the ones this view shows.
+  const progressByProject = new Map<string, TProgress>();
+  for (const task of tasks) {
+    const progress = progressByProject.get(task.project.id) ?? { total: 0, done: 0 };
+    progress.total += 1;
+    if (isTaskCompleted(task)) progress.done += 1;
+    progressByProject.set(task.project.id, progress);
+  }
   const memberIds = (ids: string[]) => {
     const unique = [...new Set(ids)];
     unique.sort((a, b) =>
@@ -200,6 +283,8 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
     project: projects.map((project) => ({ value: project.id, label: project.name })),
     ...DATE_FILTER_OPTIONS,
   };
+  // IDs share one column sized to the longest shown, so the status sits right after them, as in Linear.
+  const idWidth = `${Math.max(0, ...searched.map((task) => `${task.project.identifier}-${task.sequence_id}`.length))}ch`;
   const groups = groupTasks(sortTasks(searched, display), display, {
     assignee: assigneeIds,
     project: projects.map((project) => project.id),
@@ -231,21 +316,26 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
     setQuery("");
     updateView({ filters: {} });
   };
-  const reassign = async (projectId: string, issueId: string, nextAssigneeIds: string[]) => {
-    const withAssignees = (items: typeof records = []) =>
+  const updateTask = async (
+    projectId: string,
+    issueId: string,
+    patch: Partial<Pick<(typeof records)[number]["issue"], "assignee_ids" | "state_id">>,
+    failure: string
+  ) => {
+    const patched = (items: typeof records = []) =>
       items.map((record) =>
-        record.issue.id === issueId ? { ...record, issue: { ...record.issue, assignee_ids: nextAssigneeIds } } : record
+        record.issue.id === issueId ? { ...record, issue: { ...record.issue, ...patch } } : record
       );
     try {
       await mutate(
         async (current) => {
-          await issueService.patchIssue(workspaceSlug, projectId, issueId, { assignee_ids: nextAssigneeIds });
-          return withAssignees(current);
+          await issueService.patchIssue(workspaceSlug, projectId, issueId, patch);
+          return patched(current);
         },
-        { optimisticData: withAssignees, rollbackOnError: true, revalidate: false }
+        { optimisticData: patched, rollbackOnError: true, revalidate: false }
       );
     } catch {
-      setToast({ type: TOAST_TYPE.ERROR, title: "Assignees not updated", message: "Try again in a moment." });
+      setToast({ type: TOAST_TYPE.ERROR, title: failure, message: "Try again in a moment." });
     }
   };
 
@@ -318,7 +408,6 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
                   <ul>
                     {items.map((task) => {
                       const overdue = today && task.target_date && task.target_date < today && !isTaskCompleted(task);
-                      const status = STATUS_META[taskStatus(task)];
                       const priority = ISSUE_PRIORITIES.find((option) => option.key === (task.priority ?? "none"));
                       return (
                         <li
@@ -332,17 +421,29 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
                           )}
                           {shows("id") && (
                             <span
-                              className="w-20 shrink-0 truncate text-secondary"
+                              className="shrink-0 truncate text-secondary"
+                              style={{ width: idWidth }}
                               title={`${task.project.identifier}-${task.sequence_id}`}
                             >
                               {task.project.identifier}-{task.sequence_id}
                             </span>
                           )}
                           {shows("status") && (
-                            <status.Icon
-                              aria-label={`Status: ${task.stateName ?? status.label}`}
-                              className={`size-4 shrink-0 ${status.tone}`}
-                            />
+                            // Comes before the stretched title link, so it needs z-1 to sit above it.
+                            <span className="relative z-1 flex shrink-0">
+                              <StateDropdown
+                                projectId={task.project.id}
+                                value={task.state_id}
+                                onChange={(stateId) =>
+                                  void updateTask(task.project.id, task.id, { state_id: stateId }, "Status not updated")
+                                }
+                                buttonVariant="transparent-without-text"
+                                buttonClassName="size-6 justify-center px-0"
+                                showTooltip
+                                showDefaultState={false}
+                                placement="bottom-start"
+                              />
+                            </span>
                           )}
                           {/* The title link stretches over the row; the project and assignee controls sit above it. */}
                           <Link
@@ -371,19 +472,24 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
                                 ) : null;
                               })}
                             {shows("project") && (
-                              <Link
-                                href={`/${workspaceSlug}/summon/projects/${task.project.id}/`}
-                                className="max-w-48 truncate rounded border border-subtle px-2 py-0.5 text-12 hover:border-strong hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
-                                title={task.project.name}
-                              >
-                                {task.project.name}
-                              </Link>
+                              <ProjectChip
+                                workspaceSlug={workspaceSlug}
+                                project={task.project}
+                                progress={progressByProject.get(task.project.id) ?? { total: 0, done: 0 }}
+                              />
                             )}
                             {shows("assignee") && (
                               <MemberDropdown
                                 projectId={task.project.id}
                                 value={task.assignee_ids}
-                                onChange={(ids) => void reassign(task.project.id, task.id, ids)}
+                                onChange={(ids) =>
+                                  void updateTask(
+                                    task.project.id,
+                                    task.id,
+                                    { assignee_ids: ids },
+                                    "Assignees not updated"
+                                  )
+                                }
                                 multiple
                                 buttonVariant="transparent-without-text"
                                 placeholder="Assignees"
