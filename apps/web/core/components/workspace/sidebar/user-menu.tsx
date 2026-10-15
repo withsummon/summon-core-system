@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import { getWorkspaceHomePath } from "@plane/constants";
 import React from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
@@ -26,7 +27,7 @@ export const SidebarUserMenu = observer(function SidebarUserMenu() {
     {
       key: "home",
       labelTranslationKey: "sidebar.home",
-      href: `/${workspaceSlug.toString()}/`,
+      href: getWorkspaceHomePath(workspaceSlug.toString()),
       access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER, EUserWorkspaceRoles.GUEST],
       Icon: HomeIcon,
     },

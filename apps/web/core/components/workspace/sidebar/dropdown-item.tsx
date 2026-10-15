@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import { getWorkspaceHomePath } from "@plane/constants";
 import { observer } from "mobx-react";
 import Link from "next/link";
 import { CheckIcon } from "@phosphor-icons/react";
@@ -27,7 +28,7 @@ const SidebarDropdownItem = observer(function SidebarDropdownItem(props: TProps)
 
   return (
     <Menu.Item
-      render={<Link href={`/${workspace.slug}`} />}
+      render={<Link href={getWorkspaceHomePath(workspace.slug)} />}
       onClick={onSelect}
       aria-current={isActive ? "true" : undefined}
       className={cn(

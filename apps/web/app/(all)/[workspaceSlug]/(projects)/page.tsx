@@ -5,9 +5,10 @@
  */
 
 import { Navigate } from "react-router";
+import { getWorkspaceHomePath } from "@plane/constants";
 
 import type { Route } from "./+types/page";
 
 export default function WorkspaceRootPage({ params }: Route.ComponentProps) {
-  return <Navigate to={`/${params.workspaceSlug}/summon`} replace />;
+  return <Navigate to={getWorkspaceHomePath(params.workspaceSlug)} replace />;
 }

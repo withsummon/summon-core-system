@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { FAVORITE_ITEM_LINKS } from "@plane/constants";
+import { FAVORITE_ITEM_LINKS, getWorkspaceHomePath } from "@plane/constants";
 import type { IFavorite } from "@plane/types";
 
 export const generateFavoriteItemLink = (workspaceSlug: string, favorite: IFavorite) => {
@@ -12,7 +12,7 @@ export const generateFavoriteItemLink = (workspaceSlug: string, favorite: IFavor
 
   if (!entityLinkDetails) {
     console.error(`Unrecognized favorite entity type: ${favorite.entity_type}`);
-    return `/${workspaceSlug}`;
+    return getWorkspaceHomePath(workspaceSlug);
   }
 
   if (entityLinkDetails.itemLevel === "workspace") {
@@ -20,6 +20,6 @@ export const generateFavoriteItemLink = (workspaceSlug: string, favorite: IFavor
   } else if (entityLinkDetails.itemLevel === "project") {
     return `/${workspaceSlug}/projects/${favorite.project_id}/${entityLinkDetails.getLink(favorite)}`;
   } else {
-    return `/${workspaceSlug}`;
+    return getWorkspaceHomePath(workspaceSlug);
   }
 };

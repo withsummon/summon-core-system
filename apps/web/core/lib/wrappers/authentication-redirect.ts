@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import { getWorkspaceHomePath } from "@plane/constants";
 import type { IUser, IUserSettings, IWorkspace, TUserProfile } from "@plane/types";
 // helpers
 import { isValidNextPath } from "@plane/utils";
@@ -52,11 +53,9 @@ export function getWorkspaceRedirectionUrl(
     currentUserSettings?.workspace?.last_workspace_slug || currentUserSettings?.workspace?.fallback_workspace_slug;
 
   // validate the current workspace_slug is available in the user's workspace list
-  const isCurrentWorkspaceValid = Object.values(workspaces || {}).findIndex(
-    (workspace) => workspace.slug === currentWorkspaceSlug
-  );
+  const currentWorkspace = Object.values(workspaces || {}).find((workspace) => workspace.slug === currentWorkspaceSlug);
 
-  if (isCurrentWorkspaceValid >= 0) redirectionRoute = `/${currentWorkspaceSlug}`;
+  if (currentWorkspace) redirectionRoute = getWorkspaceHomePath(currentWorkspace.slug);
 
   return redirectionRoute;
 }

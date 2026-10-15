@@ -7,7 +7,7 @@
 import { ArrowLeft } from "lucide-react";
 import { observer } from "mobx-react";
 // plane imports
-import { ROLE_DETAILS } from "@plane/constants";
+import { getWorkspaceHomePath, ROLE_DETAILS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { IconButton } from "@plane/propel/icon-button";
 // components
@@ -30,7 +30,7 @@ export const WorkspaceSettingsSidebarHeader = observer(function WorkspaceSetting
   // translation
   const { t } = useTranslation();
 
-  if (!currentWorkspaceRole) return null;
+  if (!currentWorkspace || !currentWorkspaceRole) return null;
 
   return (
     <div className="shrink-0">
@@ -39,7 +39,7 @@ export const WorkspaceSettingsSidebarHeader = observer(function WorkspaceSetting
           variant="ghost"
           size="base"
           icon={ArrowLeft}
-          onClick={() => router.push(`/${currentWorkspace?.slug}/`)}
+          onClick={() => router.push(getWorkspaceHomePath(currentWorkspace.slug))}
         />
         <p>Workspace settings</p>
       </div>

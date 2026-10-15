@@ -15,6 +15,7 @@ import type {
   IWorkspaceUserPropertiesResponse,
 } from "@plane/types";
 // services
+import { getWorkspaceRedirectionUrl } from "@/lib/wrappers/authentication-redirect";
 import { WorkspaceService } from "@/services/workspace.service";
 // store
 import type { CoreRootStore } from "@/store/root.store";
@@ -126,21 +127,7 @@ export class BaseWorkspaceRootStore implements IWorkspaceRootStore {
   /**
    * get the workspace redirection url based on the last and fallback workspace_slug
    */
-  getWorkspaceRedirectionUrl = () => {
-    let redirectionRoute = "/create-workspace";
-    // validate the last and fallback workspace_slug
-    const currentWorkspaceSlug =
-      this.user.userSettings?.data?.workspace?.last_workspace_slug ||
-      this.user.userSettings?.data?.workspace?.fallback_workspace_slug;
-
-    // validate the current workspace_slug is available in the user's workspace list
-    const isCurrentWorkspaceValid = Object.values(this.workspaces || {}).findIndex(
-      (workspace) => workspace.slug === currentWorkspaceSlug
-    );
-
-    if (isCurrentWorkspaceValid >= 0) redirectionRoute = `/${currentWorkspaceSlug}`;
-    return redirectionRoute;
-  };
+  getWorkspaceRedirectionUrl = () => getWorkspaceRedirectionUrl(null, this.user.userSettings?.data, this.workspaces);
 
   /**
    * computed value of current workspace based on workspace slug saved in the query store
