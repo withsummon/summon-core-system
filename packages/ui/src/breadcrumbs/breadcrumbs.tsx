@@ -74,7 +74,7 @@ function Breadcrumbs({ className, children, onBack, isLoading = false }: Breadcr
             )}
             <ChevronRightIcon className="h-3.5 w-3.5 flex-shrink-0 text-placeholder" aria-hidden="true" />
           </div>
-          <div className="flex items-center gap-2.5 p-1">
+          <div className="flex min-w-0 items-center gap-2.5 p-1">
             {isLoading ? (
               <BreadcrumbItemLoader />
             ) : React.isValidElement(childrenArray[childrenArray.length - 1]) ? (
@@ -102,7 +102,7 @@ type BreadcrumbItemProps = {
 function BreadcrumbItem(props: BreadcrumbItemProps) {
   const { component, showSeparator = true, isLast = false } = props;
   return (
-    <div className="flex h-6 items-center gap-0.5">
+    <div className="flex h-6 min-w-0 items-center gap-0.5">
       {component}
       {showSeparator && !isLast && <BreadcrumbSeparator />}
     </div>
@@ -117,7 +117,11 @@ type BreadcrumbIconProps = {
 
 function BreadcrumbIcon(props: BreadcrumbIconProps) {
   const { children, className } = props;
-  return <div className={cn("flex size-4 items-center justify-start overflow-hidden", className)}>{children}</div>;
+  return (
+    <div className={cn("flex size-4 flex-shrink-0 items-center justify-start overflow-hidden", className)}>
+      {children}
+    </div>
+  );
 }
 
 // breadcrumb label

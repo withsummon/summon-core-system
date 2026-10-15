@@ -64,8 +64,8 @@ export const PageDetailsHeader = observer(function PageDetailsHeader() {
 
   return (
     <Header>
-      <Header.LeftItem>
-        <div>
+      <Header.LeftItem className="min-w-0 flex-nowrap">
+        <div className="min-w-0">
           <Breadcrumbs isLoading={loader === "init-loader"}>
             <CommonProjectBreadcrumbs workspaceSlug={workspaceSlug?.toString()} projectId={projectId?.toString()} />
             <Breadcrumbs.Item
@@ -99,7 +99,7 @@ export const PageDetailsHeader = observer(function PageDetailsHeader() {
           </Breadcrumbs>
         </div>
       </Header.LeftItem>
-      <Header.RightItem>
+      <Header.RightItem className="flex-shrink-0">
         <PageSyncingBadge syncStatus={page.isSyncingWithServer} />
         <PageHeaderActions page={page} storeType={storeType} />
       </Header.RightItem>
