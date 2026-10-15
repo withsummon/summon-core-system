@@ -10,6 +10,7 @@ import { HydratedRouter } from "react-router/dom";
 
 import polyfills from "@/lib/polyfills";
 import { isStaleAssetErrorMessage, recoverFromStaleAsset } from "@/lib/stale-asset-error";
+import { preloadRouteModules } from "./route-module-preload";
 
 void polyfills;
 
@@ -37,6 +38,8 @@ if (import.meta.env.PROD) {
     if (isStaleAssetErrorMessage(reason)) recoverFromStaleAsset();
   });
 }
+
+preloadRouteModules();
 
 startTransition(() => {
   removeInjectedDocumentElements();
