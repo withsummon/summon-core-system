@@ -4,7 +4,7 @@
 **Environment:** the user's Chrome on macOS (Claude in Chrome), signed in to workspace `summon-core` as a member of no Plane projects, desktop viewport, no throttling.
 **Method:** an in-page probe clicks the sidebar link (or calls the router's `navigate`) and records click → URL change, the router going idle, resource timing for chunks and `/api/` calls, long tasks, and the last DOM mutation. The resource-timing buffer was raised to 5000 entries, because a full load already requests about 244 JS files and the default 250-entry buffer drops every API entry.
 
-**Claim type:** live observations of the control build (n = 1–3 per transition). The fix's effect is an estimate from the measured mechanism. It has not been measured on a deployed variant, so treat it as directional.
+**Claim type:** live observations of the control build (n = 1–3 per transition). The fix's effect is an estimate from the measured mechanism. The deployed variant (084749d5) was re-measured live on 2026-10-16; see "Live re-measure after deploy". All figures are directional (n = 1–5).
 
 ## Summary
 
@@ -105,6 +105,21 @@ Revisits already render from the store (the details fetcher returns the project,
 - **Request priority:** the wrapper fires cycles, modules, views, estimates and intake-state alongside the page's own critical request. Deferring the non-critical ones until the page's first data arrives would stop the issues request from queueing behind them.
 - **Starting the page's first query on link intent** (next to the route chunks from section 1). The filters → issues dependency is real, because filters define the query, so this only pays off together with the request-priority change.
 
+## Live re-measure after deploy (2026-10-16)
+
+**Variant artifact:** `main @ 084749d585871c2025c7e75851a0e923cca854c9` (PR #17), confirmed via `GET /ai/health` before measuring. **Control artifact:** `main @ 5c7b704e` (the numbers above). Same browser, account and probe. This is the first session after the deploy, so every chunk was network-cold. **Claim type:** live observation, n = 1 per transition, so directional.
+
+| Transition                                                       |     Control (5c7b704e) |                                   Variant (084749d5) | Evidence                                                                                                                 |
+| ---------------------------------------------------------------- | ---------------------: | ---------------------------------------------------: | ------------------------------------------------------------------------------------------------------------------------ |
+| Projects list → Plane project issues, network-cold, after hover  | **903 ms** click → URL |                                 **7 ms** click → URL | hovering the project card fetched the route's 47 chunks (243 kB transferred, 2.1 MB decoded) in 323 ms, before the click |
+| Plane project entry: project calls                               |                     12 |                                                   11 | `user-properties` is requested once (in-flight dedupe)                                                                   |
+| Plane project entry: API TTFB under the burst                    |             250–450 ms |                                           378–507 ms | unchanged: still queued on 2 gunicorn workers                                                                            |
+| Same 11 endpoints, fetched serially / in parallel (this session) |        73–89 ms serial | 150–213 ms serial; 196–329 ms parallel (330 ms wall) | the floor moved with network conditions, but parallel stays ~1.6× serial                                                 |
+| Summon sidebar route, after a real hover (Automation Studio)     |      27 ms (Resources) |                         **7 ms**, 4 chunks preloaded | no long tasks                                                                                                            |
+| Summon sidebar route, `click()` without hover, cold (Reports)    |             144–326 ms |                                               446 ms | expected: intent prefetch needs an intent                                                                                |
+
+**Read:** with any hover, route chunks are off the critical path: click → URL goes from 903 ms to 7 ms on the heaviest route. The account is not a project member, so the project route ends on the access screen at ~590 ms. That is the gate's intended behavior: without a granting role it waits for project details. The remaining cost is API queueing (TTFB 378–507 ms), and it moves only with API concurrency (next owner below). The project tab bar could not be exercised live, because this account has no project membership.
+
 ## 3. Entrance animation (proposal)
 
 `.page-rise > * > *` animates `opacity: 0 → 1` and `translateY(8px)` over 420 ms, with stagger up to 140 ms, on every Summon navigation (the outlet is keyed by pathname). On warm navigations the URL changes at about 30 ms and the data is already cached, yet content is 32% opaque at 51 ms and fully visible only at about 440 ms. For high-frequency sidebar navigation, consider one of these: limit the stagger to the first entry into a page family; start from opacity ≥ 0.6; or cut the duration to about 180 ms. This is a design decision (introduced in d68fec8c), so this PR doesn't change it.
@@ -125,4 +140,5 @@ In the first two loads of a fresh tab, the router stayed uninitialized (3 of 6 r
 - `bun run check:types` (apps/web): passes once the workspace packages are built.
 - `oxlint` / `oxfmt --check` on the touched files: clean (2 pre-existing warnings).
 - Live proof of the mechanism: on the control build, hovering a sidebar link that already had `prefetch="intent"` emitted that route's `modulepreload` links, and the click committed in 27 ms.
-- Not verified: a local dev server for this branch starts, but every app route redirects to a Google-only sign-in, so I could not exercise hover prefetch on authenticated routes there. The before/after numbers above are estimates until this branch is deployed and re-measured with the same probe.
+- Live on 084749d5: hovering a project card prefetched the project route, and the click committed in 7 ms (903 ms on the control). A hovered sidebar route committed in 7 ms. See "Live re-measure after deploy".
+- Not verified live: the project tab bar links, and work-item first paint for a project member (the measuring account belongs to no Plane project).
