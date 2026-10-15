@@ -59,6 +59,8 @@ export interface IProjectIssuesFilter extends IBaseIssueFilterStore {
 export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProjectIssuesFilter {
   // observables
   filters: { [projectId: string]: IIssueFilters } = {};
+  // local filter edits per project, so a fetch that started before an edit doesn't overwrite it
+  private filterEditCounts: { [projectId: string]: number } = {};
   // root store
   rootIssueStore: IIssueRootStore;
   // services
@@ -135,7 +137,10 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
   );
 
   fetchFilters = async (workspaceSlug: string, projectId: string) => {
+    const editCount = this.filterEditCounts[projectId];
     const _filters = await this.projectService.getProjectUserProperties(workspaceSlug, projectId);
+    // the filters were edited while this request was in flight; the local state is newer than the response
+    if (this.filterEditCounts[projectId] !== editCount) return;
 
     const richFilters = _filters?.rich_filters;
     const displayFilters = this.computedDisplayFilters(_filters?.display_filters);
@@ -177,6 +182,7 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
     filters
   ) => {
     try {
+      this.filterEditCounts[projectId] = (this.filterEditCounts[projectId] ?? 0) + 1;
       runInAction(() => {
         set(this.filters, [projectId, "richFilters"], filters);
       });
@@ -194,6 +200,7 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
   updateFilters: IProjectIssuesFilter["updateFilters"] = async (workspaceSlug, projectId, type, filters) => {
     try {
       if (isEmpty(this.filters) || isEmpty(this.filters[projectId])) return;
+      this.filterEditCounts[projectId] = (this.filterEditCounts[projectId] ?? 0) + 1;
 
       const _filters = {
         richFilters: this.filters[projectId].richFilters,
