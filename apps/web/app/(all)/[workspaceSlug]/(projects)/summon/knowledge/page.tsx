@@ -5,7 +5,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { NoteIcon, SquaresFourIcon } from "@phosphor-icons/react";
 import useSWR from "swr";
 import {
@@ -56,6 +56,7 @@ import { ProjectPageService } from "@/services/page";
 import { listAccessiblePlanePages } from "@/services/summon-plane.service";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
+import { DriveFolders, DriveSyncWarning } from "./drive-folders";
 import {
   ALL_CATEGORIES,
   PAGE_SIZE,
@@ -87,6 +88,16 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
   const { can } = useSummonAccess(workspaceSlug);
   const showOpportunities = can("commercial.view");
   const [query, setQuery] = useState("");
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  // Google's consent screen sends people back here with how it went.
+  const driveReturn = searchParams.get("drive") ?? searchParams.get("drive_error") ?? "";
+  const [driveOpen, setDriveOpen] = useState(Boolean(driveReturn));
+  const onDriveOpenChange = (open: boolean) => {
+    setDriveOpen(open);
+    if (!open && driveReturn) router.replace(pathname);
+  };
 
   const {
     data: pages = [],
@@ -122,11 +133,18 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
             <Upload aria-hidden />
             Upload
           </Link>
+          <DriveFolders
+            workspaceSlug={workspaceSlug}
+            open={driveOpen}
+            onOpenChange={onDriveOpenChange}
+            returnedWith={driveReturn}
+          />
           <NewPageMenu workspaceSlug={workspaceSlug} />
         </>
       }
     >
       <div className="flex flex-col gap-6">
+        <DriveSyncWarning workspaceSlug={workspaceSlug} onReview={() => setDriveOpen(true)} />
         <FindOrAsk workspaceSlug={workspaceSlug} query={query} onQueryChange={setQuery} entries={entries} />
         {searching ? null : <KnowledgeOverview workspaceSlug={workspaceSlug} entries={entries} />}
         <KnowledgeLibrary

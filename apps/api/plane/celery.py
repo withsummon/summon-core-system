@@ -49,6 +49,11 @@ app.conf.beat_schedule = {
         "task": "plane.bgtasks.email_notification_task.stack_email_notification",
         "schedule": crontab(minute="*/5"),  # Every 5 minutes
     },
+    # Catches Drive changes a push notification missed, and renews push channels before they lapse.
+    "summon-refresh-drive-folders": {
+        "task": "plane.summon.tasks.refresh_drive_folders",
+        "schedule": crontab(minute="*/15"),
+    },
     "push-instance-metrics": {
         "task": "plane.license.bgtasks.telemetry_metrics.push_instance_metrics",
         "schedule": schedule(run_every=timedelta(minutes=METRICS_PUSH_INTERVAL_MINUTES)),

@@ -11,12 +11,16 @@ type Props = {
   project: { id: string; name: string };
 };
 
-/** Links a row to its project. `relative` keeps it clickable above a row's stretched title link. */
+/** `relative` keeps the badge clickable above a row's stretched title link. */
+export const PROJECT_BADGE_CLASSNAME =
+  "relative max-w-48 truncate rounded border border-subtle px-2 py-0.5 text-12 hover:border-strong hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid";
+
+/** Links a row to its project. */
 export function SummonProjectBadge({ workspaceSlug, project }: Props) {
   return (
     <Link
       href={`/${workspaceSlug}/summon/projects/${project.id}/`}
-      className="relative max-w-48 truncate rounded border border-subtle px-2 py-0.5 text-12 hover:border-strong hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
+      className={PROJECT_BADGE_CLASSNAME}
       title={project.name}
     >
       {project.name}

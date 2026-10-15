@@ -44,7 +44,7 @@ export function BreadcrumbNavigationSearchDropdown(props: TBreadcrumbNavigationS
     <>
       {shouldTruncate && <div className="flex text-tertiary @4xl:hidden">…</div>}
       <div
-        className={cn("flex gap-2", {
+        className={cn("flex min-w-0 gap-2", {
           "hidden items-center gap-2 @4xl:flex": shouldTruncate,
         })}
       >
@@ -54,7 +54,7 @@ export function BreadcrumbNavigationSearchDropdown(props: TBreadcrumbNavigationS
     </>
   );
   const labelClassName =
-    "flex h-full items-center gap-2 rounded-sm rounded-r-none px-1.5 py-1 text-13 font-medium text-tertiary";
+    "flex h-full min-w-0 items-center gap-2 rounded-sm rounded-r-none px-1.5 py-1 text-13 font-medium text-tertiary";
   const separator = (
     <Breadcrumbs.Separator
       className={cn("rounded-r-sm", {
@@ -86,9 +86,9 @@ export function BreadcrumbNavigationSearchDropdown(props: TBreadcrumbNavigationS
       }}
       customButton={customButton}
       disabled={navigationDisabled}
-      className="h-full rounded-sm"
+      className="h-full min-w-0 shrink rounded-sm"
       customButtonClassName={cn(
-        "group flex h-full cursor-pointer items-center gap-0.5 rounded-sm outline-none hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
+        "group flex h-full min-w-0 cursor-pointer items-center gap-0.5 rounded-sm outline-none hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
         {
           "bg-surface-2": isDropdownOpen,
         }

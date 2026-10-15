@@ -277,6 +277,12 @@ class PageViewSet(BaseViewSet):
             projects__id=project_id,
             project_pages__deleted_at__isnull=True,
         )
+        if page.summon_drive_files.exists():
+            # The next Drive change would overwrite edits made here; stopping the sync unlocks the page.
+            return Response(
+                {"error": "This page follows a Google Drive file. Stop syncing it to edit it here."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         page.is_locked = False
         page.save()

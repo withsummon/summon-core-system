@@ -2,9 +2,13 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+from datetime import timedelta
+
 from django.db import models
+from django.utils import timezone
 
 from plane.db.models import BaseModel
+from plane.summon.models.credential import Credential
 
 
 class Meeting(BaseModel):
@@ -130,3 +134,80 @@ class ResourceLink(BaseModel):
 
     class Meta:
         ordering = ("title",)
+
+
+class DriveFolder(BaseModel):
+    """A Google Drive folder, or a single Doc, Sheet or Slides file, read through a member's Google account, whose
+    content becomes project pages."""
+
+    class Kind(models.TextChoices):
+        FOLDER = "folder", "Folder"
+        FILE = "file", "File"
+
+    class Health(models.TextChoices):
+        OK = "ok", "OK"
+        REVOKED = "revoked", "Google access revoked"
+        ERROR = "error", "Sync failed"
+        STALLED = "stalled", "Sync stalled"
+
+    # The periodic sync runs every 15 minutes; an hour without a successful one means it has stopped running.
+    STALLED_AFTER = timedelta(hours=1)
+
+    workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE, related_name="summon_drive_folders")
+    project = models.ForeignKey("db.Project", on_delete=models.CASCADE, related_name="summon_drive_folders")
+    credential = models.ForeignKey("summon.Credential", on_delete=models.PROTECT, related_name="drive_folders")
+    kind = models.CharField(max_length=8, choices=Kind.choices, default=Kind.FOLDER)
+    # The folder's Drive ID, or the file's for a single-file source.
+    folder_id = models.CharField(max_length=255)
+    name = models.CharField(max_length=255)
+    # Every folder under `folder_id`, itself included: a change belongs here when its parent is one of them.
+    folder_ids = models.JSONField(default=list, blank=True)
+    # Shared drives have their own change feed; empty means the account's own "My Drive" feed.
+    drive_id = models.CharField(max_length=255, blank=True)
+    page_token = models.CharField(max_length=255, blank=True)
+    channel_id = models.CharField(max_length=64, blank=True)
+    channel_resource_id = models.CharField(max_length=255, blank=True)
+    channel_token = models.CharField(max_length=255, blank=True)
+    channel_expires_at = models.DateTimeField(null=True, blank=True)
+    last_synced_at = models.DateTimeField(null=True, blank=True)
+    sync_error = models.CharField(max_length=80, blank=True)
+
+    class Meta:
+        ordering = ("name",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("workspace", "folder_id"),
+                condition=models.Q(deleted_at__isnull=True),
+                name="summon_unique_drive_folder",
+            )
+        ]
+
+    @property
+    def health(self):
+        if self.credential.status != Credential.Status.ACTIVE or self.sync_error == "drive_auth_revoked":
+            return self.Health.REVOKED
+        if self.sync_error:
+            return self.Health.ERROR
+        # A source still on its first import is not stalled until it has had as long as any other.
+        if (self.last_synced_at or self.created_at) < timezone.now() - self.STALLED_AFTER:
+            return self.Health.STALLED
+        return self.Health.OK
+
+
+class DriveFile(BaseModel):
+    """One synced Drive file and the page that holds its content."""
+
+    workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE, related_name="summon_drive_files")
+    folder = models.ForeignKey(DriveFolder, on_delete=models.CASCADE, related_name="files")
+    page = models.ForeignKey("db.Page", on_delete=models.CASCADE, related_name="summon_drive_files")
+    file_id = models.CharField(max_length=255)
+    modified_time = models.CharField(max_length=40)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("folder", "file_id"),
+                condition=models.Q(deleted_at__isnull=True),
+                name="summon_unique_drive_file",
+            )
+        ]

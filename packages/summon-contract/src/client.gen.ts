@@ -1341,6 +1341,24 @@ export const TldvImportRequestRequest = Schema.Struct({
   credential: Schema.String.annotate({ format: "uuid" }),
   project: Schema.String.annotate({ format: "uuid" }),
 }).annotate({ identifier: "TldvImportRequestRequest" });
+export type DriveFolderKindEnum = "folder" | "file";
+export const DriveFolderKindEnum = Schema.Literals(["folder", "file"]).annotate({ identifier: "DriveFolderKindEnum" });
+export type DriveFolderHealthEnum = "ok" | "revoked" | "error" | "stalled";
+export const DriveFolderHealthEnum = Schema.Literals(["ok", "revoked", "error", "stalled"]).annotate({
+  identifier: "DriveFolderHealthEnum",
+});
+export type DriveFolderConnectRequest = {
+  readonly credential: string;
+  readonly project: string;
+  readonly folder: string;
+};
+export const DriveFolderConnectRequest = Schema.Struct({
+  credential: Schema.String.annotate({ format: "uuid" }),
+  project: Schema.String.annotate({ format: "uuid" }),
+  folder: Schema.String.annotate({ description: "A Drive folder link, a Doc, Sheet or Slides link, or a Drive ID." })
+    .check(Schema.isMinLength(1).annotate({ expected: "a value with a length of at least 1" }))
+    .check(Schema.isMaxCodePoints(500).annotate({ expected: "a string with at most 500 code points" })),
+}).annotate({ identifier: "DriveFolderConnectRequest" });
 export type TranscriptSourceEnum = "text" | "asset";
 export const TranscriptSourceEnum = Schema.Literals(["text", "asset"]).annotate({ identifier: "TranscriptSourceEnum" });
 export type MeetingWorkItemLinkRequestRequest = { readonly issue: string };
@@ -2684,6 +2702,41 @@ export const PatchedSummonProjectProfileRequest = Schema.Struct({
   ),
   client: Schema.optionalKey(Schema.Union([Schema.String, Schema.Null]).annotate({ format: "uuid" })),
 }).annotate({ identifier: "PatchedSummonProjectProfileRequest" });
+export type DriveFolder = {
+  readonly id: string;
+  readonly project: string;
+  readonly credential: string;
+  readonly kind: DriveFolderKindEnum;
+  readonly folder_id: string;
+  readonly name: string;
+  readonly folder_url: string;
+  readonly account: string;
+  readonly file_count: number;
+  readonly live: boolean;
+  readonly health: DriveFolderHealthEnum;
+  readonly last_synced_at: string | null;
+  readonly sync_error: string;
+  readonly created_at: string;
+};
+export const DriveFolder = Schema.Struct({
+  id: Schema.String.annotate({ readOnly: true, format: "uuid" }),
+  project: Schema.String.annotate({ readOnly: true, format: "uuid" }),
+  credential: Schema.String.annotate({ readOnly: true, format: "uuid" }),
+  kind: Schema.suspend((): Schema.Codec<DriveFolderKindEnum> => DriveFolderKindEnum).annotate({ readOnly: true }),
+  folder_id: Schema.String.annotate({ readOnly: true }),
+  name: Schema.String.annotate({ readOnly: true }),
+  folder_url: Schema.String.annotate({ readOnly: true }),
+  account: Schema.String.annotate({ readOnly: true }),
+  file_count: Schema.Number.annotate({ readOnly: true }).check(Schema.isInt().annotate({ expected: "an integer" })),
+  live: Schema.Boolean.annotate({
+    description: "Whether Drive pushes changes as they happen; otherwise they arrive with the next periodic sync.",
+    readOnly: true,
+  }),
+  health: Schema.suspend((): Schema.Codec<DriveFolderHealthEnum> => DriveFolderHealthEnum).annotate({ readOnly: true }),
+  last_synced_at: Schema.Union([Schema.String, Schema.Null]).annotate({ readOnly: true, format: "date-time" }),
+  sync_error: Schema.String.annotate({ readOnly: true }),
+  created_at: Schema.String.annotate({ readOnly: true, format: "date-time" }),
+}).annotate({ identifier: "DriveFolder" });
 export type MeetingSummaryRequestRequest = {
   readonly transcript_source?: TranscriptSourceEnum;
   readonly context?: AssistantContextRequest;
@@ -3624,6 +3677,20 @@ export type MeetingImportTldv400 = ErrorCode;
 export const MeetingImportTldv400 = ErrorCode;
 export type MeetingImportTldv502 = ErrorCode;
 export const MeetingImportTldv502 = ErrorCode;
+export type DriveFolderList200 = ReadonlyArray<DriveFolder>;
+export const DriveFolderList200 = Schema.Array(DriveFolder);
+export type DriveFolderCreateRequestJson = DriveFolderConnectRequest;
+export const DriveFolderCreateRequestJson = DriveFolderConnectRequest;
+export type DriveFolderCreate201 = DriveFolder;
+export const DriveFolderCreate201 = DriveFolder;
+export type DriveFolderCreate400 = ErrorCode;
+export const DriveFolderCreate400 = ErrorCode;
+export type DriveFolderCreate409 = ErrorCode;
+export const DriveFolderCreate409 = ErrorCode;
+export type DriveFolderCreate502 = ErrorCode;
+export const DriveFolderCreate502 = ErrorCode;
+export type DriveFolderSync200 = DriveFolder;
+export const DriveFolderSync200 = DriveFolder;
 export type MeetingSummaryRequestJson = MeetingSummaryRequestRequest;
 export const MeetingSummaryRequestJson = MeetingSummaryRequestRequest;
 export type MeetingSummary200 = Meeting;
@@ -5096,6 +5163,84 @@ export const make = (
                 "2xx": decodeSuccess(MeetingImportTldv200),
                 "400": decodeError("MeetingImportTldv400", MeetingImportTldv400),
                 "502": decodeError("MeetingImportTldv502", MeetingImportTldv502),
+                orElse: unexpectedStatus,
+              })
+            )
+          )
+        )
+      ),
+    driveFolderList: (slug, options: Parameters<SummonClient["driveFolderList"]>[1]) =>
+      __makePathRequest(
+        HttpClientRequest.get,
+        [slug],
+        () => "/api/summon/workspaces/" + __encodePathParam(slug) + "/drive-folders/"
+      ).pipe(
+        Effect.flatMap((request) =>
+          request.pipe(
+            withResponse(options?.config)(
+              HttpClientResponse.matchStatus({
+                "2xx": decodeSuccess(DriveFolderList200),
+                orElse: unexpectedStatus,
+              })
+            )
+          )
+        )
+      ),
+    driveFolderCreate: (slug, options: Parameters<SummonClient["driveFolderCreate"]>[1]) =>
+      __makePathRequest(
+        HttpClientRequest.post,
+        [slug],
+        () => "/api/summon/workspaces/" + __encodePathParam(slug) + "/drive-folders/"
+      ).pipe(
+        Effect.flatMap((request) =>
+          request.pipe(
+            HttpClientRequest.bodyJsonUnsafe(options.payload),
+            withResponse(options.config)(
+              HttpClientResponse.matchStatus({
+                "2xx": decodeSuccess(DriveFolderCreate201),
+                "400": decodeError("DriveFolderCreate400", DriveFolderCreate400),
+                "409": decodeError("DriveFolderCreate409", DriveFolderCreate409),
+                "502": decodeError("DriveFolderCreate502", DriveFolderCreate502),
+                orElse: unexpectedStatus,
+              })
+            )
+          )
+        )
+      ),
+    driveFolderDelete: (slug, folderId, options: Parameters<SummonClient["driveFolderDelete"]>[2]) =>
+      __makePathRequest(
+        HttpClientRequest.delete,
+        [slug, folderId],
+        () =>
+          "/api/summon/workspaces/" + __encodePathParam(slug) + "/drive-folders/" + __encodePathParam(folderId) + "/"
+      ).pipe(
+        Effect.flatMap((request) =>
+          request.pipe(
+            withResponse(options?.config)(
+              HttpClientResponse.matchStatus({
+                "204": () => Effect.void,
+                orElse: unexpectedStatus,
+              })
+            )
+          )
+        )
+      ),
+    driveFolderSync: (slug, folderId, options: Parameters<SummonClient["driveFolderSync"]>[2]) =>
+      __makePathRequest(
+        HttpClientRequest.post,
+        [slug, folderId],
+        () =>
+          "/api/summon/workspaces/" +
+          __encodePathParam(slug) +
+          "/drive-folders/" +
+          __encodePathParam(folderId) +
+          "/sync/"
+      ).pipe(
+        Effect.flatMap((request) =>
+          request.pipe(
+            withResponse(options?.config)(
+              HttpClientResponse.matchStatus({
+                "2xx": decodeSuccess(DriveFolderSync200),
                 orElse: unexpectedStatus,
               })
             )
@@ -7189,6 +7334,88 @@ export interface SummonClient {
       | SchemaError
       | SummonClientError<"MeetingImportTldv400", typeof MeetingImportTldv400.Type>
       | SummonClientError<"MeetingImportTldv502", typeof MeetingImportTldv502.Type>
+    >;
+  };
+  /**
+   * Drive folders and files synced into the projects you can access, with their sync health.
+   */
+  readonly driveFolderList: {
+    <Config extends OperationConfig | undefined = undefined>(
+      slug: string,
+      options: { readonly config: Config }
+    ): Effect.Effect<
+      WithOptionalResponse<typeof DriveFolderList200.Type, Config>,
+      HttpClientError.HttpClientError | SchemaError
+    >;
+    <Config extends OperationConfig | undefined = undefined>(
+      slug: string,
+      options: { readonly config?: Config | undefined } | undefined
+    ): Effect.Effect<
+      WithOptionalResponse<typeof DriveFolderList200.Type, Config | undefined>,
+      HttpClientError.HttpClientError | SchemaError
+    >;
+  };
+  /**
+   * Copy a Drive folder's Docs, Sheets and Slides, subfolders included, or a single Doc, Sheet or Slides file, into locked pages of `project`, and keep them current as the files change. The credential's Google account must be able to open it.
+   */
+  readonly driveFolderCreate: {
+    <Config extends OperationConfig | undefined = undefined>(
+      slug: string,
+      options: { readonly payload: typeof DriveFolderCreateRequestJson.Encoded; readonly config: Config }
+    ): Effect.Effect<
+      WithOptionalResponse<typeof DriveFolderCreate201.Type, Config>,
+      | HttpClientError.HttpClientError
+      | SchemaError
+      | SummonClientError<"DriveFolderCreate400", typeof DriveFolderCreate400.Type>
+      | SummonClientError<"DriveFolderCreate409", typeof DriveFolderCreate409.Type>
+      | SummonClientError<"DriveFolderCreate502", typeof DriveFolderCreate502.Type>
+    >;
+    <Config extends OperationConfig | undefined = undefined>(
+      slug: string,
+      options: { readonly payload: typeof DriveFolderCreateRequestJson.Encoded; readonly config?: Config | undefined }
+    ): Effect.Effect<
+      WithOptionalResponse<typeof DriveFolderCreate201.Type, Config | undefined>,
+      | HttpClientError.HttpClientError
+      | SchemaError
+      | SummonClientError<"DriveFolderCreate400", typeof DriveFolderCreate400.Type>
+      | SummonClientError<"DriveFolderCreate409", typeof DriveFolderCreate409.Type>
+      | SummonClientError<"DriveFolderCreate502", typeof DriveFolderCreate502.Type>
+    >;
+  };
+  /**
+   * Stop following it in Drive. Its pages stay, unlocked, as ordinary pages.
+   */
+  readonly driveFolderDelete: {
+    <Config extends OperationConfig | undefined = undefined>(
+      slug: string,
+      folderId: string,
+      options: { readonly config: Config }
+    ): Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError>;
+    <Config extends OperationConfig | undefined = undefined>(
+      slug: string,
+      folderId: string,
+      options: { readonly config?: Config | undefined } | undefined
+    ): Effect.Effect<WithOptionalResponse<void, Config | undefined>, HttpClientError.HttpClientError | SchemaError>;
+  };
+  /**
+   * Compare every page with its Drive file now, instead of waiting for the next change.
+   */
+  readonly driveFolderSync: {
+    <Config extends OperationConfig | undefined = undefined>(
+      slug: string,
+      folderId: string,
+      options: { readonly config: Config }
+    ): Effect.Effect<
+      WithOptionalResponse<typeof DriveFolderSync200.Type, Config>,
+      HttpClientError.HttpClientError | SchemaError
+    >;
+    <Config extends OperationConfig | undefined = undefined>(
+      slug: string,
+      folderId: string,
+      options: { readonly config?: Config | undefined } | undefined
+    ): Effect.Effect<
+      WithOptionalResponse<typeof DriveFolderSync200.Type, Config | undefined>,
+      HttpClientError.HttpClientError | SchemaError
     >;
   };
   /**

@@ -12,6 +12,7 @@ import type { TChangeHandlerProps } from "@plane/propel/emoji-icon-picker";
 import type { TDocumentPayload, TLogoProps, TNameDescriptionLoader, TPage } from "@plane/types";
 // plane web store
 import { ExtendedBasePage } from "@/store/pages/extended-base-page";
+import type { TExtendedPageInstance } from "@/store/pages/extended-base-page";
 import type { RootStore } from "@/store/root.store";
 // local imports
 import { PageEditorInstance } from "./page-editor-info";
@@ -74,6 +75,7 @@ export type TBasePageServices = {
 };
 
 export type TPageInstance = TBasePage &
+  TExtendedPageInstance &
   TBasePagePermissions & {
     getRedirectionLink: () => string;
   };

@@ -5,6 +5,14 @@
 from django.urls import path
 
 from plane.summon.views.assistant import AssistantTurnCompleteView, AssistantTurnView, PlaneToolView
+from plane.summon.views.drive import (
+    DriveFolderDetailView,
+    DriveFolderListView,
+    DriveFolderSyncView,
+    DriveNotificationView,
+    GoogleDriveCallbackView,
+    GoogleDriveConnectView,
+)
 from plane.summon.views.internal import AIConfigView
 from plane.summon.views import (
     AccessMeView,
@@ -231,6 +239,24 @@ urlpatterns = [
     path("workspaces/<str:slug>/meetings/", meeting_list, name="summon-meeting-list"),
     path("workspaces/<str:slug>/meetings/<uuid:pk>/", meeting_detail, name="summon-meeting-detail"),
     path("workspaces/<str:slug>/meetings/import/tldv/", TldvImportView.as_view(), name="summon-meeting-import-tldv"),
+    path("workspaces/<str:slug>/drive-folders/", DriveFolderListView.as_view(), name="summon-drive-folder-list"),
+    path(
+        "workspaces/<str:slug>/drive-folders/<uuid:folder_id>/",
+        DriveFolderDetailView.as_view(),
+        name="summon-drive-folder-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/drive-folders/<uuid:folder_id>/sync/",
+        DriveFolderSyncView.as_view(),
+        name="summon-drive-folder-sync",
+    ),
+    path(
+        "workspaces/<str:slug>/google-drive/connect/",
+        GoogleDriveConnectView.as_view(),
+        name="summon-google-drive-connect",
+    ),
+    path("google-drive/callback/", GoogleDriveCallbackView.as_view(), name="summon-google-drive-callback"),
+    path("google-drive/notifications/", DriveNotificationView.as_view(), name="summon-drive-notifications"),
     path(
         "workspaces/<str:slug>/meetings/<uuid:meeting_id>/summary/",
         MeetingSummaryView.as_view(),

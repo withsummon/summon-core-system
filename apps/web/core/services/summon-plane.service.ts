@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-import type { TIssue, TPage } from "@plane/types";
+import type { ISummonHomeSummary, TIssue, TPage } from "@plane/types";
 import { IssueService } from "@/services/issue";
 import { ProjectPageService } from "@/services/page";
 import { summonService } from "@/services/summon.service";
 import { listAllCursorResults } from "./summon-pagination";
 
-type TAccessibleProject = { id: string; identifier: string; name: string };
+type TAccessibleProject = ISummonHomeSummary["projects"][number];
 
 export type TPlaneIssueIndexItem = { issue: TIssue; project: TAccessibleProject };
 export type TPlanePageIndexItem = { page: TPage; project: TAccessibleProject };

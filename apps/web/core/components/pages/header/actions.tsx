@@ -14,6 +14,7 @@ import { PageOptionsDropdown } from "../editor/toolbar";
 import { PageArchivedBadge } from "./archived-badge";
 import { PageCopyLinkControl } from "./copy-link-control";
 import { PageFavoriteControl } from "./favorite-control";
+import { PageGoogleDriveLink } from "./google-drive-link";
 import { PageOfflineBadge } from "./offline-badge";
 import { PageLockControl } from "./lock-control";
 
@@ -29,6 +30,7 @@ export const PageHeaderActions = observer(function PageHeaderActions(props: Prop
     <div className="flex items-center gap-1">
       <PageArchivedBadge page={page} />
       <PageOfflineBadge page={page} />
+      <PageGoogleDriveLink page={page} />
       <PageLockControl page={page} />
       <PageCopyLinkControl page={page} />
       <PageFavoriteControl page={page} />
