@@ -241,6 +241,9 @@ services:
         condition: service_started
       plane-redis:
         condition: service_healthy
+    networks:
+      default:
+        aliases: [summon-core-mcp]
 
   ai:
     build:
@@ -271,6 +274,9 @@ services:
         condition: service_started
       mcp:
         condition: service_started
+    networks:
+      default:
+        aliases: [summon-core-ai]
 
   codex-bridge:
     build:
@@ -320,8 +326,8 @@ services:
       SPACE_HOST: summon-core-space
       LIVE_HOST: summon-core-live
       MINIO_HOST: summon-core-minio
-      MCP_HOST: mcp
-      AI_HOST: ai
+      MCP_HOST: summon-core-mcp
+      AI_HOST: summon-core-ai
     volumes:
       - ../../apps/proxy/Caddyfile.ce:/etc/caddy/Caddyfile:ro
     depends_on:
