@@ -12,6 +12,7 @@ import { DownloadCloud, Link2, ListChecks, Plus } from "lucide-react";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/ui";
 import { SummonField } from "@/components/summon/forms";
+import { SummonProjectBadge } from "@/components/summon/project-badge";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonDrawer } from "@/components/summon/drawer";
 import { StatusBadge } from "@/components/summon/status-badge";
@@ -210,9 +211,7 @@ export default function SummonMeetingsPage({ params }: Route.ComponentProps) {
                         {meetingTime(item.starts_at)}
                       </time>
                       {item.project_detail ? (
-                        <span className="max-w-48 truncate" title={item.project_detail.name}>
-                          {item.project_detail.name}
-                        </span>
+                        <SummonProjectBadge workspaceSlug={params.workspaceSlug} project={item.project_detail} />
                       ) : null}
                       <span className={`flex items-center gap-1 ${item.work_items.length ? "" : "text-tertiary"}`}>
                         <ListChecks aria-hidden="true" className="size-3.5" />

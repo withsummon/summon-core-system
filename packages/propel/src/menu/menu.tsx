@@ -143,7 +143,9 @@ function Menu({
             menuButtonOnClick?.();
           }}
           className={cn(
-            "flex items-center justify-between gap-1 rounded whitespace-nowrap transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent-strong/40 disabled:cursor-not-allowed disabled:opacity-50",
+            // A `render` element owns its own layout and focus styles.
+            !render &&
+              "flex items-center justify-between gap-1 rounded whitespace-nowrap transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent-strong/40 disabled:cursor-not-allowed disabled:opacity-50",
             triggerClassName
           )}
         >

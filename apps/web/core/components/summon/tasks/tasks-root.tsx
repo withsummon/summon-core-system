@@ -24,6 +24,7 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Collapsible } from "@plane/propel/collapsible";
 import { getFileURL, renderFormattedDateWithoutYear } from "@plane/utils";
 import { PageHead } from "@/components/core/page-title";
+import { SummonProjectBadge } from "@/components/summon/project-badge";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonPageHeader } from "@/components/summon/screen";
 import { useHashTab } from "@/components/summon/use-hash-tab";
@@ -371,13 +372,7 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
                                 ) : null;
                               })}
                             {shows("project") && (
-                              <Link
-                                href={`/${workspaceSlug}/summon/projects/${task.project.id}/`}
-                                className="max-w-48 truncate rounded border border-subtle px-2 py-0.5 text-12 hover:border-strong hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
-                                title={task.project.name}
-                              >
-                                {task.project.name}
-                              </Link>
+                              <SummonProjectBadge workspaceSlug={workspaceSlug} project={task.project} />
                             )}
                             {shows("assignee") && (
                               <MemberDropdown
