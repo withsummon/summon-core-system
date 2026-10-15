@@ -18,8 +18,9 @@ type TFiltersToggleProps<P extends TFilterProperty, E extends TExternalFilter> =
   filter: IFilterInstance<P, E> | undefined;
 };
 
+// Matches the size="lg" IconButton below so the toggle keeps one height in either state.
 const COMMON_CLASSNAME =
-  "grid place-items-center h-7 w-full py-0.5 px-2 rounded-md border border-subtle-1 transition-colors duration-200 cursor-pointer";
+  "grid size-9 place-items-center rounded-lg p-0 border border-subtle-1 transition-colors duration-200 cursor-pointer";
 
 export const FiltersToggle = observer(function FiltersToggle<P extends TFilterProperty, E extends TExternalFilter>(
   props: TFiltersToggleProps<P, E>

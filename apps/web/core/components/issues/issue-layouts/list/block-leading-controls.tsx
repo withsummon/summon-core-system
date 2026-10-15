@@ -12,10 +12,14 @@ import type { IIssueDisplayProperties, TIssue } from "@plane/types";
 import { cn } from "@plane/utils";
 // components
 import { MultipleSelectEntityAction } from "@/components/core/multiple-select";
+import { PriorityDropdown } from "@/components/dropdowns/priority";
+import { StateDropdown } from "@/components/dropdowns/state/dropdown";
 import { IssueIdentifier } from "@/components/issues/issue-detail/issue-identifier";
 // hooks
 import type { TSelectionHelper } from "@/hooks/use-multiple-select";
+import { usePlatformOS } from "@/hooks/use-platform-os";
 // local imports
+import { PropertySlot } from "../properties/property-slot";
 import { calculateIdentifierWidth } from "../utils";
 
 type TSelectCheckboxProps = {
@@ -122,10 +126,12 @@ type TLeadingControlsProps = {
   /** Indent in px for sub-work items; undefined for top-level rows. */
   marginLeft: number | undefined;
   isTemporary: boolean;
+  isReadOnly: boolean;
+  updateIssue: ((projectId: string | null, issueId: string, data: Partial<TIssue>) => Promise<void>) | undefined;
 };
 
-/** Selection checkbox, identifier and sub-work-item toggle at the start of a list block. */
-export function ListBlockLeadingControls(props: TLeadingControlsProps) {
+/** Selection checkbox, priority, identifier, sub-work-item toggle and state at the start of a list block. */
+export const ListBlockLeadingControls = observer(function ListBlockLeadingControls(props: TLeadingControlsProps) {
   const {
     issue,
     groupId,
@@ -141,7 +147,10 @@ export function ListBlockLeadingControls(props: TLeadingControlsProps) {
     onToggleExpand,
     marginLeft,
     isTemporary,
+    isReadOnly,
+    updateIssue,
   } = props;
+  const { isMobile } = usePlatformOS();
 
   // Calculate width for: projectIdentifier + "-" + dynamic sequence number digits
   // Use next_work_item_sequence from backend (static value from project endpoint)
@@ -162,6 +171,19 @@ export function ListBlockLeadingControls(props: TLeadingControlsProps) {
           selectionHelpers={selectionHelpers}
         />
       )}
+      {displayProperties?.priority && (
+        <PropertySlot className="flex h-5 shrink-0">
+          <PriorityDropdown
+            value={issue.priority}
+            onChange={(priority) => void updateIssue?.(issue.project_id, issue.id, { priority })}
+            disabled={isReadOnly || isTemporary}
+            buttonVariant="transparent-without-text"
+            buttonClassName="px-0.5"
+            renderByDefault={isMobile}
+            showTooltip
+          />
+        </PropertySlot>
+      )}
       {showIdentifier && displayProperties && (
         <ListBlockIdentifier
           issueId={issue.id}
@@ -176,7 +198,22 @@ export function ListBlockLeadingControls(props: TLeadingControlsProps) {
         {showSubIssueToggle && <ListBlockSubIssueToggle isExpanded={isExpanded} onToggle={onToggleExpand} />}
       </div>
 
+      {displayProperties?.state && issue.project_id && (
+        <PropertySlot className="mr-1 flex h-5 shrink-0">
+          <StateDropdown
+            value={issue.state_id}
+            onChange={(state_id) => void updateIssue?.(issue.project_id, issue.id, { state_id })}
+            projectId={issue.project_id}
+            disabled={isReadOnly || isTemporary}
+            buttonVariant="transparent-without-text"
+            buttonClassName="px-0.5"
+            renderByDefault={isMobile}
+            showTooltip
+          />
+        </PropertySlot>
+      )}
+
       {isTemporary && <div className="absolute top-0 left-0 z-[99999] h-full w-full animate-pulse bg-surface-1/20" />}
     </div>
   );
-}
+});

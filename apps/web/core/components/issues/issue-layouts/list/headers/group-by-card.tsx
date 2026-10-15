@@ -92,6 +92,12 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
     }
   };
 
+  const groupIcon = (
+    <span className="grid flex-shrink-0 place-items-center overflow-hidden">
+      {icon ?? <CircleDashed className="size-3.5" strokeWidth={2} />}
+    </span>
+  );
+
   return (
     <>
       <div className="group/list-header flex w-full flex-shrink-0 items-center gap-2 py-1.5">
@@ -110,10 +116,6 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
             />
           </div>
         )}
-        <div className="grid flex-shrink-0 place-items-center overflow-hidden">
-          {icon ?? <CircleDashed className="size-3.5" strokeWidth={2} />}
-        </div>
-
         {groupBy ? (
           <Button
             variant="ghost"
@@ -122,11 +124,13 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
             onClick={() => handleCollapsedGroups(groupID)}
           >
             <ChevronRight aria-hidden="true" className={cn("size-3.5 shrink-0", isExpanded && "rotate-90")} />
+            {groupIcon}
             <span className="truncate font-medium text-primary">{title}</span>
             <span className="text-xs text-secondary tabular-nums">{count || 0}</span>
           </Button>
         ) : (
           <h2 className="flex min-w-0 flex-1 items-center gap-2 py-1 text-sm font-medium text-primary">
+            {groupIcon}
             <span className="truncate">{title}</span>
             <span className="font-normal text-xs text-secondary tabular-nums">{count || 0}</span>
           </h2>

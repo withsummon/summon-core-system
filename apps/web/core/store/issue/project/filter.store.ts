@@ -59,6 +59,9 @@ export interface IProjectIssuesFilter extends IBaseIssueFilterStore {
 export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProjectIssuesFilter {
   // observables
   filters: { [projectId: string]: IIssueFilters } = {};
+  // filter save starts and ends per project, and saves still pending, so a fetch overlapping a save doesn't overwrite it
+  private filterSaveCounts: { [projectId: string]: number } = {};
+  private pendingFilterSaves: { [projectId: string]: number } = {};
   // root store
   rootIssueStore: IIssueRootStore;
   // services
@@ -135,7 +138,10 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
   );
 
   fetchFilters = async (workspaceSlug: string, projectId: string) => {
+    const saveCount = this.filterSaveCounts[projectId];
     const _filters = await this.projectService.getProjectUserProperties(workspaceSlug, projectId);
+    // a save overlapped this request, so the response may predate it; the local state is newer
+    if (this.filterSaveCounts[projectId] !== saveCount || this.pendingFilterSaves[projectId]) return;
 
     const richFilters = _filters?.rich_filters;
     const displayFilters = this.computedDisplayFilters(_filters?.display_filters);
@@ -166,6 +172,22 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
     });
   };
 
+  /** Saves the user's filters for the project, tracked so overlapping fetches leave the newer local state alone. */
+  private saveFilters = async (
+    workspaceSlug: string,
+    projectId: string,
+    data: Parameters<ProjectService["updateProjectUserProperties"]>[2]
+  ) => {
+    this.filterSaveCounts[projectId] = (this.filterSaveCounts[projectId] ?? 0) + 1;
+    this.pendingFilterSaves[projectId] = (this.pendingFilterSaves[projectId] ?? 0) + 1;
+    try {
+      await this.projectService.updateProjectUserProperties(workspaceSlug, projectId, data);
+    } finally {
+      this.pendingFilterSaves[projectId] -= 1;
+      this.filterSaveCounts[projectId] += 1;
+    }
+  };
+
   /**
    * NOTE: This method is designed as a fallback function for the work item filter store.
    * Only use this method directly when initializing filter instances.
@@ -182,7 +204,7 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
       });
 
       this.rootIssueStore.projectIssues.fetchIssuesWithExistingPagination(workspaceSlug, projectId, "mutation");
-      await this.projectService.updateProjectUserProperties(workspaceSlug, projectId, {
+      await this.saveFilters(workspaceSlug, projectId, {
         rich_filters: filters,
       });
     } catch (error) {
@@ -244,7 +266,7 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
             this.rootIssueStore.projectIssues.fetchIssuesWithExistingPagination(workspaceSlug, projectId, "mutation");
           }
 
-          await this.projectService.updateProjectUserProperties(workspaceSlug, projectId, {
+          await this.saveFilters(workspaceSlug, projectId, {
             display_filters: _filters.displayFilters,
           });
 
@@ -264,7 +286,7 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
             });
           });
 
-          await this.projectService.updateProjectUserProperties(workspaceSlug, projectId, {
+          await this.saveFilters(workspaceSlug, projectId, {
             display_properties: _filters.displayProperties,
           });
           break;

@@ -59,7 +59,7 @@ type TRowState = {
 
 const getRowClassName = (state: TRowState) =>
   cn(
-    "group/list-block relative flex min-h-11 flex-col gap-3 bg-layer-transparent py-3 text-13 transition-colors hover:bg-layer-transparent-hover",
+    "group/list-block relative flex min-h-11 flex-col gap-2 bg-layer-transparent py-2 text-13 transition-colors hover:bg-layer-transparent-hover",
     {
       "border-accent-strong": state.isPeeked && state.isPeekedAtThisLevel,
       "border-strong-1": state.isActive,
@@ -227,6 +227,8 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
               onToggleExpand={handleToggleExpand}
               marginLeft={nestingLevel !== 0 ? spacingLeft : undefined}
               isTemporary={isTemporary}
+              isReadOnly={!canEditIssueProperties}
+              updateIssue={updateIssue}
             />
 
             <Tooltip

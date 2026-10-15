@@ -56,7 +56,8 @@ export function ListBlockTrailingControls(props: Props) {
         issue={issue}
         isReadOnly={!canEditIssueProperties}
         updateIssue={updateIssue}
-        displayProperties={displayProperties}
+        // Priority and state lead the row, before the identifier and title.
+        displayProperties={displayProperties && { ...displayProperties, priority: false, state: false }}
         activeLayout="List"
         isEpic={isEpic}
       />

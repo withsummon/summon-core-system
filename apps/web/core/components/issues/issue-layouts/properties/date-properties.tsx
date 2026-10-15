@@ -53,6 +53,16 @@ export const IssueDateProperties = observer(function IssueDateProperties(props: 
 
   const minDate = getDate(issue.start_date);
   const maxDate = getDate(issue.target_date);
+  // List rows show set dates as plain text, matching the Summon Tasks list; other layouts keep bordered chips.
+  const isList = activeLayout === "List";
+  const setDateVariant = isList ? "transparent-with-text" : "border-with-text";
+  const listDateProps = isList
+    ? {
+        hideIcon: true,
+        formatToken: "MMM dd",
+        clearIconClassName: "text-primary! pointer-fine:hidden pointer-fine:group-hover/list-block:block",
+      }
+    : {};
 
   return (
     <>
@@ -73,11 +83,11 @@ export const IssueDateProperties = observer(function IssueDateProperties(props: 
               handleTargetDate(range?.to ?? null);
             }}
             hideIcon={{
-              from: false,
+              from: isList,
             }}
             isClearable
             mergeDates
-            buttonVariant={issue.start_date || issue.target_date ? "border-with-text" : "transparent-without-text"}
+            buttonVariant={issue.start_date || issue.target_date ? setDateVariant : "transparent-without-text"}
             buttonClassName={isDueDateHighlighted ? "text-danger-primary" : ""}
             clearIconClassName="text-primary!"
             disabled={isReadOnly}
@@ -102,12 +112,13 @@ export const IssueDateProperties = observer(function IssueDateProperties(props: 
             maxDate={maxDate}
             placeholder={t("common.order_by.start_date")}
             icon={<StartDatePropertyIcon className="h-3 w-3 flex-shrink-0" />}
-            buttonVariant={issue.start_date ? "border-with-text" : "transparent-without-text"}
+            buttonVariant={issue.start_date ? setDateVariant : "transparent-without-text"}
             optionsClassName="z-10"
             disabled={isReadOnly}
             renderByDefault={isMobile}
             showTooltip
             labelClassName="text-caption-sm-regular"
+            {...(issue.start_date ? listDateProps : {})}
           />
         </PropertySlot>
       </WithDisplayPropertiesHOC>
@@ -125,7 +136,7 @@ export const IssueDateProperties = observer(function IssueDateProperties(props: 
             minDate={minDate}
             placeholder={t("common.order_by.due_date")}
             icon={<DueDatePropertyIcon className="h-3 w-3 shrink-0" />}
-            buttonVariant={issue.target_date ? "border-with-text" : "transparent-without-text"}
+            buttonVariant={issue.target_date ? setDateVariant : "transparent-without-text"}
             buttonClassName={isDueDateHighlighted ? "text-danger-primary" : ""}
             clearIconClassName="text-primary!"
             optionsClassName="z-10"
@@ -133,6 +144,7 @@ export const IssueDateProperties = observer(function IssueDateProperties(props: 
             renderByDefault={isMobile}
             showTooltip
             labelClassName="text-caption-sm-regular"
+            {...(issue.target_date ? listDateProps : {})}
           />
         </PropertySlot>
       </WithDisplayPropertiesHOC>

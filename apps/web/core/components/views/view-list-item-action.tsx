@@ -109,8 +109,12 @@ export const ViewListItemAction = observer(function ViewListItemAction(props: Pr
         <></>
       )}
 
-      {/* created by */}
-      {<ButtonAvatars showTooltip={false} userIds={ownedByDetails?.id ?? []} />}
+      {ownedByDetails && (
+        <span className="flex max-w-40 items-center gap-1.5 text-12 text-secondary">
+          <ButtonAvatars showTooltip={false} userIds={ownedByDetails.id} />
+          <span className="truncate">{ownedByDetails.display_name}</span>
+        </span>
+      )}
 
       {isEditingAllowed && (
         <FavoriteStar

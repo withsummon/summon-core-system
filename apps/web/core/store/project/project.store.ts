@@ -456,8 +456,8 @@ export class ProjectStore implements IProjectStore {
    */
   addProjectToFavorites = async (workspaceSlug: string, projectId: string) => {
     try {
-      const currentProject = this.getProjectById(projectId);
-      if (currentProject.is_favorite) return;
+      // the favorite store holds every favorite; `is_favorite` is only loaded with a project's details
+      if (this.rootStore.favorite.entityMap[projectId]) return;
       runInAction(() => {
         set(this.projectMap, [projectId, "is_favorite"], true);
       });
@@ -485,8 +485,7 @@ export class ProjectStore implements IProjectStore {
    */
   removeProjectFromFavorites = async (workspaceSlug: string, projectId: string) => {
     try {
-      const currentProject = this.getProjectById(projectId);
-      if (!currentProject.is_favorite) return;
+      if (!this.rootStore.favorite.entityMap[projectId]) return;
       runInAction(() => {
         set(this.projectMap, [projectId, "is_favorite"], false);
       });
@@ -602,12 +601,12 @@ export class ProjectStore implements IProjectStore {
   archiveProject = async (workspaceSlug: string, projectId: string) => {
     await this.projectArchiveService
       .archiveProject(workspaceSlug, projectId)
-      .then((response) => {
+      .then((response) =>
         runInAction(() => {
           set(this.projectMap, [projectId, "archived_at"], response.archived_at);
           this.rootStore.favorite.removeFavoriteFromStore(projectId);
-        });
-      })
+        })
+      )
       .catch((error) => {
         console.log("Failed to archive project from project store");
         throw error;
@@ -623,11 +622,11 @@ export class ProjectStore implements IProjectStore {
   restoreProject = async (workspaceSlug: string, projectId: string) => {
     await this.projectArchiveService
       .restoreProject(workspaceSlug, projectId)
-      .then(() => {
+      .then(() =>
         runInAction(() => {
           set(this.projectMap, [projectId, "archived_at"], null);
-        });
-      })
+        })
+      )
       .catch((error) => {
         console.log("Failed to restore project from project store");
         throw error;
