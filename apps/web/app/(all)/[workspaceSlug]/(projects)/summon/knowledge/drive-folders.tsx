@@ -34,6 +34,7 @@ const DRIVE_ERRORS: Record<string, string> = {
   drive_access_denied:
     "Google refused access to Drive. Ask an admin to enable the Google Drive API for the OAuth client.",
   drive_unavailable: "Google Drive could not be reached. Try again shortly.",
+  drive_page_failed: "A Drive file could not be turned into a page. Sync again shortly.",
   already_exists: "This link is already synced.",
 };
 

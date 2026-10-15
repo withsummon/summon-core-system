@@ -687,6 +687,8 @@ def _xlsx():
     workbook.active.title = "Budget"
     workbook.active.append(["Item", "Cost"])
     workbook.active.append(["Printer", 1200])
+    workbook.active.cell(row=501, column=1, value="Outside the row limit")
+    workbook.active.cell(row=1, column=31, value="Outside the column limit")
     buffer = BytesIO()
     workbook.save(buffer)
     return buffer.getvalue()
@@ -873,9 +875,10 @@ def test_google_account_syncs_folder_into_locked_pages_and_warns_when_access_is_
         "<table><tbody><tr><td><p>Cell</p></td><td><p></p></td></tr></tbody></table>"
     )
     assert "<h2>Budget</h2>" in sent[1] and "<td><p>Printer</p></td><td><p>1200</p></td>" in sent[1]
+    assert "First 500 rows and 30 columns." in sent[1] and "Outside" not in sent[1]
     assert sent[2] == "<p>Kickoff</p><p>Goals</p>"
 
-    # Drive reports an edit to the doc, the sheet moved to the bin, and a file elsewhere in Drive.
+    # Drive reports an edit to the doc, the sheet removed, a shared-drive event, and a file elsewhere in Drive.
     FakeDrive.feed = [
         {
             "fileId": "doc",
@@ -883,10 +886,8 @@ def test_google_account_syncs_folder_into_locked_pages_and_warns_when_access_is_
                 "doc", "Plan v2", "application/vnd.google-apps.document", modified="2026-10-02T00:00:00.000Z"
             ),
         },
-        {
-            "fileId": "sheet",
-            "file": {**_file("sheet", "Budget", "application/vnd.google-apps.spreadsheet"), "trashed": True},
-        },
+        {"fileId": "sheet", "removed": True},
+        {"removed": False},
         {"fileId": "other", "file": _file("other", "Elsewhere", "application/vnd.google-apps.document", parent="nope")},
     ]
     folder = DriveFolder.objects.get(id=connected.data["id"])
@@ -894,6 +895,12 @@ def test_google_account_syncs_folder_into_locked_pages_and_warns_when_access_is_
     monkeypatch.setattr(tasks.sync_drive_changes, "delay", queued.append)
     notify = "/api/summon/google-drive/notifications/"
     headers = {"HTTP_X_GOOG_CHANNEL_ID": folder.channel_id, "HTTP_X_GOOG_RESOURCE_STATE": "change"}
+    # A bare request must not match a source that has no push channel.
+    unwatched = DriveFolder.objects.create(
+        workspace=workspace, project=project, credential=credential, folder_id="unwatched", name="Unwatched"
+    )
+    assert APIClient().post(notify).status_code == 204
+    unwatched.delete(soft=False)
     assert APIClient().post(notify, **headers, HTTP_X_GOOG_CHANNEL_TOKEN="forged").status_code == 204
     assert queued == []
     APIClient().post(notify, **headers, HTTP_X_GOOG_CHANNEL_TOKEN=folder.channel_token)
@@ -905,9 +912,20 @@ def test_google_account_syncs_folder_into_locked_pages_and_warns_when_access_is_
     pages["Budget"].refresh_from_db()
     assert pages["Plan"].name == "Plan v2"
     assert pages["Budget"].archived_at is not None
-    assert set(DriveFile.objects.filter(folder=folder).values_list("file_id", flat=True)) == {"doc", "slides"}
     folder.refresh_from_db()
     assert folder.page_token == "token-2"
+
+    # Removing the subfolder takes its pages with it, though Drive sends no details for a removed item.
+    plan_v2 = _file("doc", "Plan v2", "application/vnd.google-apps.document", modified="2026-10-02T00:00:00.000Z")
+    monkeypatch.setitem(FakeDrive.tree, ROOT, [plan_v2])
+    FakeDrive.feed = [{"fileId": SUB, "removed": True}]
+    tasks.sync_drive_changes(str(folder.id))
+
+    pages["Kickoff"].refresh_from_db()
+    assert pages["Kickoff"].archived_at is not None
+    folder.refresh_from_db()
+    assert folder.folder_ids == [ROOT]
+    assert api.get(f"{base}/drive-folders/").data[0]["file_count"] == 1
 
     # The person withdraws Summon's access in their Google account: the next sync marks the folder and the account.
     FakeDrive.revoked = True
@@ -932,9 +950,8 @@ def test_google_account_syncs_folder_into_locked_pages_and_warns_when_access_is_
 
     assert disconnected.status_code == status.HTTP_204_NO_CONTENT
     assert FakeDrive.stopped == [folder.channel_id]
-    pages["Plan"].refresh_from_db()
-    # The pages stay, as ordinary editable pages.
-    assert pages["Plan"].is_locked is False
+    # The pages stay, archived ones included, as ordinary editable pages.
+    assert not Page.all_objects.filter(id__in=[page.id for page in pages.values()], is_locked=True).exists()
     assert not DriveFolder.objects.filter(id=folder.id).exists()
 
 
@@ -967,6 +984,9 @@ def test_single_doc_link_syncs_one_locked_page_that_follows_the_file(workspace, 
     assert connected.data["folder_url"] == f"https://drive.google.com/file/d/{SOLO}/view"
     page = Page.objects.get(summon_drive_files__folder_id=connected.data["id"])
     assert page.name == "Brief" and page.is_locked
+    # Drive owns the page, so it stays locked while it syncs.
+    unlock = api.delete(f"/api/workspaces/{workspace.slug}/projects/{project.id}/pages/{page.id}/lock/")
+    assert unlock.status_code == status.HTTP_400_BAD_REQUEST
     # Every tab of the Doc lands on the page, each under its title.
     assert sent == ["<h1>Scope</h1><p>Scope</p><h1>Notes</h1><p>Later</p>"]
 
@@ -998,4 +1018,11 @@ def test_single_doc_link_syncs_one_locked_page_that_follows_the_file(workspace, 
 
     page.refresh_from_db()
     assert page.archived_at is not None
-    assert not DriveFile.objects.filter(folder_id=connected.data["id"]).exists()
+
+    # Restoring it from the bin brings back the same page.
+    FakeDrive.feed = [{"fileId": SOLO, "file": {**FakeDrive.loose[SOLO], "name": "Brief v3"}}]
+    tasks.sync_drive_changes(connected.data["id"])
+
+    page.refresh_from_db()
+    assert page.archived_at is None and page.name == "Brief v3"
+    assert DriveFile.objects.filter(folder_id=connected.data["id"]).count() == 1

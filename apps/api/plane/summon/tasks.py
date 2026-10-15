@@ -9,7 +9,6 @@ from plane.summon.services.google_drive import (
     record_drive_error,
     run_drive_sync,
     watch_drive_folder,
-    webhook_address,
 )
 from plane.summon.services.meeting_transcript import write_meeting_transcript
 from plane.summon.services.transcription import TranscriptionError, transcribe_file_asset
@@ -98,7 +97,7 @@ def refresh_drive_folders():
     renew_before = timezone.now() + CHANNEL_RENEW_WITHIN
     for folder_id in DriveFolder.objects.values_list("id", flat=True):
         folder = run_drive_sync(folder_id)
-        if folder and webhook_address() and (not folder.channel_expires_at or folder.channel_expires_at < renew_before):
+        if folder and (not folder.channel_expires_at or folder.channel_expires_at < renew_before):
             try:
                 watch_drive_folder(folder)
             except GoogleDriveError as error:

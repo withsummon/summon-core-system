@@ -27,6 +27,7 @@ import requests
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
+from rest_framework import serializers
 
 from plane.db.models import Page, ProjectPage
 from plane.license.utils.instance_value import get_configuration_value
@@ -298,7 +299,10 @@ class DriveClient:
         ).json()
 
     def stop(self, channel_id, resource_id):
-        self._request("POST", "/channels/stop", json={"id": channel_id, "resourceId": resource_id})
+        try:
+            self._request("POST", "/channels/stop", json={"id": channel_id, "resourceId": resource_id})
+        except GoogleDriveError:
+            pass  # Already expired or stopped; an unknown channel's notifications are ignored anyway.
 
 
 def drive_client(credential):
@@ -417,8 +421,8 @@ def _sheet_html(client, file_id):
     parts = []
     for sheet in workbook.worksheets:
         rows = []
-        for row in sheet.iter_rows(values_only=True, max_row=SHEET_MAX_ROWS):
-            cells = ["" if value is None else str(value) for value in row[:SHEET_MAX_COLUMNS]]
+        for row in sheet.iter_rows(values_only=True, max_row=SHEET_MAX_ROWS, max_col=SHEET_MAX_COLUMNS):
+            cells = ["" if value is None else str(value) for value in row]
             while cells and not cells[-1]:
                 cells.pop()
             rows.append(cells)
@@ -456,24 +460,30 @@ CONVERTERS = {
 def _write_file(folder, client, item):
     """Copy one Drive file into its page, unless the page already holds this revision."""
     record = DriveFile.objects.filter(folder=folder, file_id=item["id"]).select_related("page").first()
-    if record and record.modified_time == item["modifiedTime"]:
+    if record and record.modified_time == item["modifiedTime"] and not record.page.archived_at:
         return
     page = record.page if record else Page(workspace=folder.workspace, owned_by=folder.created_by, is_global=False)
     page.name = item["name"][:255]
     page.access = Page.PUBLIC_ACCESS
     # Drive owns the content; edits made here would be overwritten by the next change.
     page.is_locked = True
-    write_page_document(
-        page,
-        # Plane Live rejects HTML without a tag, which an empty file would be.
-        CONVERTERS[item["mimeType"]](client, item["id"]) or "<p></p>",
-        {
-            "kind": "google_drive",
-            "file_id": item["id"],
-            "url": item.get("webViewLink", ""),
-            "modified_time": item["modifiedTime"],
-        },
-    )
+    # A file back in the folder brings its page back.
+    page.archived_at = None
+    try:
+        write_page_document(
+            page,
+            # Plane Live rejects HTML without a tag, which an empty file would be.
+            CONVERTERS[item["mimeType"]](client, item["id"]) or "<p></p>",
+            {
+                "kind": "google_drive",
+                "file_id": item["id"],
+                "url": item.get("webViewLink", ""),
+                "modified_time": item["modifiedTime"],
+            },
+        )
+    except serializers.ValidationError:
+        # Plane Live could not convert it; the source shows the error and the next sync retries.
+        raise GoogleDriveError("drive_page_failed") from None
     ProjectPage.objects.get_or_create(workspace=folder.workspace, project=folder.project, page=page)
     if record:
         record.modified_time = item["modifiedTime"]
@@ -490,10 +500,10 @@ def _write_file(folder, client, item):
 
 def _archive_files(folder, file_ids):
     """Files gone from the folder leave their pages archived, not deleted, in case they come back."""
-    for record in DriveFile.objects.filter(folder=folder, file_id__in=file_ids).select_related("page"):
-        record.page.archived_at = timezone.now().date()
-        record.page.save(update_fields=["archived_at", "updated_at"])
-        record.delete(soft=False)
+    now = timezone.now()
+    Page.all_objects.filter(
+        summon_drive_files__folder=folder, summon_drive_files__file_id__in=file_ids, archived_at__isnull=True
+    ).update(archived_at=now.date(), updated_at=now)
 
 
 def _finish(folder, **fields):
@@ -531,18 +541,21 @@ def apply_drive_changes(folder, client=None):
     tracked = set(folder.files.values_list("file_id", flat=True))
     written, gone = [], set()
     for change in changes:
+        # Shared-drive events carry no file ID; they say nothing about the files here.
+        file_id = change.get("fileId")
         item = change.get("file") or {}
         # A file source has no tree: the file itself is all that belongs to it.
-        belongs = bool(tree & set(item.get("parents", []))) or change["fileId"] == folder.folder_id
+        belongs = bool(tree & set(item.get("parents", []))) or file_id == folder.folder_id
         inside = not change.get("removed") and not item.get("trashed") and belongs
-        if item.get("mimeType") == FOLDER_MIME and (inside or item.get("id") in tree):
+        # Removed items come without `file`, so a vanished folder is known only by its ID.
+        if (item.get("mimeType") == FOLDER_MIME and inside) or file_id in tree:
             # A folder appearing, moving or vanishing reshapes the tree; walking it again is simpler than patching.
             folder.page_token = next_token
             return sync_drive_folder(folder, client)
         if inside and item.get("mimeType") in CONVERTERS:
             written.append(item)
-        elif change["fileId"] in tracked:
-            gone.add(change["fileId"])
+        elif file_id in tracked:
+            gone.add(file_id)
     for item in written:
         _write_file(folder, client, item)
     _archive_files(folder, gone)
@@ -590,21 +603,14 @@ def watch_drive_folder(folder, client=None):
         update_fields=["channel_id", "channel_token", "channel_resource_id", "channel_expires_at", "updated_at"]
     )
     if all(previous):
-        stop_drive_channel(client, *previous)
-
-
-def stop_drive_channel(client, channel_id, resource_id):
-    try:
-        client.stop(channel_id, resource_id)
-    except GoogleDriveError:
-        pass  # Already expired or stopped; an unknown channel's notifications are ignored anyway.
+        client.stop(*previous)
 
 
 def disconnect_drive_folder(folder):
     """Stop listening and keep the pages, unlocked, as ordinary pages people can now edit."""
     if folder.channel_id:
         try:
-            stop_drive_channel(drive_client(folder.credential), folder.channel_id, folder.channel_resource_id)
+            drive_client(folder.credential).stop(folder.channel_id, folder.channel_resource_id)
         except GoogleDriveError:
             pass  # A revoked account cannot stop its channel; the channel expires and its notifications are ignored.
     Page.objects.filter(summon_drive_files__folder=folder).update(is_locked=False)

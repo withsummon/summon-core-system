@@ -6,14 +6,14 @@ from hmac import compare_digest
 from urllib.parse import urlencode
 
 from django.core import signing
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.response import Response
 
-from plane.db.models import Workspace, WorkspaceMember
+from plane.db.models import WorkspaceMember
 from plane.summon.models import Credential, DriveFolder
 from plane.summon.permissions import SummonWorkspacePermission
 from plane.summon.serializers.collaboration import DriveFolderConnectSerializer, DriveFolderSerializer
@@ -32,9 +32,7 @@ from plane.summon.services.google_drive import (
     record_drive_error,
     run_drive_sync,
     save_google_account,
-    sync_drive_folder,
     watch_drive_folder,
-    webhook_address,
 )
 from plane.summon.tasks import sync_drive_changes
 from plane.summon.views.base import SESSION_ONLY_AUTHENTICATION, SummonAPIView
@@ -59,12 +57,12 @@ def _folders(workspace, project_ids):
     return (
         DriveFolder.objects.filter(workspace=workspace, project_id__in=project_ids)
         .select_related("credential")
-        .annotate(file_count=Count("files"))
+        .annotate(file_count=Count("files", filter=Q(files__page__archived_at__isnull=True)))
     )
 
 
 def _ensure_watched(folder):
-    if webhook_address() and not folder.channel_id:
+    if not folder.channel_id:
         try:
             watch_drive_folder(folder)
         except GoogleDriveError as error:
@@ -107,7 +105,16 @@ class GoogleDriveCallbackView(SummonAPIView):
         except signing.BadSignature:
             return Response({"error_code": "drive_state_invalid"}, status=status.HTTP_400_BAD_REQUEST)
         slug = state["workspace"]
-        member = WorkspaceMember.objects.filter(workspace__slug=slug, member_id=request.user.id, is_active=True).first()
+        member = (
+            WorkspaceMember.objects.filter(
+                workspace__slug=slug,
+                workspace__deleted_at__isnull=True,
+                member_id=request.user.id,
+                is_active=True,
+            )
+            .select_related("workspace")
+            .first()
+        )
         if not request.user.is_authenticated or str(request.user.id) != state["member"] or not member:
             return Response({"error_code": "drive_state_invalid"}, status=status.HTTP_400_BAD_REQUEST)
         if request.GET.get("error") or not request.GET.get("code"):
@@ -117,7 +124,7 @@ class GoogleDriveCallbackView(SummonAPIView):
             email, refresh_token = exchange_code(request.GET["code"], request.build_absolute_uri(CALLBACK_PATH))
         except GoogleDriveError as error:
             return _back_to_knowledge(request, slug, drive_error=error.code)
-        credential = save_google_account(Workspace.objects.get(slug=slug), request.user, email, refresh_token)
+        credential = save_google_account(member.workspace, request.user, email, refresh_token)
         audit(credential, request.user, "connect", request, {"purpose": "google_drive"})
         # Reconnecting after a revocation: the folders on this account pick up what changed while it was cut off.
         broken = list(credential.drive_folders.exclude(sync_error="").values_list("id", flat=True))
@@ -167,8 +174,8 @@ class DriveFolderListView(WorkspaceContextMixin, SummonAPIView):
         ).first()
         if not credential or not can_use(credential, request.user):
             return Response({"error_code": "drive_credential_required"}, status=status.HTTP_400_BAD_REQUEST)
-        project_ids = set(accessible_project_ids(request, slug, write=True))
-        if payload.validated_data["project"] not in project_ids:
+        project_ids = accessible_project_ids(request, slug, write=True)
+        if not project_ids.filter(project_id=payload.validated_data["project"]).exists():
             return Response({"error_code": "project_required"}, status=status.HTTP_400_BAD_REQUEST)
         try:
             folder_id = parse_drive_id(payload.validated_data["folder"])
@@ -189,12 +196,8 @@ class DriveFolderListView(WorkspaceContextMixin, SummonAPIView):
             name=item["name"],
             drive_id=item.get("driveId", ""),
         )
-        try:
-            sync_drive_folder(folder, client)
-        except GoogleDriveError as error:
-            # The connection stands; its row shows the error and "Sync now" retries.
-            record_drive_error(folder, error)
-        _ensure_watched(folder)
+        # The connection stands even if the first import fails; its row shows the error and "Sync now" retries.
+        _ensure_watched(run_drive_sync(folder.id, full=True))
         return Response(
             DriveFolderSerializer(_folders(workspace, project_ids).get(id=folder.id)).data,
             status=status.HTTP_201_CREATED,
@@ -233,7 +236,7 @@ class DriveFolderSyncView(WorkspaceContextMixin, SummonAPIView):
     )
     def post(self, request, slug, folder_id):
         workspace = self.get_workspace()
-        project_ids = set(accessible_project_ids(request, slug, write=True))
+        project_ids = accessible_project_ids(request, slug, write=True)
         folder = get_object_or_404(DriveFolder, workspace=workspace, id=folder_id, project_id__in=project_ids)
         _ensure_watched(run_drive_sync(folder.id, full=True))
         return Response(DriveFolderSerializer(_folders(workspace, project_ids).get(id=folder.id)).data)
@@ -248,7 +251,9 @@ class DriveNotificationView(SummonAPIView):
 
     @extend_schema(exclude=True)
     def post(self, request):
-        folder = DriveFolder.objects.filter(channel_id=request.headers.get("X-Goog-Channel-ID", "")).first()
+        # Sources without a push channel have an empty channel ID and token, which must not match a bare request.
+        channel_id = request.headers.get("X-Goog-Channel-ID")
+        folder = DriveFolder.objects.filter(channel_id=channel_id).first() if channel_id else None
         if (
             folder
             and compare_digest(folder.channel_token, request.headers.get("X-Goog-Channel-Token", ""))

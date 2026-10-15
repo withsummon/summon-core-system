@@ -321,13 +321,13 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
         record.issue.id === issueId ? { ...record, issue: { ...record.issue, ...patch } } : record
       );
     try {
-      await mutate(
-        async (current) => {
-          await issueService.patchIssue(workspaceSlug, projectId, issueId, patch);
-          return patched(current);
-        },
-        { optimisticData: patched, rollbackOnError: true, revalidate: false }
-      );
+      // Patch the cache as it is when the request lands, so overlapping edits keep each other.
+      await mutate(issueService.patchIssue(workspaceSlug, projectId, issueId, patch), {
+        optimisticData: patched,
+        populateCache: (_result, latest) => patched(latest),
+        rollbackOnError: true,
+        revalidate: false,
+      });
     } catch {
       setToast({ type: TOAST_TYPE.ERROR, title: failure, message: "Try again in a moment." });
     }

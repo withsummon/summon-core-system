@@ -124,6 +124,8 @@ export class ProjectPage extends BasePage implements TProjectPage {
    * @description returns true if the current logged in user can lock the page
    */
   get canCurrentUserLockPage() {
+    // A page synced from Google Drive stays locked until its sync stops.
+    if (this.googleDriveUrl) return false;
     const highestRole = this.getHighestRoleAcrossProjects();
     return this.isCurrentUserOwner || highestRole === EUserPermissions.ADMIN;
   }
