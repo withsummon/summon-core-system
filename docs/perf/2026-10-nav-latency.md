@@ -10,12 +10,12 @@
 
 There are no long tasks on any measured transition (0 tasks ≥ 50 ms, except one 139 ms task on a cold Plane project route). React render CPU is not the bottleneck. Navigation feels slow for three reasons that stack up, ranked below.
 
-| #   | Bottleneck                                                                               | Evidence (live, control)                                                                                                                                                                                                                                                     | Owner                                                                                                                                | Status                     |
-| --- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------- |
-| 1   | Route chunks load only after the click, and the URL waits for them                       | Plane project route, network-cold: **903 ms** click → URL, 39 chunks / 603 kB, last chunk at 743 ms. Cold Summon routes without hover: 144–326 ms.                                                                                                                           | `next/link` compat shim (`apps/web/app/compat/next/helper.ts`) and project tab links (`core/components/navigation/tab-navigation-*`) | **Fixed in this PR**       |
-| 2   | Data is fetched only after the route renders, and the API slows down under parallel load | Each Summon page fires its query after the route commits: content at 150–250 ms. A Plane project route fires 12 parallel project calls on _every_ visit, including revisits: TTFB 250–450 ms, against a 73–89 ms serial floor for the same endpoints.                        | Per-page SWR/store fetches; API worker concurrency (Django behind Caddy)                                                             | Follow-up                  |
-| 3   | Every Summon page fades and rises in over 455 ms                                         | `page-rise`: 420 ms ease plus up to 140 ms stagger. Opacity is 0.32 at 51 ms, 0.88 at 160 ms and 1.0 at 442 ms, even on warm navigations whose data is already cached (URL at 26–38 ms).                                                                                     | `apps/web/styles/globals.css` `.page-rise` and `SummonPageShell`                                                                     | Proposal (design call)     |
-| 4   | A cold full load renders nothing until every route module and the boot data are ready    | `HydrateFallback` returns `null`. Twice, in a fresh tab, the first load stayed blank for more than 10 s with `router.state.initialized === false` and only 3 of 6 route modules loaded, then auto-reloaded through `recoverFromStaleAsset`. It did not reproduce afterwards. | Root route / `entry.client.tsx` stale-asset recovery                                                                                 | Follow-up (not reproduced) |
+| #   | Bottleneck                                                                               | Evidence (live, control)                                                                                                                                                                                                                                                     | Owner                                                                                                                                | Status                                                               |
+| --- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
+| 1   | Route chunks load only after the click, and the URL waits for them                       | Plane project route, network-cold: **903 ms** click → URL, 39 chunks / 603 kB, last chunk at 743 ms. Cold Summon routes without hover: 144–326 ms.                                                                                                                           | `next/link` compat shim (`apps/web/app/compat/next/helper.ts`) and project tab links (`core/components/navigation/tab-navigation-*`) | **Fixed in this PR**                                                 |
+| 2   | Data is fetched only after the route renders, and the API slows down under parallel load | Each Summon page fires its query after the route commits: content at 150–250 ms. A Plane project route fires 12 parallel project calls on _every_ visit, including revisits: TTFB 250–450 ms, against a 73–89 ms serial floor for the same endpoints.                        | `ProjectAuthWrapper` gate and duplicate fetches; API worker concurrency                                                              | **Fixed in this PR** (frontend part); API concurrency is a follow-up |
+| 3   | Every Summon page fades and rises in over 455 ms                                         | `page-rise`: 420 ms ease plus up to 140 ms stagger. Opacity is 0.32 at 51 ms, 0.88 at 160 ms and 1.0 at 442 ms, even on warm navigations whose data is already cached (URL at 26–38 ms).                                                                                     | `apps/web/styles/globals.css` `.page-rise` and `SummonPageShell`                                                                     | Proposal (design call)                                               |
+| 4   | A cold full load renders nothing until every route module and the boot data are ready    | `HydrateFallback` returns `null`. Twice, in a fresh tab, the first load stayed blank for more than 10 s with `router.state.initialized === false` and only 3 of 6 route modules loaded, then auto-reloaded through `recoverFromStaleAsset`. It did not reproduce afterwards. | Root route / `entry.client.tsx` stale-asset recovery                                                                                 | Follow-up (not reproduced)                                           |
 
 Correctness bug seen along the way: `document.title` stays at "Tasks · Summon Core" after navigating to Summon Projects and Resources.
 
@@ -61,11 +61,49 @@ React Router 7.18 starts an intent prefetch 100 ms after `mouseenter`/`focus`/`t
 - Fully warm: no change (24–33 ms either way, measured).
 - Touch: almost no gain, since the tap usually lands within 100 ms of `touchstart`.
 
-## 2. Fetch-on-render and API queueing (follow-up)
+## 2. Fetch-on-render and API queueing
 
-- Summon pages start their query in the page component after the route commits, so the earliest useful content arrives at commit + one API round trip: 100–200 ms warm, 150–250 ms after hover.
-- Plane project routes fire 12 project-scoped calls (`/`, `members/`, `project-members/me/`, `issue-labels/`, `states/`, `intake-state/`, `estimates/`, `cycles/`, `modules/` ×2, `views/`, `user-properties/`) **on every entry**, revisits included. In parallel their TTFB is 250–450 ms. Serially, the same kinds of endpoints answer in 73–89 ms (`users/me` 82–89, `access/me` 80–88, `instances` 73–76; `home/summary` 118–137). That gap points to request queueing at the API (worker or connection count), not slow handlers.
-- Next owners: (a) start the page's primary query on intent alongside the route chunks, through the existing SWR keys and store fetchers, not a component-local cache; (b) dedupe the project-wrapper fetches on revisit (revalidate, don't block); (c) check gunicorn worker and thread counts against 12-way bursts. This last one is deploy config, outside this PR.
+### What happens on entering a project
+
+`ProjectAuthWrapper` (`apps/web/core/layouts/auth-layout/project-wrapper.tsx`) owns 11 SWR keys for project data. It rendered `null` until `GET /projects/:id/` settled, even though the workspace shell's project list had already put that project in the store. Only then did the work-items page mount and request its filters, and only after those, its issues. Each entry fired 15 requests, including three that duplicate other work:
+
+- `projects/:id/user-properties/` twice: once through the member store (tab preferences) and once through the issue-filter store. The second is the issue-filter fetch that the issues request waits for.
+- `modules/` (every module in the workspace, annotated) next to `projects/:id/modules/`. Both run in parallel through `Promise.all`, and the project endpoint already returns a superset of the same rows (checked on the local API: identical ids and values, and the project endpoint adds the estimate-point fields).
+- A second `projects/:id/` after the issues load (`fetchParentStats`, which refreshes counts). It is off the critical path, so it stays.
+
+Production runs `GUNICORN_WORKERS=2` with Uvicorn workers (`deployments/dokploy/compose.yml`), so a 13–15 request burst queues server-side. That matches the live data: 250–450 ms TTFB per request inside the burst, against 73–89 ms one at a time.
+
+Revisits already render from the store (the details fetcher returns the project, so SWR has data) and revalidate in the background. The global `WEB_SWR_CONFIG.revalidateOnMount: true` overrides the wrapper's per-key `revalidateIfStale: false`, so every entry, revisits included, re-requests all keys. I left that alone: it keeps labels, states and members fresh across users, and changing it is a freshness decision.
+
+### Fix (this PR)
+
+1. **The wrapper stops blocking when access is already proven.** `shouldWaitForProjectDetails` (`project-details-gate.ts`) lets children render while details load **only if** the project is already in the store **and** the role from the workspace `project-roles` fetch already grants access. In every other case it waits as before and decides the access screen on settled data, so protected pages never render for a user who has no role.
+2. **One `user-properties` request per entry.** The member store shares an in-flight request per project, and the issue-filter store loads through it. That leaves one network owner for the same server resource.
+3. **No workspace-wide module fetch on project entry.** `fetchModulesSlim` (its only caller was the wrapper) is deleted; `fetchModules` already loads the same project's modules.
+
+### Measurements (local, directional)
+
+**Control artifact:** this branch's parent commit (`c206a53e`, the main @ 5c7b704e app plus PR #17's link change). **Variant:** the commit that adds this fix.
+
+**Setup:** `react-router dev` for this worktree against the local API, with a local proxy modeling production capacity: at most 2 requests in flight, each held for at least 70 ms. Account: a seeded local workspace admin. Probe: from the projects list, `router.navigate` to a project's work items, measuring the time until the first `a[id^="issue-"]` row exists. Five projects per arm, each visited for the first time in the session, with route modules warmed on another project first.
+
+| Metric (median of 5, first visit to a project) | Control |    Variant |              Delta |
+| ---------------------------------------------- | ------: | ---------: | -----------------: |
+| Requests per entry                             |      15 |         13 |                 −2 |
+| Issues request start                           |  548 ms |     125 ms |            −423 ms |
+| Issues request end                             |  622 ms |     466 ms |            −156 ms |
+| **First work-item row**                        |  665 ms | **510 ms** | **−155 ms (−23%)** |
+| Same variant, proxy at 6 concurrent requests   |       — |     266 ms |                  — |
+
+**Pareto read:** before, the dominant wait was the serial chain: details, then filters, then issues. After, it's server queueing: the issues request starts at ~125 ms but waits behind the rest of the wrapper's burst. With the proxy at 6 concurrent requests, the same code paints in about half the time (266 ms against 510 ms), so API concurrency is now the next owner.
+
+**Correctness, checked locally:** a workspace guest opening a project they don't belong to still gets "you don't have access to this Project", with no work-item rows and no issues request. On a project they do belong to, the page renders. Unit tests cover the gate, including the case where the project is in the store but the role doesn't grant access (it waits).
+
+### Next owners
+
+- **API concurrency (deploy config, not changed here):** raise `GUNICORN_WORKERS`, or the threads per Uvicorn worker, for the production API. Django's sync views behind ASGI run one at a time per worker, so 2 workers serve about 2 requests at once.
+- **Request priority:** the wrapper fires cycles, modules, views, estimates and intake-state alongside the page's own critical request. Deferring the non-critical ones until the page's first data arrives would stop the issues request from queueing behind them.
+- **Starting the page's first query on link intent** (next to the route chunks from section 1). The filters → issues dependency is real, because filters define the query, so this only pays off together with the request-priority change.
 
 ## 3. Entrance animation (proposal)
 

@@ -95,6 +95,7 @@ export class BaseProjectMemberStore implements IBaseProjectMemberStore {
   projectUserPropertiesMap: {
     [projectId: string]: IProjectUserPropertiesResponse;
   } = {};
+  private projectUserPropertiesRequests = new Map<string, Promise<IProjectUserPropertiesResponse>>();
   // filters store
   filters: IProjectMemberFiltersStore;
   // stores
@@ -452,15 +453,21 @@ export class BaseProjectMemberStore implements IBaseProjectMemberStore {
    * @param projectId
    * @param data
    */
-  fetchProjectUserProperties = async (
-    workspaceSlug: string,
-    projectId: string
-  ): Promise<IProjectUserPropertiesResponse> => {
-    const response = await this.projectService.getProjectUserProperties(workspaceSlug, projectId);
-    runInAction(() => {
-      set(this.projectUserPropertiesMap, [projectId], response);
-    });
-    return response;
+  fetchProjectUserProperties = (workspaceSlug: string, projectId: string): Promise<IProjectUserPropertiesResponse> => {
+    // The project wrapper and the work item filters both load these on entering a project; share one request.
+    const inFlight = this.projectUserPropertiesRequests.get(projectId);
+    if (inFlight) return inFlight;
+    const request = this.projectService
+      .getProjectUserProperties(workspaceSlug, projectId)
+      .then((response) => {
+        runInAction(() => {
+          set(this.projectUserPropertiesMap, [projectId], response);
+        });
+        return response;
+      })
+      .finally(() => this.projectUserPropertiesRequests.delete(projectId));
+    this.projectUserPropertiesRequests.set(projectId, request);
+    return request;
   };
 
   /**

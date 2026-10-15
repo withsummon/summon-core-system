@@ -139,7 +139,10 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
 
   fetchFilters = async (workspaceSlug: string, projectId: string) => {
     const saveCount = this.filterSaveCounts[projectId];
-    const _filters = await this.projectService.getProjectUserProperties(workspaceSlug, projectId);
+    const _filters = await this.rootIssueStore.rootStore.memberRoot.project.fetchProjectUserProperties(
+      workspaceSlug,
+      projectId
+    );
     // a save overlapped this request, so the response may predate it; the local state is newer
     if (this.filterSaveCounts[projectId] !== saveCount || this.pendingFilterSaves[projectId]) return;
 

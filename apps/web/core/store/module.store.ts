@@ -44,7 +44,6 @@ export interface IModuleStore {
   updateModuleDistribution: (distributionUpdates: DistributionUpdates, moduleId: string) => void;
   fetchWorkspaceModules: (workspaceSlug: string) => Promise<IModule[]>;
   fetchModules: (workspaceSlug: string, projectId: string) => Promise<undefined | IModule[]>;
-  fetchModulesSlim: (workspaceSlug: string, projectId: string) => Promise<undefined | IModule[]>;
   fetchArchivedModules: (workspaceSlug: string, projectId: string) => Promise<undefined | IModule[]>;
   fetchArchivedModuleDetails: (workspaceSlug: string, projectId: string, moduleId: string) => Promise<IModule>;
   fetchModuleDetails: (workspaceSlug: string, projectId: string, moduleId: string) => Promise<IModule>;
@@ -309,32 +308,6 @@ export class ModulesStore implements IModuleStore {
   };
 
   /**
-   * @description fetch all modules
-   * @param workspaceSlug
-   * @param projectId
-   * @returns IModule[]
-   */
-  fetchModulesSlim = async (workspaceSlug: string, projectId: string) => {
-    try {
-      this.loader = true;
-      await this.moduleService.getWorkspaceModules(workspaceSlug).then((response) => {
-        const projectModules = response.filter((module) => module.project_id === projectId);
-        runInAction(() => {
-          projectModules.forEach((module) => {
-            set(this.moduleMap, [module.id], { ...this.moduleMap[module.id], ...module });
-          });
-          set(this.fetchedMap, projectId, true);
-          this.loader = false;
-        });
-        return projectModules;
-      });
-    } catch {
-      this.loader = false;
-      return undefined;
-    }
-  };
-
-  /**
    * @description fetch all archived modules
    * @param workspaceSlug
    * @param projectId
@@ -454,12 +427,12 @@ export class ModulesStore implements IModuleStore {
   deleteModule = async (workspaceSlug: string, projectId: string, moduleId: string) => {
     const moduleDetails = this.getModuleById(moduleId);
     if (!moduleDetails) return;
-    await this.moduleService.deleteModule(workspaceSlug, projectId, moduleId).then(() => {
+    await this.moduleService.deleteModule(workspaceSlug, projectId, moduleId).then(() =>
       runInAction(() => {
         delete this.moduleMap[moduleId];
         if (this.rootStore.favorite.entityMap[moduleId]) this.rootStore.favorite.removeFavoriteFromStore(moduleId);
-      });
-    });
+      })
+    );
   };
 
   /**
@@ -476,15 +449,11 @@ export class ModulesStore implements IModuleStore {
     moduleId: string,
     data: Partial<ILinkDetails>
   ) => {
-    try {
-      const moduleLink = await this.moduleService.createModuleLink(workspaceSlug, projectId, moduleId, data);
-      runInAction(() => {
-        update(this.moduleMap, [moduleId, "link_module"], (moduleLinks = []) => concat(moduleLinks, moduleLink));
-      });
-      return moduleLink;
-    } catch (error) {
-      throw error;
-    }
+    const moduleLink = await this.moduleService.createModuleLink(workspaceSlug, projectId, moduleId, data);
+    runInAction(() => {
+      update(this.moduleMap, [moduleId, "link_module"], (moduleLinks = []) => concat(moduleLinks, moduleLink));
+    });
+    return moduleLink;
   };
 
   /**
@@ -530,17 +499,13 @@ export class ModulesStore implements IModuleStore {
    * @param linkId
    */
   deleteModuleLink = async (workspaceSlug: string, projectId: string, moduleId: string, linkId: string) => {
-    try {
-      const moduleLink = await this.moduleService.deleteModuleLink(workspaceSlug, projectId, moduleId, linkId);
-      runInAction(() => {
-        update(this.moduleMap, [moduleId, "link_module"], (moduleLinks = []) =>
-          moduleLinks.filter((link: ILinkDetails) => link.id !== linkId)
-        );
-      });
-      return moduleLink;
-    } catch (error) {
-      throw error;
-    }
+    const moduleLink = await this.moduleService.deleteModuleLink(workspaceSlug, projectId, moduleId, linkId);
+    runInAction(() => {
+      update(this.moduleMap, [moduleId, "link_module"], (moduleLinks = []) =>
+        moduleLinks.filter((link: ILinkDetails) => link.id !== linkId)
+      );
+    });
+    return moduleLink;
   };
 
   /**
@@ -606,12 +571,12 @@ export class ModulesStore implements IModuleStore {
     if (moduleDetails?.archived_at) return;
     await this.moduleArchiveService
       .archiveModule(workspaceSlug, projectId, moduleId)
-      .then((response) => {
+      .then((response) =>
         runInAction(() => {
           set(this.moduleMap, [moduleId, "archived_at"], response.archived_at);
           if (this.rootStore.favorite.entityMap[moduleId]) this.rootStore.favorite.removeFavoriteFromStore(moduleId);
-        });
-      })
+        })
+      )
       .catch((error) => {
         console.error("Failed to archive module in module store", error);
       });
@@ -629,11 +594,11 @@ export class ModulesStore implements IModuleStore {
     if (!moduleDetails?.archived_at) return;
     await this.moduleArchiveService
       .restoreModule(workspaceSlug, projectId, moduleId)
-      .then(() => {
+      .then(() =>
         runInAction(() => {
           set(this.moduleMap, [moduleId, "archived_at"], null);
-        });
-      })
+        })
+      )
       .catch((error) => {
         console.error("Failed to restore module in module store", error);
       });
