@@ -76,7 +76,7 @@ Cutover: the Swarm connectors joined the same tunnel next to the compose one, so
 
 ## Web
 
-`web` (the static nginx frontend) restarted stop-first as a compose service, so a web deploy left `/` waiting up to ~11 s behind Caddy's retry. It now runs as the Dokploy Application `web (swarm)` (`summon-core-web-swarm-xamugo`, applicationId `IK76m-FtyUhZ4M6pmXdpO`).
+`web` (the static nginx frontend) restarted stop-first as a compose service, now removed, so a web deploy left `/` waiting up to ~11 s behind Caddy's retry. It now runs as the Dokploy Application `web (swarm)` (`summon-core-web-swarm-xamugo`, applicationId `IK76m-FtyUhZ4M6pmXdpO`).
 
 | Setting           | Value                                                                                                                                                                                  |
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
