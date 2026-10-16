@@ -28,7 +28,7 @@ export function ClientDetailHeader(props: {
         <span className="font-medium text-primary">{data.name}</span>
       </div>
 
-      <header className="mt-4 flex flex-wrap items-start justify-between gap-4">
+      <header data-page-chrome className="mt-4 flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 items-start gap-4">
           <div className="grid size-24 shrink-0 place-items-center rounded-2xl border border-subtle bg-surface-1 text-2xl font-semibold text-accent-primary shadow-sm">
             {data.name.slice(0, 2).toUpperCase()}

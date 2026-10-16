@@ -319,7 +319,7 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
     <>
       <PageHead title={`${data.title} · Summon Core`} />
       <div className="flex min-h-full flex-col bg-surface-1 xl:h-full">
-        <header className="border-b border-subtle px-4 pt-3 sm:px-6 lg:px-8">
+        <header data-page-chrome className="border-b border-subtle px-4 pt-3 sm:px-6 lg:px-8">
           <Link
             href={`/${workspaceSlug}/summon/meetings/`}
             className="inline-flex items-center gap-1 text-12 font-medium text-tertiary hover:text-primary"

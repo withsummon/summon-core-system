@@ -77,7 +77,7 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
   return (
     <div className="grid min-h-full bg-surface-1 xl:grid-cols-[minmax(20rem,0.72fr)_minmax(34rem,1.28fr)]">
       <section className="flex min-w-0 flex-col border-r border-subtle bg-surface-1 p-4 lg:p-6">
-        <header>
+        <header data-page-chrome>
           <p className="text-13 text-tertiary">Good to see you, {firstName}</p>
           <h1 className="mt-0.5 text-2xl font-semibold text-primary">Here&apos;s what&apos;s happening</h1>
         </header>

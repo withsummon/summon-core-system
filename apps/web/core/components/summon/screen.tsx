@@ -22,7 +22,7 @@ export const summonPageClassName = "mx-auto flex min-h-full w-full max-w-[1600px
 /** The one page header: 20px title, optional one-line description, actions on the right. */
 export function SummonPageHeader(props: { title: ReactNode; description?: ReactNode; actions?: ReactNode }) {
   return (
-    <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+    <header data-page-chrome className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
       <div className="min-w-0">
         <h1 className="text-20 font-semibold tracking-tight text-primary">{props.title}</h1>
         {props.description ? <p className="mt-0.5 max-w-3xl text-13 text-tertiary">{props.description}</p> : null}

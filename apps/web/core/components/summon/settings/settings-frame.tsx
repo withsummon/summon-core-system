@@ -27,14 +27,17 @@ export function SummonSettingsFrame(props: {
 
   return (
     <SummonScreen title="Settings" description={description} actions={allowed ? actions : undefined}>
-      <SectionTabs
-        label="Settings sections"
-        value={tab}
-        items={[
-          { value: "general", label: "General", icon: GearSixIcon, href: `/${workspaceSlug}/summon/settings` },
-          { value: "users", label: "Users", icon: UsersThreeIcon, href: `/${workspaceSlug}/summon/settings/users` },
-        ]}
-      />
+      {/* Every settings route shows these tabs, so they stay still on a switch like the header. */}
+      <div data-page-chrome>
+        <SectionTabs
+          label="Settings sections"
+          value={tab}
+          items={[
+            { value: "general", label: "General", icon: GearSixIcon, href: `/${workspaceSlug}/summon/settings` },
+            { value: "users", label: "Users", icon: UsersThreeIcon, href: `/${workspaceSlug}/summon/settings/users` },
+          ]}
+        />
+      </div>
       {allowed ? (
         children
       ) : (

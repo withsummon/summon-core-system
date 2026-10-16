@@ -53,7 +53,7 @@ export const ProjectDetailWorkspace = observer(function ProjectDetailWorkspace(p
 
   return (
     <div className="min-h-full min-w-0 bg-surface-1">
-      <header className="border-b border-subtle px-4 py-4 sm:px-6">
+      <header data-page-chrome className="border-b border-subtle px-4 py-4 sm:px-6">
         <Link
           href={`/${workspaceSlug}/summon/projects/`}
           className="inline-flex items-center gap-1.5 rounded text-xs text-secondary hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
