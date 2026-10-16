@@ -1,16 +1,16 @@
 # Plan: zero-downtime proxy deploys (start-first)
 
-**Status:** in progress (2026-10-16). Step 1 is this PR.
+**Status:** live (2026-10-16). The proxy runs as the Dokploy Application `proxy (swarm)` (`summon-core-proxy-swarm-363qxm`, applicationId `CDIOZXp7_jDZRTxV-UiSD`) in Summoncore / production; compose no longer has a proxy service.
 **Goal:** changing the proxy (its Caddyfile, hostnames or image) starts the new Caddy, waits until it is healthy, moves traffic to it, and only then stops the old one. Same mechanism as the api: [api-start-first-plan.md](api-start-first-plan.md).
 
-## Why the proxy drops requests today
+## Why the proxy dropped requests
 
-The proxy is the compose service `proxy`. Any change to its environment or `CADDYFILE_REVISION` recreates it, and compose stops the old container first. Measured at the origin: about 10 s of 502, then about 5 s of 404 on every path.
+The proxy was the compose service `proxy`. Any change to its environment or `CADDYFILE_REVISION` recreated it, and compose stopped the old container first. Measured at the origin: about 10 s of 502, then about 5 s of 404 on every path.
 
-- **The 502s** are Traefik dialing a container that is gone.
-- **The 404s** come from how Dokploy routes a compose domain. It writes Traefik labels on the `proxy` container, and Traefik's Docker provider drops the router when that container stops. Until the new container is up, no router matches `core.withsummon.com`.
+- **The 502s** were Traefik dialing a container that was gone.
+- **The 404s** came from how Dokploy routes a compose domain. It writes Traefik labels on the `proxy` container, and Traefik's Docker provider drops the router when that container stops. Until the new container was up, no router matched `core.withsummon.com`.
 
-Cloudflare's tunnel (`cloudflared`, #23) reaches the same container as `http://proxy:80`, so it sees the same gap.
+Cloudflare's tunnel (`cloudflared`, #23) reached the same container as `http://proxy:80`, so it saw the same gap.
 
 ## Options
 
@@ -45,17 +45,23 @@ Cloudflare's tunnel (`cloudflared`, #23) reaches the same container as `http://p
 
 ## Cutover
 
-1. **Merge the prerequisites PR** (this one: the Dockerfile, the upstream aliases on `summon-core-internal`, `cloudflared` on it). No behaviour change. The deploy recreates web, admin, space, live, minio, mcp, ai and cloudflared once to join the network.
+1. **Merge the prerequisites PR** (#26: the Dockerfile, the upstream aliases on `summon-core-internal`, `cloudflared` on it). No behaviour change. The deploy recreates web, admin, space, live, minio, mcp, ai and cloudflared once to join the network. Measured: the origin answered all 341 requests with 200, while the edge returned 1×502 and 7×530 over ~8 s while cloudflared was recreated (see [The tunnel](#the-tunnel)).
 2. **Create the Application** with the settings above, no domain yet, and deploy it. From a container on `summon-core-internal`, `curl http://proxy/` and `curl http://proxy/api/instances/` should return 200. `cloudflared` now has two `proxy`s, the compose one on `default` and the Swarm one on `summon-core-internal`; both serve the same upstreams.
 3. **Move the domain.** Add `core.withsummon.com` to the Application. Traefik now has two routers for the host (the compose labels and the Application's file route), both pointing at a working proxy. Then delete the compose domain.
-4. **Remove the compose `proxy` service** (PR). `cloudflared` then reaches only the Swarm proxy.
-5. **Prove it:** push a no-op change under `apps/proxy`, run the origin probe through the deploy, and expect 0 non-200 responses.
+4. **Remove the compose `proxy` service** (PR). `cloudflared` then reaches only the Swarm proxy. Removing its `depends_on: proxy` does not recreate cloudflared (checked with Compose), so the tunnel stays up.
+5. **Prove it:** deploy the Application (the same rebuild and start-first update a push under `apps/proxy` triggers), run the origin probe through the deploy, and expect 0 non-200 responses.
+
+   **Result (2026-10-16 05:06 UTC):** 804 requests across the deploy, all 200: 470 origin `/`, 96 origin `/api/instances/`, and 238 through Cloudflare and the tunnel. The slowest took 1.1 s. Swarm's update ran 05:06:42–05:07:00, and the new task served before the old one stopped. Before the probe, connection counts showed Traefik and cloudflared already used only the Swarm proxy (the compose proxy had 0 connections), so the probe measured the Swarm path.
 
 **Rollback** before step 4: delete the Application's domain; the compose proxy still serves. After step 4: revert the step-4 PR and put the domain back on the compose app.
 
+## The tunnel
+
+`cloudflared` is now the only remaining recreate-shaped gap on the request path. It is still a compose service with one connector, so any change to it (image, command, networks) drops the tunnel for ~8 s and Cloudflare answers 502/530. It changes rarely, and nothing in this plan touches it after step 1. The fix, when it is worth doing, is the same pattern again: run cloudflared as a Swarm Application with start-first updates (or two replicas), so a new connector registers before the old one leaves.
+
 ## Origin probe
 
-`/` every 0.5 s and `/api/instances/` every 2 s (the api throttles anonymous calls at 30/minute per IP):
+`/` every 0.5 s and `/api/instances/` every 2.5 s (the api throttles anonymous calls at 30/minute per IP, so run one probe at a time):
 
 ```bash
 curl -sk -o /dev/null -w '%{http_code}' --resolve core.withsummon.com:443:72.60.78.94 https://core.withsummon.com/

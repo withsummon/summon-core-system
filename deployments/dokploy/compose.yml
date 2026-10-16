@@ -322,49 +322,18 @@ services:
       default: {}
       summon-core-internal: {}
 
-  proxy:
-    image: makeplane/plane-proxy:${PLANE_RELEASE:-stable}
-    restart: unless-stopped
-    expose:
-      - "80"
-    environment:
-      # Compose does not notice edits inside the mounted Caddyfile; bump this with every Caddyfile change so the
-      # next deploy recreates the proxy and loads it.
-      CADDYFILE_REVISION: "2"
-      SITE_ADDRESS: :80
-      FILE_SIZE_LIMIT: ${SUMMON_RECORDING_FILE_SIZE_LIMIT:-262144000}
-      BUCKET_NAME: ${AWS_S3_BUCKET_NAME:-uploads}
-      TRUSTED_PROXIES: 0.0.0.0/0
-      WEB_HOST: summon-core-web
-      API_HOST: summon-core-api-next
-      ADMIN_HOST: summon-core-admin
-      SPACE_HOST: summon-core-space
-      LIVE_HOST: summon-core-live
-      MINIO_HOST: summon-core-minio
-      MCP_HOST: summon-core-mcp
-      AI_HOST: summon-core-ai
-    volumes:
-      - ../../apps/proxy/Caddyfile.ce:/etc/caddy/Caddyfile:ro
-    depends_on:
-      web:
-        condition: service_started
-      admin:
-        condition: service_started
-      space:
-        condition: service_started
-      live:
-        condition: service_started
-      mcp:
-        condition: service_started
-      ai:
-        condition: service_started
+  # The proxy is not here either: it runs as the Dokploy Application "proxy (swarm)", built from
+  # apps/proxy/Dockerfile.swarm, so a proxy change rolls out start-first instead of recreating a container. Traefik
+  # reaches it through the Application's domain and cloudflared as `proxy` on summon-core-internal.
+  # Settings: docs/deploy/proxy-start-first-plan.md.
 
   # Carries Cloudflare's traffic for core.withsummon.com to the proxy over connections this host opens. Cloudflare
   # dialing in to the host's public IP stalls: the provider's network drops many SYN-ACKs back to Cloudflare, so
   # requests waited 15-50 s or failed with 522 while the host itself answered in milliseconds. The tunnel's routes
-  # live in Cloudflare (remotely managed) and point at http://proxy:80. `proxy` is this project's Caddy on the
-  # default network today, and the Swarm proxy's alias on summon-core-internal once it replaces the compose one
-  # (docs/deploy/proxy-start-first-plan.md). Neither network has another project's services.
+  # live in Cloudflare (remotely managed) and point at http://proxy:80, the Swarm proxy's alias on
+  # summon-core-internal, where no other project's services are. The default network stays only because changing a
+  # service's networks recreates it, and a cloudflared recreate drops the tunnel for ~8 s (measured: 502/530 at the
+  # edge while the origin answered 200).
   # cloudflared runs as uid 65532 and Compose bind-mounts secret files as they are on the host, so the token file
   # must be owned by 65532 (mode 600): `chown 65532:65532 /etc/dokploy-secrets/summon-core-plane/cloudflare_tunnel_token`.
   cloudflared:
@@ -376,9 +345,6 @@ services:
     networks:
       default: {}
       summon-core-internal: {}
-    depends_on:
-      proxy:
-        condition: service_started
 
 networks:
   # A private network that a Swarm service can also join (it is an attachable overlay; the Dokploy host is a Swarm

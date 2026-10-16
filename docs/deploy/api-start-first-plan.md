@@ -1,6 +1,6 @@
 # Plan: zero-downtime api deploys (start-first)
 
-**Status:** live (2026-10-16). The proxy is moving to the same pattern: [proxy-start-first-plan.md](proxy-start-first-plan.md). The api runs as the Dokploy Application `api (swarm)` (`summon-core-api-swarm-uuqfld`) in Summoncore / production; compose no longer has an api service.
+**Status:** live (2026-10-16). The proxy uses the same pattern: [proxy-start-first-plan.md](proxy-start-first-plan.md). The api runs as the Dokploy Application `api (swarm)` (`summon-core-api-swarm-uuqfld`) in Summoncore / production; compose no longer has an api service.
 **Goal:** a deploy starts the new api, waits until it is healthy, moves traffic to it, and only then stops the old one. Users see no error and no wait.
 
 ## Where we are
