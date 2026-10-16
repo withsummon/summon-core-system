@@ -4,16 +4,21 @@
  * See the LICENSE file for details.
  */
 
-import { Outlet, useLocation } from "react-router";
+import { Outlet, useLocation, useParams } from "react-router";
+import { useSummonAccess } from "@/components/summon/use-summon-access";
 
 /**
- * Every Summon page rises in section by section (`page-rise`). Keying the outlet by path replays it when one
- * detail page opens another of the same route; hash tabs, search params and refetches keep the page mounted.
+ * Frame for every Summon page. Pages render their static parts immediately and skeletons where data goes, so
+ * there is no entrance animation. Keying the outlet by path gives each detail page fresh state when one opens
+ * another of the same route; hash tabs, search params and refetches keep the page mounted.
  */
 export function SummonPageShell() {
   const { pathname } = useLocation();
+  const { workspaceSlug = "" } = useParams();
+  // Load the capability map once with the shell, so gated pages already know who may see them when they open.
+  useSummonAccess(workspaceSlug);
   return (
-    <div className="page-rise h-full min-h-0 overflow-x-hidden overflow-y-auto bg-surface-2">
+    <div className="h-full min-h-0 overflow-x-hidden overflow-y-auto bg-surface-2">
       <Outlet key={pathname} />
     </div>
   );
