@@ -1,10 +1,11 @@
 /**
  * Who is calling. Browser requests carry the Django session cookie (same origin through Caddy);
- * MCP clients send a Plane API key and the workspace slug, like the Plane MCP server expects.
+ * MCP clients send a Plane API key and the workspace slug, like the Plane MCP server expects, or just the
+ * access token they got by signing in with OAuth (a Plane API key that names its workspace).
  * Django stays the judge: we only ask it, and cache a yes for 30 s so tool calls don't re-ask.
  */
 import { Cache, Context, Duration, Effect, Exit, Layer, Option, Redacted, Schema } from "effect";
-import type { HttpServerRequest } from "effect/http";
+import { HttpClientError, type HttpServerRequest } from "effect/http";
 import { AppConfig } from "./config";
 import { type Caller, Django, DjangoUnavailable } from "./django";
 
@@ -42,6 +43,15 @@ export const readApiKey = (headers: Readonly<Record<string, string | undefined>>
   return authorization?.toLowerCase().startsWith("bearer ") ? authorization.slice(7).trim() || undefined : undefined;
 };
 
+/** Django's refusal of a key as "not accepted" (`undefined`); throttling and outages stay errors. */
+const refusal = (error: unknown): Effect.Effect<undefined, RateLimited | DjangoUnavailable> => {
+  const status = error instanceof HttpClientError.HttpClientError ? error.response?.status : undefined;
+  if (status === 429) return Effect.fail(new RateLimited());
+  return status !== undefined && REJECTED.has(status)
+    ? Effect.succeed(undefined)
+    : Effect.fail(error instanceof DjangoUnavailable ? error : new DjangoUnavailable({ cause: error }));
+};
+
 export class Auth extends Context.Service<Auth, AuthShape>()("@plane/ai/Auth") {
   static readonly layer = Layer.effect(
     Auth,
@@ -63,16 +73,12 @@ export class Auth extends Context.Service<Auth, AuthShape>()("@plane/ai/Auth") {
           django
             .client({ _tag: "ApiKey", apiKey: Redacted.make(apiKey), workspaceSlug })
             .accessMe(workspaceSlug, undefined)
-            .pipe(
-              Effect.as<true | undefined>(true),
-              Effect.catch((error): Effect.Effect<true | undefined, RateLimited | DjangoUnavailable> => {
-                const status = error._tag === "HttpClientError" ? error.response?.status : undefined;
-                if (status === 429) return Effect.fail(new RateLimited());
-                return status !== undefined && REJECTED.has(status)
-                  ? Effect.succeed(undefined)
-                  : Effect.fail(new DjangoUnavailable({ cause: error }));
-              })
-            ),
+            .pipe(Effect.as<true | undefined>(true), Effect.catch(refusal)),
+        { capacity: 10_000, timeToLive: ttl }
+      );
+      // Key → its workspace, for OAuth clients that send no X-Workspace-Slug.
+      const workspaces = yield* Cache.makeWith(
+        (apiKey: string) => django.apiKeyWorkspace(apiKey).pipe(Effect.catch(refusal)),
         { capacity: 10_000, timeToLive: ttl }
       );
 
@@ -90,8 +96,9 @@ export class Auth extends Context.Service<Auth, AuthShape>()("@plane/ai/Auth") {
 
       const apiKey: AuthShape["apiKey"] = Effect.fn("Auth.apiKey")(function* (request) {
         const key = readApiKey(request.headers);
-        const workspaceSlug = request.headers["x-workspace-slug"];
-        if (!key || !workspaceSlug) return yield* new Unauthenticated({ reason: "missing_credentials" });
+        if (!key) return yield* new Unauthenticated({ reason: "missing_credentials" });
+        const workspaceSlug = request.headers["x-workspace-slug"] || (yield* Cache.get(workspaces, key));
+        if (!workspaceSlug) return yield* new Unauthenticated({ reason: "rejected" });
         const accepted = yield* Cache.get(keys, { workspaceSlug, apiKey: key });
         if (!accepted) return yield* new Unauthenticated({ reason: "rejected" });
         return { _tag: "ApiKey", apiKey: Redacted.make(key), workspaceSlug } as const;

@@ -38,6 +38,9 @@ export const coreRoutes: RouteConfigEntry[] = [
   // Invitations
   layout("./(all)/invitations/layout.tsx", [route("invitations", "./(all)/invitations/page.tsx")]),
 
+  // MCP client sign-in (OAuth consent)
+  layout("./(all)/oauth/layout.tsx", [route("oauth/authorize/:requestId", "./(all)/oauth/authorize/page.tsx")]),
+
   // Workspace Invitations
   layout("./(all)/workspace-invitations/layout.tsx", [
     route("workspace-invitations", "./(all)/workspace-invitations/page.tsx"),

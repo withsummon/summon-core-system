@@ -59,7 +59,7 @@ export const turnResponse = {
   context: { text: "Project Website: 2 overdue work items.", citations: [], truncated: false },
 };
 
-/** Signed-in browser, an accepted API key in `acme`, and the turn protocol. */
+/** Signed-in browser, an accepted API key in `acme` (which also names its workspace), and the turn protocol. */
 export const defaultDjango: DjangoRoute = (request) => {
   if (request.path === "/api/users/me/") {
     return request.headers.cookie === "sessionid=valid"
@@ -70,6 +70,11 @@ export const defaultDjango: DjangoRoute = (request) => {
     return request.headers["x-api-key"] === "plane_api_good"
       ? { status: 200, body: { role: 20, role_label: "Admin", capabilities: [] } }
       : { status: 403, body: { detail: "This API token belongs to a different workspace" } };
+  }
+  if (request.path === "/api/summon/api-key/workspace/") {
+    return request.headers["x-api-key"] === "plane_api_good"
+      ? { status: 200, body: { workspace_slug: SLUG } }
+      : { status: 401, body: { detail: "Given API token is not valid" } };
   }
   const turns = `/api/summon/workspaces/${SLUG}/assistant/conversations/${CONVERSATION_ID}/turns/`;
   if (request.path === turns && request.method === "POST") return { status: 201, body: turnResponse };

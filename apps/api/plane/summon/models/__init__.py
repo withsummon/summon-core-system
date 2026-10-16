@@ -16,6 +16,7 @@ from .collaboration import (
 )
 from .commercial import Client, ClientContact, Opportunity, SummonProjectProfile
 from .credential import Credential, CredentialAccessLog, CredentialGrant
+from .oauth import OAuthClient, OAuthCode, OAuthGrant
 from .settings import SummonWorkspaceSettings
 
 __all__ = [
@@ -36,6 +37,9 @@ __all__ = [
     "Meeting",
     "MeetingParticipant",
     "MeetingWorkItem",
+    "OAuthClient",
+    "OAuthCode",
+    "OAuthGrant",
     "Opportunity",
     "ResourceLink",
     "SummonPageContext",

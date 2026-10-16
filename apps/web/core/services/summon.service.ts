@@ -44,6 +44,7 @@ import type {
   ISummonReportSummary,
   ISummonResourceLink,
   ISummonWorkspaceSettings,
+  ISummonOAuthRequest,
   TIssue,
 } from "@plane/types";
 import { APIService } from "@/services/api.service";
@@ -65,6 +66,15 @@ export class SummonService extends APIService {
       .catch((error) => {
         throw error?.response?.data ?? error;
       });
+  }
+
+  getOAuthRequest(requestId: string) {
+    return this.data<ISummonOAuthRequest>(this.get(`/api/summon/oauth/requests/${requestId}/`));
+  }
+
+  /** Answers an MCP client's sign-in; returns where to send the browser (back to the client). */
+  answerOAuthRequest(requestId: string, answer: { approve: true; workspace_slug: string } | { approve: false }) {
+    return this.data<{ redirect_to: string }>(this.post(`/api/summon/oauth/requests/${requestId}/`, answer));
   }
 
   getHomeSummary(workspaceSlug: string) {

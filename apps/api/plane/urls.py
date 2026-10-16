@@ -12,11 +12,18 @@ from drf_spectacular.views import (
     SpectacularRedocView,
     SpectacularSwaggerView,
 )
+from plane.summon.views.oauth import OAuthServerMetadataView
 from plane.summon.views.operations import AutomationRenderView, GeneratedArtifactDownloadView
 
 handler404 = "plane.app.views.error_404.custom_404_view"
 
 urlpatterns = [
+    # MCP clients look for the authorization server's metadata at the site root (RFC 8414).
+    path(
+        ".well-known/oauth-authorization-server",
+        OAuthServerMetadataView.as_view(),
+        name="summon-oauth-server-metadata",
+    ),
     path(
         "api/workspaces/<str:slug>/summon/automation-jobs/<uuid:job_id>/render/",
         AutomationRenderView.as_view(),

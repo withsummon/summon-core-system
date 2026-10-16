@@ -246,7 +246,6 @@ describe("MCP", () => {
     const response = await rpc(app, initialize, { "x-api-key": "", "x-workspace-slug": "" });
     expect(response.status).toBe(401);
     expect(await response.json()).toMatchObject({ error_code: "api_key_required" });
-    expect(response.headers.get("www-authenticate")).toMatch(/^Bearer realm="summon".*X-Api-Key/);
   });
 
   it("refuses a key Django doesn't accept for the workspace", async () => {
@@ -254,6 +253,48 @@ describe("MCP", () => {
     const response = await rpc(app, initialize, { "x-api-key": "plane_api_other" });
     expect(response.status).toBe(401);
     expect(await response.json()).toMatchObject({ error_code: "api_key_rejected" });
+  });
+
+  it("points clients without credentials at the OAuth metadata", async () => {
+    app = makeApp();
+    const response = await rpc(app, initialize, { "x-api-key": "", "x-workspace-slug": "" });
+    expect(response.headers.get("www-authenticate")).toBe(
+      `Bearer resource_metadata="${WEB_ORIGIN}/.well-known/oauth-protected-resource/ai/mcp"`
+    );
+    const metadata = await app.fetch("/.well-known/oauth-protected-resource/ai/mcp");
+    expect(await metadata.json()).toMatchObject({
+      resource: `${WEB_ORIGIN}/ai/mcp`,
+      authorization_servers: [WEB_ORIGIN],
+    });
+  });
+
+  it("names the toolset endpoint in its challenge, and marks a refused token invalid", async () => {
+    app = makeApp();
+    const response = await app.fetch("/ai/mcp/x/plane/readonly", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer plane_api_expired" },
+      body: JSON.stringify(initialize),
+    });
+    expect(response.status).toBe(401);
+    expect(response.headers.get("www-authenticate")).toBe(
+      `Bearer resource_metadata="${WEB_ORIGIN}/.well-known/oauth-protected-resource/ai/mcp/x/plane/readonly", error="invalid_token"`
+    );
+    const metadata = await app.fetch("/.well-known/oauth-protected-resource/ai/mcp/x/plane/readonly");
+    expect(await metadata.json()).toMatchObject({ resource: `${WEB_ORIGIN}/ai/mcp/x/plane/readonly` });
+  });
+
+  it("takes an OAuth access token alone and works in the token's workspace", async () => {
+    app = makeApp();
+    const response = await rpc(app, initialize, {
+      "x-api-key": "",
+      "x-workspace-slug": "",
+      authorization: "Bearer plane_api_good",
+    });
+    expect(response.status).toBe(200);
+    expect(app.seen.map((request) => request.path)).toEqual([
+      "/api/summon/api-key/workspace/",
+      `/api/summon/workspaces/${SLUG}/access/me/`,
+    ]);
   });
 
   it("passes Django's rate limit through instead of reporting Summon down", async () => {

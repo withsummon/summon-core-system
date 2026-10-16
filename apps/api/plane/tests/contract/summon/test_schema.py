@@ -27,6 +27,9 @@ EXPECTED_MODELS = {
     "Meeting",
     "MeetingParticipant",
     "MeetingWorkItem",
+    "OAuthClient",
+    "OAuthCode",
+    "OAuthGrant",
     "Opportunity",
     "ResourceLink",
     "SummonAccessEvent",
@@ -34,6 +37,8 @@ EXPECTED_MODELS = {
     "SummonProjectProfile",
     "SummonWorkspaceSettings",
 }
+# MCP clients register before anyone signs in, and a grant's workspace is its API token's.
+NOT_WORKSPACE_OWNED = {"OAuthClient", "OAuthGrant"}
 
 
 def test_summon_model_allowlist_and_workspace_ownership():
@@ -41,7 +46,8 @@ def test_summon_model_allowlist_and_workspace_ownership():
     models = list(app.get_models())
 
     assert {model.__name__ for model in models} == EXPECTED_MODELS
-    assert all("workspace" in {field.name for field in model._meta.fields} for model in models)
+    owned = [model for model in models if model.__name__ not in NOT_WORKSPACE_OWNED]
+    assert all("workspace" in {field.name for field in model._meta.fields} for model in owned)
 
 
 def test_schema_has_canonical_link_constraints():
