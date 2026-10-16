@@ -1,6 +1,6 @@
 # Plan: zero-downtime api deploys (start-first)
 
-**Status:** proposal (2026-10-16). The prerequisites are in the PR that adds this file; nothing has changed in Dokploy.
+**Status:** live (2026-10-16). The api runs as the Dokploy Application `api (swarm)` (`summon-core-api-swarm-uuqfld`) in Summoncore / production; compose no longer has an api service.
 **Goal:** a deploy starts the new api, waits until it is healthy, moves traffic to it, and only then stops the old one. Users see no error and no wait.
 
 ## Where we are
@@ -39,21 +39,21 @@ Tested locally, on Docker Engine with a single-node Swarm and Compose v5.5:
 
 ## Dokploy Application settings
 
-| Setting           | Value                                                                                                                                                                     |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Source            | this repo, branch `main`, autodeploy on                                                                                                                                   |
-| Watch paths       | `apps/api/**` (only api changes redeploy it)                                                                                                                              |
-| Build             | Dockerfile `apps/api/Dockerfile.api`, context `apps/api`                                                                                                                  |
-| Command           | `./bin/docker-entrypoint-secrets.sh ./bin/docker-entrypoint-api.sh`                                                                                                       |
-| Environment       | the `x-app-environment` block (hosts unchanged: `plane-db` etc. resolve on `summon-core-internal`)                                                                        |
-| Volumes           | bind `/etc/dokploy-secrets/summon-core-plane` → `/run/secrets` (read-only); `*_FILE` envs keep their paths                                                                |
-| Networks          | `dokploy-network` (Dokploy default, so the proxy can reach it) and `summon-core-internal`, alias `summon-core-api-next` on both                                           |
-| Replicas          | 1 (Swarm runs 2 only during an update)                                                                                                                                    |
-| Health check      | `["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=3)"]`, interval 5 s, timeout 5 s, start period 300 s, retries 3 |
-| Update config     | parallelism 1, delay 0, order **start-first**, failure action **rollback**, monitor 30 s, max failure ratio 0                                                             |
-| Rollback config   | parallelism 1, order start-first                                                                                                                                          |
-| Stop grace period | 40 s (gunicorn's 30 s graceful timeout, plus margin)                                                                                                                      |
-| Resources         | reserve 0.5 CPU / 768 MB, limit 2 CPU / 2 GB (two tasks overlap during an update)                                                                                         |
+| Setting           | Value                                                                                                                                                                                                                                     |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Source            | this repo, branch `main`, autodeploy on                                                                                                                                                                                                   |
+| Watch paths       | `apps/api/**` (only api changes redeploy it)                                                                                                                                                                                              |
+| Build             | Dockerfile `apps/api/Dockerfile.api`, context `apps/api`                                                                                                                                                                                  |
+| Command           | `./bin/docker-entrypoint-secrets.sh ./bin/docker-entrypoint-api.sh`                                                                                                                                                                       |
+| Environment       | the `x-app-environment` block (hosts unchanged: `plane-db` etc. resolve on `summon-core-internal`)                                                                                                                                        |
+| Volumes           | bind `/etc/dokploy-secrets/summon-core-plane` → `/run/secrets` (Dokploy bind mounts can't be read-only); `*_FILE` envs keep their paths                                                                                                   |
+| Networks          | `dokploy-network` (so the proxy can reach it) and `summon-core-internal`, aliases `summon-core-api` and `summon-core-api-next` on both. Set as `networkSwarm`, which replaces Dokploy's default network list, so both networks are listed |
+| Replicas          | 1 (Swarm runs 2 only during an update)                                                                                                                                                                                                    |
+| Health check      | `["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=3)"]`, interval 5 s, timeout 5 s, start period 300 s, retries 3                                                                 |
+| Update config     | parallelism 1, delay 0, order **start-first**, failure action **rollback**, monitor 30 s, max failure ratio 0                                                                                                                             |
+| Rollback config   | parallelism 1, order start-first                                                                                                                                                                                                          |
+| Stop grace period | 40 s (gunicorn's 30 s graceful timeout, plus margin)                                                                                                                                                                                      |
+| Resources         | reserve 0.5 CPU / 768 MB, limit 2 CPU / 2 GB (two tasks overlap during an update)                                                                                                                                                         |
 
 Swarm only adds a task to the service's virtual IP once its health check passes. The old task keeps serving until then, and only stops after the new one is healthy. A task that never turns healthy triggers the rollback, and the old one keeps running.
 
@@ -66,6 +66,10 @@ Swarm only adds a task to the service's virtual IP once its health check passes.
 5. **Prove it:** push a no-op change under `apps/api`, run the external probe through the deploy, and expect 0 errors and no request slower than normal.
 
 **Rollback at any step:** unset `API_INTERNAL_HOST`, which points back to the compose api, and redeploy. Until step 4 the compose api is untouched.
+
+After step 4 there is no compose api to fall back to. A failed api deploy rolls back by itself (the old task keeps serving); to go back to compose, revert the step-4 PR.
+
+**Gotcha:** the api throttles anonymous calls at 30/minute per IP, so an external probe of `/api/instances/` must stay under that or it measures 429s.
 
 ## Rules that come with start-first
 
