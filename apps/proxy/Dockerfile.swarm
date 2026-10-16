@@ -7,13 +7,13 @@ FROM makeplane/plane-proxy:${PLANE_RELEASE}
 
 COPY Caddyfile.ce /etc/caddy/Caddyfile
 
-# Every upstream is reached on summon-core-internal. The api's alias is summon-core-api-next: see
-# docs/deploy/api-start-first-plan.md for why summon-core-api does not resolve.
+# Every upstream is reached on summon-core-internal. The api (summon-core-api-next) and web (summon-core-web-swarm) are
+# start-first Swarm services; see docs/deploy/api-start-first-plan.md for why summon-core-api does not resolve.
 ENV SITE_ADDRESS=:80 \
     FILE_SIZE_LIMIT=262144000 \
     BUCKET_NAME=uploads \
     TRUSTED_PROXIES=0.0.0.0/0 \
-    WEB_HOST=summon-core-web \
+    WEB_HOST=summon-core-web-swarm \
     API_HOST=summon-core-api-next \
     ADMIN_HOST=summon-core-admin \
     SPACE_HOST=summon-core-space \

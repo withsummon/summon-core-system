@@ -74,6 +74,22 @@ Cutover: the Swarm connectors joined the same tunnel next to the compose one, so
 
 **Result (2026-10-16, 05:27–05:34 UTC):** 1820 requests, all 200: 826 through Cloudflare and the tunnel (one every 0.5 s), 826 origin `/`, and 168 origin `/api/instances/`. The probe covered the compose connector's removal (#29, 61 edge requests, all 200) and a start-first update that replaced both Swarm connectors at 05:30:02–05:30:37 (90 edge requests, all 200).
 
+## Web
+
+`web` (the static nginx frontend) restarted stop-first as a compose service, so a web deploy left `/` waiting up to ~11 s behind Caddy's retry. It now runs as the Dokploy Application `web (swarm)` (`summon-core-web-swarm-xamugo`, applicationId `IK76m-FtyUhZ4M6pmXdpO`).
+
+| Setting           | Value                                                                                                                                                                                  |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Source            | this repo, branch `main`, autodeploy on                                                                                                                                                |
+| Watch paths       | `apps/web/**`, `packages/**`, `package.json`, `bun.lock`, `bunfig.toml`                                                                                                                |
+| Build             | Dockerfile `apps/web/Dockerfile.web`, build path `/`, **docker context path `.`** (left empty, Dokploy builds from the Dockerfile's folder and `apps/web/nginx/nginx.conf` is missing) |
+| Networks          | `summon-core-internal` only, alias `summon-core-web-swarm` (the proxy's `WEB_HOST`), set before the first deploy                                                                       |
+| Health check      | `curl -fsS http://127.0.0.1:3000/`, every 2 s, start period 10 s (the image's own check runs every 30 s)                                                                               |
+| Update config     | parallelism 1, delay 0, order **start-first**, failure action **rollback**, monitor 10 s                                                                                               |
+| Stop grace period | 15 s                                                                                                                                                                                   |
+
+**Version skew during the swap.** For the moment both tasks are behind the virtual IP, a browser can get the shell from one build and request `/assets/…` from the other. A missing asset is a plain 404, and the window lasts only from the new task passing its health check until the old one leaves the virtual IP. This is the same skew a tab already open across any deploy sees.
+
 ## What still costs latency
 
 `web` (and admin, space, live, mcp, ai) are still compose services, which restart stop-first when their image changes. Caddy holds the requests and retries for up to 60 s (`retry_upstream`), so they don't fail, but they wait. During the #28 deploy, `web` was down for ~11 s (05:33:48–05:33:59), and `/` requests in that window took up to 11.7 s while `/api/` stayed at 0.15 s. Making those services start-first too (as Swarm Applications, like the api) would remove the wait.
