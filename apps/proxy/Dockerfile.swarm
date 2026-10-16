@@ -1,0 +1,28 @@
+# The proxy as the Dokploy Application "proxy (swarm)", a Swarm service that deploys start-first: the new task
+# serves before the old one stops. Its whole configuration lives in this image, so any proxy change (Caddyfile,
+# hostnames, base image) is a new image and goes out as a start-first rollout instead of a container recreate.
+# Settings: docs/deploy/proxy-start-first-plan.md.
+ARG PLANE_RELEASE=stable
+FROM makeplane/plane-proxy:${PLANE_RELEASE}
+
+COPY Caddyfile.ce /etc/caddy/Caddyfile
+
+# Every upstream is reached on summon-core-internal. The api's alias is summon-core-api-next: see
+# docs/deploy/api-start-first-plan.md for why summon-core-api does not resolve.
+ENV SITE_ADDRESS=:80 \
+    FILE_SIZE_LIMIT=262144000 \
+    BUCKET_NAME=uploads \
+    TRUSTED_PROXIES=0.0.0.0/0 \
+    WEB_HOST=summon-core-web \
+    API_HOST=summon-core-api-next \
+    ADMIN_HOST=summon-core-admin \
+    SPACE_HOST=summon-core-space \
+    LIVE_HOST=summon-core-live \
+    MINIO_HOST=summon-core-minio \
+    MCP_HOST=summon-core-mcp \
+    AI_HOST=summon-core-ai
+
+# Swarm adds a task to the service's virtual IP only once this passes. The admin API answers once the config is
+# loaded and :80 is listening.
+HEALTHCHECK --interval=2s --timeout=2s --start-period=20s --retries=3 \
+    CMD wget -qO /dev/null http://127.0.0.1:2019/config/ || exit 1
