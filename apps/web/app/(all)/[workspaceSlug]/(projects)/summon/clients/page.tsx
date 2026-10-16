@@ -12,6 +12,7 @@ import { Button } from "@plane/propel/button";
 import { TextArea } from "@plane/propel/input";
 import { Input } from "@plane/ui";
 import { SummonRequestState } from "@/components/summon/request-state";
+import { SummonSkeletonBlock, SummonSkeletonRows, SummonSkeletonText } from "@/components/summon/skeleton";
 import { SummonField } from "@/components/summon/forms";
 import { SummonDrawer } from "@/components/summon/drawer";
 import { SummonMetric, SummonMetricStrip, SummonScreen, summonErrorMessage } from "@/components/summon/screen";
@@ -78,13 +79,22 @@ export default function SummonClientsPage({ params }: Route.ComponentProps) {
       }
     >
       <SummonMetricStrip>
-        <SummonMetric label="Clients" value={data?.length ?? 0} />
-        <SummonMetric label="Active" value={data?.filter((client) => client.status === "active").length ?? 0} />
+        <SummonMetric label="Clients" value={data?.length} loading={!data && isLoading} />
+        <SummonMetric
+          label="Active"
+          value={data?.filter((client) => client.status === "active").length}
+          loading={!data && isLoading}
+        />
       </SummonMetricStrip>
 
       <div>
         {!data ? (
-          <SummonRequestState loading={isLoading} error={error} onRetry={() => void mutate()} />
+          <SummonRequestState
+            loading={isLoading}
+            skeleton={<ClientCardsSkeleton />}
+            error={error}
+            onRetry={() => void mutate()}
+          />
         ) : clients.length === 0 ? (
           <SummonRequestState
             empty
@@ -158,5 +168,34 @@ export default function SummonClientsPage({ params }: Route.ComponentProps) {
         </form>
       </SummonDrawer>
     </SummonScreen>
+  );
+}
+
+/** Mirrors a client card: icon tile, name and company, two lines of notes, status footer. */
+function ClientCardsSkeleton() {
+  return (
+    <SummonSkeletonRows
+      count={6}
+      className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+      label="Loading clients"
+      row={(index) => (
+        <div key={index} className="rounded-xl border border-subtle bg-surface-1 p-4 shadow-xs">
+          <div className="flex items-start gap-3">
+            <SummonSkeletonBlock className="size-9 shrink-0 rounded-xl" />
+            <div className="min-w-0 flex-1">
+              <SummonSkeletonText className="text-sm font-semibold" width={index % 2 ? "w-28" : "w-36"} />
+              <SummonSkeletonText className="mt-0.5 text-12" width="w-24" />
+            </div>
+          </div>
+          <div className="mt-4 min-h-8">
+            <SummonSkeletonText className="text-xs" width="w-full" />
+          </div>
+          <div className="mt-4 flex items-center justify-between border-t border-subtle pt-3 text-12">
+            <SummonSkeletonText width="w-12" />
+            <span className="font-medium text-tertiary">View client →</span>
+          </div>
+        </div>
+      )}
+    />
   );
 }

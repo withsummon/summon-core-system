@@ -9,6 +9,7 @@ import { Button } from "@plane/propel/button";
 import type { ISummonAssistantConversation } from "@plane/types";
 import { cn } from "@plane/utils";
 import { SummonRequestState } from "@/components/summon/request-state";
+import { SummonSkeletonBlock, SummonSkeletonRows, SummonSkeletonText } from "@/components/summon/skeleton";
 import { SummonPanel } from "@/components/summon/screen";
 import { groupConversations, scopeFromConversation } from "./assistant-model";
 import { SCOPE_ICONS } from "./assistant-composer";
@@ -40,6 +41,19 @@ export function AssistantConversationSidebar(props: AssistantConversationSidebar
       <nav aria-label="Chats" className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
         <SummonRequestState
           loading={props.loading}
+          skeleton={
+            <SummonSkeletonRows
+              count={6}
+              className="space-y-0.5 pt-6"
+              label="Loading chats"
+              row={(index) => (
+                <div key={index} className="flex items-center gap-2 px-2 py-1.5 text-13">
+                  <SummonSkeletonBlock className="size-3.5 flex-none rounded-sm" />
+                  <SummonSkeletonText width={index % 2 ? "w-28" : "w-40"} />
+                </div>
+              )}
+            />
+          }
           error={props.error}
           empty={!props.loading && props.conversations.length === 0}
           emptyMessage="Your chats appear here. Only you can see them."

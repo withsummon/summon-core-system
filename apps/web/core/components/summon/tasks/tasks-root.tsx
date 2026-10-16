@@ -30,6 +30,7 @@ import { getFileURL, renderFormattedDateWithoutYear } from "@plane/utils";
 import { PageHead } from "@/components/core/page-title";
 import { PROJECT_BADGE_CLASSNAME } from "@/components/summon/project-badge";
 import { SummonRequestState } from "@/components/summon/request-state";
+import { SummonSkeletonBlock, SummonSkeletonRows, SummonSkeletonText } from "@/components/summon/skeleton";
 import { SummonPageHeader } from "@/components/summon/screen";
 import { useHashTab } from "@/components/summon/use-hash-tab";
 import { MemberDropdown } from "@/components/dropdowns/member/dropdown";
@@ -394,7 +395,26 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
           onClearAll={() => updateView({ filters: {} })}
         />
         <Tabs.Content value={scope} className="min-w-0 flex-1">
-          <SummonRequestState loading={isLoading} error={error} onRetry={() => void mutate()} />
+          <SummonRequestState
+            loading={isLoading}
+            skeleton={
+              <SummonSkeletonRows
+                count={8}
+                className="py-2"
+                label="Loading tasks"
+                row={(index) => (
+                  <div key={index} className="flex min-h-11 items-center gap-3 px-4 py-2 text-13 sm:px-6">
+                    <SummonSkeletonBlock className="size-4 shrink-0 rounded-sm" />
+                    <SummonSkeletonText className="flex-1 font-medium" width={index % 3 ? "w-56" : "w-80"} />
+                    <SummonSkeletonBlock className="size-5.5 shrink-0 rounded-full" />
+                    <SummonSkeletonText className="w-16 shrink-0 text-right" width="w-12" />
+                  </div>
+                )}
+              />
+            }
+            error={error}
+            onRetry={() => void mutate()}
+          />
           {!isLoading && !error && (
             <div className="py-2">
               {groups.map(({ key, items }) => {

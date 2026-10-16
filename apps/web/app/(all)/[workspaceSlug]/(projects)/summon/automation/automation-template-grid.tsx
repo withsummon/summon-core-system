@@ -6,7 +6,12 @@
 
 import { ArrowRight } from "lucide-react";
 import type { ISummonAutomationTemplate } from "@plane/types";
+import { SummonSkeletonBlock, SummonSkeletonRows, SummonSkeletonText } from "@/components/summon/skeleton";
 import { templateLabel, templateVisual } from "./automation-display";
+
+const GRID_CLASS_NAME = "grid gap-2 sm:grid-cols-2 sm:gap-2.5 lg:grid-cols-3 xl:grid-cols-4";
+/** The API seeds every workspace with this many default templates (`DEFAULT_TEMPLATES`). */
+const DEFAULT_TEMPLATE_COUNT = 13;
 
 function AutomationTemplateCard(props: {
   item: ISummonAutomationTemplate;
@@ -45,7 +50,7 @@ export function AutomationTemplateGrid(props: {
   onOpen: (templateId: string) => void;
 }) {
   return (
-    <div className="grid gap-2 sm:grid-cols-2 sm:gap-2.5 lg:grid-cols-3 xl:grid-cols-4">
+    <div className={GRID_CLASS_NAME}>
       {props.templates.map((item) => (
         <AutomationTemplateCard
           key={item.id}
@@ -55,5 +60,25 @@ export function AutomationTemplateGrid(props: {
         />
       ))}
     </div>
+  );
+}
+
+/** Mirrors the template cards while templates load. */
+export function AutomationTemplateGridSkeleton() {
+  return (
+    <SummonSkeletonRows
+      count={DEFAULT_TEMPLATE_COUNT}
+      className={GRID_CLASS_NAME}
+      label="Loading templates"
+      row={(index) => (
+        <div key={index} className="flex items-center gap-3 rounded-xl border border-subtle bg-surface-1 p-3 sm:p-4">
+          <SummonSkeletonBlock className="size-9 shrink-0 rounded-xl" />
+          <div className="min-w-0 flex-1">
+            <SummonSkeletonText className="text-13 font-semibold" width="w-28" />
+            <SummonSkeletonText className="mt-0.5 hidden text-12 sm:block" width="w-40" />
+          </div>
+        </div>
+      )}
+    />
   );
 }

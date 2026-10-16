@@ -14,6 +14,7 @@ import { Input } from "@plane/ui";
 import { SummonField } from "@/components/summon/forms";
 import { SummonProjectBadge } from "@/components/summon/project-badge";
 import { SummonRequestState } from "@/components/summon/request-state";
+import { SummonTableRowsSkeleton } from "@/components/summon/skeleton";
 import { SummonDrawer } from "@/components/summon/drawer";
 import { StatusBadge } from "@/components/summon/status-badge";
 import {
@@ -172,17 +173,27 @@ export default function SummonMeetingsPage({ params }: Route.ComponentProps) {
       }
     >
       <SummonMetricStrip>
-        <SummonMetric label="All meetings" value={data.length} />
-        <SummonMetric label="Scheduled" value={data.filter(({ status }) => status === "scheduled").length} />
+        <SummonMetric label="All meetings" value={data.length} loading={isLoading} />
+        <SummonMetric
+          label="Scheduled"
+          value={data.filter(({ status }) => status === "scheduled").length}
+          loading={isLoading}
+        />
         <SummonMetric
           label="Action items"
           value={data.reduce((total, item) => total + item.work_items.length, 0)}
           detail="Linked tasks"
+          loading={isLoading}
         />
       </SummonMetricStrip>
       <div className="space-y-3">
         <SummonRequestState
           loading={isLoading}
+          skeleton={
+            <SummonTableShell>
+              <SummonTableRowsSkeleton label="Loading meetings" />
+            </SummonTableShell>
+          }
           error={error}
           empty={!isLoading && data.length === 0}
           emptyAsset="meeting"
