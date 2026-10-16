@@ -33,6 +33,7 @@ import {
 } from "@/components/summon/opportunities/opportunity-pipeline";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonSkeleton, SummonSkeletonBlock, SummonSkeletonText } from "@/components/summon/skeleton";
+import { skeletonKeys } from "@/components/summon/skeleton-keys";
 import { formatSummonDate } from "@/components/summon/date";
 import { SummonPageHeader, summonErrorMessage, summonPageClassName, ViewPanel } from "@/components/summon/screen";
 import { useMember } from "@/hooks/store/use-member";
@@ -246,13 +247,7 @@ function OpportunityResults(props: {
     onShowAllStages,
   } = props;
   return !data ? (
-    isLoading ? (
-      <OpportunityRowsSkeleton />
-    ) : (
-      <div className="p-4">
-        <SummonRequestState error={error} onRetry={onRetry} />
-      </div>
-    )
+    <OpportunityResultsPending isLoading={isLoading} error={error} onRetry={onRetry} />
   ) : !hasVisible ? (
     <div className="grid gap-3 p-6 text-center">
       <p className="text-13 font-medium text-primary">No opportunities match</p>
@@ -413,6 +408,16 @@ function FilterChip(props: { active: boolean; onClick: () => void; label: string
   );
 }
 
+/** Before the first list arrives: rows shaped like the real ones, or the error with a retry. */
+function OpportunityResultsPending(props: { isLoading: boolean; error: unknown; onRetry: () => void }) {
+  if (props.isLoading) return <OpportunityRowsSkeleton />;
+  return (
+    <div className="p-4">
+      <SummonRequestState error={props.error} onRetry={props.onRetry} />
+    </div>
+  );
+}
+
 /** Mirrors a stage heading and its opportunity rows. */
 function OpportunityRowsSkeleton() {
   return (
@@ -420,8 +425,8 @@ function OpportunityRowsSkeleton() {
       <div className="flex h-9 items-center border-b border-subtle bg-layer-1/95 px-4">
         <SummonSkeletonText className="text-12" width="w-20" />
       </div>
-      {Array.from({ length: 6 }, (_, index) => (
-        <div key={index} className="flex gap-3 border-b border-subtle px-4 py-3 last:border-b-0">
+      {skeletonKeys(6).map((key, index) => (
+        <div key={key} className="flex gap-3 border-b border-subtle px-4 py-3 last:border-b-0">
           <SummonSkeletonBlock className="mt-1.5 size-2 flex-none rounded-full" />
           <div className="min-w-0 flex-1">
             <SummonSkeletonText className="text-13 leading-snug font-medium" width={index % 2 ? "w-40" : "w-56"} />

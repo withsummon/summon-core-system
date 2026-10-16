@@ -24,6 +24,7 @@ import {
   ViewPanel,
 } from "@/components/summon/screen";
 import { SummonSkeleton, SummonSkeletonBlock } from "@/components/summon/skeleton";
+import { skeletonKeys } from "@/components/summon/skeleton-keys";
 import { SectionTabs } from "@/components/summon/section-tabs";
 import type { TSectionTab } from "@/components/summon/section-tabs";
 import { ReportFilters } from "./report-visuals";
@@ -130,8 +131,8 @@ function ReportSkeleton(props: { overview: boolean }) {
         </SummonMetricStrip>
       ) : null}
       <div className={`grid gap-3 ${props.overview ? "xl:grid-cols-[1fr_1fr_1.08fr]" : "grid-cols-1"}`}>
-        {Array.from({ length: props.overview ? 3 : 1 }, (_, index) => (
-          <SummonSkeletonBlock key={index} className={`h-80 ${summonSurfaceClassName}`} />
+        {skeletonKeys(props.overview ? 3 : 1).map((key) => (
+          <SummonSkeletonBlock key={key} className={`h-80 ${summonSurfaceClassName}`} />
         ))}
       </div>
     </SummonSkeleton>

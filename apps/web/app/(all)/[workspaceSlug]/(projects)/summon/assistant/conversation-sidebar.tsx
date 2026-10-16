@@ -47,7 +47,7 @@ export function AssistantConversationSidebar(props: AssistantConversationSidebar
               className="space-y-0.5 pt-6"
               label="Loading chats"
               row={(index) => (
-                <div key={index} className="flex items-center gap-2 px-2 py-1.5 text-13">
+                <div className="flex items-center gap-2 px-2 py-1.5 text-13">
                   <SummonSkeletonBlock className="size-3.5 flex-none rounded-sm" />
                   <SummonSkeletonText width={index % 2 ? "w-28" : "w-40"} />
                 </div>

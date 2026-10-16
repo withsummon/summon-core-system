@@ -189,10 +189,7 @@ function ProjectRowsSkeleton() {
       className="divide-y divide-subtle"
       label="Loading projects"
       row={(index) => (
-        <div
-          key={index}
-          className="grid grid-cols-1 gap-3 px-4 py-3 sm:px-6 md:grid-cols-[minmax(0,1fr)_11rem_10rem] md:items-center md:gap-6"
-        >
+        <div className="grid grid-cols-1 gap-3 px-4 py-3 sm:px-6 md:grid-cols-[minmax(0,1fr)_11rem_10rem] md:items-center md:gap-6">
           <span className="flex min-w-0 items-center gap-3">
             <SummonSkeletonBlock className="size-8" />
             <span className="min-w-0 flex-1">

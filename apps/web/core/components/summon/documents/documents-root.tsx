@@ -229,7 +229,7 @@ function DocumentCardsSkeleton() {
       className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
       label="Loading documents"
       row={(index) => (
-        <div key={index} className="flex flex-col rounded-xl border border-subtle bg-surface-1 p-4 shadow-xs">
+        <div className="flex flex-col rounded-xl border border-subtle bg-surface-1 p-4 shadow-xs">
           <div className="flex items-start justify-between gap-2">
             <SummonSkeletonBlock className="size-9 rounded-xl" />
             <SummonSkeletonText className="py-0.5 text-12" width="w-10" />

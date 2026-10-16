@@ -200,9 +200,7 @@ function FindOrAsk(props: {
           count={3}
           className="flex flex-wrap gap-2"
           label="Loading suggested questions"
-          row={(index) => (
-            <SummonSkeletonBlock key={index} className={cn("h-7 rounded-full", ["w-64", "w-52", "w-56"][index])} />
-          )}
+          row={(index) => <SummonSkeletonBlock className={cn("h-7 rounded-full", ["w-64", "w-52", "w-56"][index])} />}
         />
       ) : (
         <ul className="flex flex-wrap gap-2" aria-label="Suggested questions">
@@ -296,8 +294,8 @@ function KnowledgeOverviewSkeleton() {
           count={RECENT_COUNT}
           className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
           label="Loading recent pages"
-          row={(index) => (
-            <div key={index} className={cn(summonSurfaceClassName, "flex flex-col gap-3 p-3.5")}>
+          row={() => (
+            <div className={cn(summonSurfaceClassName, "flex flex-col gap-3 p-3.5")}>
               <SummonSkeletonBlock className="size-8 rounded-lg" />
               <div>
                 <SummonSkeletonText className="text-13 font-medium" width="w-36" />
@@ -387,7 +385,7 @@ function KnowledgeLibrary(props: {
                 className="divide-y divide-subtle"
                 label="Loading pages"
                 row={(index) => (
-                  <div key={index} className="flex items-center gap-2 py-2.5 text-13">
+                  <div className="flex items-center gap-2 py-2.5 text-13">
                     <SummonSkeletonBlock className="size-4 flex-none rounded-sm" />
                     <SummonSkeletonText className="flex-1 font-medium" width={index % 3 ? "w-48" : "w-64"} />
                     <SummonSkeletonText className="w-28" width="w-20" />

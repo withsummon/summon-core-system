@@ -4,9 +4,11 @@
  * See the LICENSE file for details.
  */
 
+import { Fragment } from "react";
 import type { ReactNode } from "react";
 import { Skeleton } from "@plane/propel/skeleton";
 import { cn } from "@plane/utils";
+import { skeletonKeys } from "./skeleton-keys";
 
 /**
  * Placeholder for data that is still loading. Skeletons copy the markup of what they stand in for, so the page
@@ -38,7 +40,7 @@ export function SummonSkeletonBlock(props: { className: string }) {
   return <span aria-hidden className={cn("block rounded-md bg-layer-1", props.className)} />;
 }
 
-/** `count` copies of `row`, for lists whose rows have a known shape. */
+/** `count` copies of `row`, for lists whose rows have a known shape. Rows need no `key`. */
 export function SummonSkeletonRows(props: {
   count: number;
   row: (index: number) => ReactNode;
@@ -47,7 +49,9 @@ export function SummonSkeletonRows(props: {
 }) {
   return (
     <SummonSkeleton className={props.className} label={props.label}>
-      {Array.from({ length: props.count }, (_, index) => props.row(index))}
+      {skeletonKeys(props.count).map((key, index) => (
+        <Fragment key={key}>{props.row(index)}</Fragment>
+      ))}
     </SummonSkeleton>
   );
 }
@@ -63,7 +67,7 @@ export function SummonTableRowsSkeleton(props: { count?: number; label?: string 
       className="divide-y divide-subtle"
       label={props.label}
       row={(index) => (
-        <div key={index} className="flex items-start gap-3 px-4 py-3">
+        <div className="flex items-start gap-3 px-4 py-3">
           <div className="min-w-0 flex-1">
             <SummonSkeletonText className="text-13 font-medium" width={index % 3 ? "w-48" : "w-72"} />
             {/* The meta line holds a bordered project badge, so it is taller than its text. */}

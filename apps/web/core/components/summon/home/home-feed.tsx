@@ -178,7 +178,7 @@ function PriorityRowsSkeleton() {
       count={3}
       className="flex flex-col"
       row={(index) => (
-        <div key={index} className="flex items-center gap-3 px-2 py-2.5">
+        <div className="flex items-center gap-3 px-2 py-2.5">
           <SummonSkeletonBlock className="size-4 rounded-full" />
           <span className="min-w-0 flex-1">
             <SummonSkeletonText className="text-13 font-medium" width={index % 2 ? "w-40" : "w-56"} />
@@ -198,7 +198,7 @@ function NamedRowsSkeleton(props: { count: number; markClassName: string }) {
       count={props.count}
       className="flex flex-col"
       row={(index) => (
-        <div key={index} className="flex items-center gap-3 px-2 py-2">
+        <div className="flex items-center gap-3 px-2 py-2">
           <SummonSkeletonBlock className={props.markClassName} />
           <SummonSkeletonText className="min-w-0 flex-1 text-13 font-medium" width={index % 2 ? "w-32" : "w-44"} />
           <SummonSkeletonBlock className="h-5 w-14 rounded-full" />

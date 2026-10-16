@@ -151,11 +151,8 @@ function NotificationCardsSkeleton() {
       count={4}
       className="space-y-3"
       label="Loading notifications"
-      row={(index) => (
-        <div
-          key={index}
-          className="flex items-start justify-between gap-4 rounded-xl border border-subtle bg-surface-1 p-4"
-        >
+      row={() => (
+        <div className="flex items-start justify-between gap-4 rounded-xl border border-subtle bg-surface-1 p-4">
           <div className="flex min-w-0 flex-1 items-start gap-3.5">
             <SummonSkeletonBlock className="size-9 shrink-0 rounded-xl" />
             <div className="min-w-0 flex-1">

@@ -70,8 +70,8 @@ export function AutomationTemplateGridSkeleton() {
       count={DEFAULT_TEMPLATE_COUNT}
       className={GRID_CLASS_NAME}
       label="Loading templates"
-      row={(index) => (
-        <div key={index} className="flex items-center gap-3 rounded-xl border border-subtle bg-surface-1 p-3 sm:p-4">
+      row={() => (
+        <div className="flex items-center gap-3 rounded-xl border border-subtle bg-surface-1 p-3 sm:p-4">
           <SummonSkeletonBlock className="size-9 shrink-0 rounded-xl" />
           <div className="min-w-0 flex-1">
             <SummonSkeletonText className="text-13 font-semibold" width="w-28" />

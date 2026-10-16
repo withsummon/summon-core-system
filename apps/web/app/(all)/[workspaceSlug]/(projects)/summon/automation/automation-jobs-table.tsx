@@ -11,6 +11,7 @@ import type { ISummonAutomationJob } from "@plane/types";
 import { automationInputValue, automationJobPath } from "./automation-form";
 import { formatSummonDate } from "@/components/summon/date";
 import { SummonSkeletonBlock, SummonSkeletonText } from "@/components/summon/skeleton";
+import { skeletonKeys } from "@/components/summon/skeleton-keys";
 import { jobStatus, templateLabel, templateVisual } from "./automation-display";
 
 /** Column labels: the desktop header and the phone row label read from the same entry. */
@@ -117,8 +118,8 @@ export function AutomationJobsTable(props: {
 export function AutomationJobsTableSkeleton() {
   return (
     <JobsTableFrame>
-      {Array.from({ length: 5 }, (_, index) => (
-        <tr key={index} aria-hidden>
+      {skeletonKeys(5).map((key) => (
+        <tr key={key}>
           <td className="px-4 py-3">
             <div className="flex items-center gap-2.5">
               <SummonSkeletonBlock className="size-8 shrink-0 rounded-lg" />

@@ -403,7 +403,7 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
                 className="py-2"
                 label="Loading tasks"
                 row={(index) => (
-                  <div key={index} className="flex min-h-11 items-center gap-3 px-4 py-2 text-13 sm:px-6">
+                  <div className="flex min-h-11 items-center gap-3 px-4 py-2 text-13 sm:px-6">
                     <SummonSkeletonBlock className="size-4 shrink-0 rounded-sm" />
                     <SummonSkeletonText className="flex-1 font-medium" width={index % 3 ? "w-56" : "w-80"} />
                     <SummonSkeletonBlock className="size-5.5 shrink-0 rounded-full" />

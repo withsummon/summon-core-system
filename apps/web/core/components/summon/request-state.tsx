@@ -45,7 +45,7 @@ export function SummonRequestState(props: {
         <SummonSkeletonRows
           count={4}
           className="flex flex-col gap-2"
-          row={(index) => <SummonSkeletonBlock key={index} className="h-10 w-full rounded-lg" />}
+          row={() => <SummonSkeletonBlock className="h-10 w-full rounded-lg" />}
         />
       )
     );

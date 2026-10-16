@@ -18,6 +18,7 @@ import type { ISummonClientDetail, ISummonProjectOverview } from "@plane/types";
 import { formatSummonDate } from "@/components/summon/date";
 import { SectionTabs } from "@/components/summon/section-tabs";
 import { SummonSkeleton, SummonSkeletonBlock, SummonSkeletonText } from "@/components/summon/skeleton";
+import { skeletonKeys } from "@/components/summon/skeleton-keys";
 import { StatusBadge } from "@/components/summon/status-badge";
 import { EmptyLine, IconTile, Info, InfoRow, PreviewCard, ProjectMark } from "./home-parts";
 
@@ -321,8 +322,8 @@ function PreviewSkeleton() {
         {["Open tasks", "Latest documents"].map((title) => (
           <PreviewCard key={title} title={title}>
             <div className="divide-y divide-dashed divide-subtle">
-              {[0, 1, 2].map((index) => (
-                <div key={index} className="flex items-center gap-2.5 py-2.5">
+              {skeletonKeys(3).map((key, index) => (
+                <div key={key} className="flex items-center gap-2.5 py-2.5">
                   <SummonSkeletonBlock className="size-4 rounded-full" />
                   <SummonSkeletonText className="min-w-0 flex-1 text-13" width={index % 2 ? "w-40" : "w-56"} />
                 </div>

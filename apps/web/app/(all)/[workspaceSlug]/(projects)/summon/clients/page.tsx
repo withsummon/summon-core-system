@@ -179,7 +179,7 @@ function ClientCardsSkeleton() {
       className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
       label="Loading clients"
       row={(index) => (
-        <div key={index} className="rounded-xl border border-subtle bg-surface-1 p-4 shadow-xs">
+        <div className="rounded-xl border border-subtle bg-surface-1 p-4 shadow-xs">
           <div className="flex items-start gap-3">
             <SummonSkeletonBlock className="size-9 shrink-0 rounded-xl" />
             <div className="min-w-0 flex-1">
