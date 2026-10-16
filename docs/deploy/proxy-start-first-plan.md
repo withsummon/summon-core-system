@@ -90,9 +90,25 @@ Cutover: the Swarm connectors joined the same tunnel next to the compose one, so
 
 **Version skew during the swap.** For the moment both tasks are behind the virtual IP, a browser can get the shell from one build and request `/assets/…` from the other. A missing asset is a plain 404, and the window lasts only from the new task passing its health check until the old one leaves the virtual IP. This is the same skew a tab already open across any deploy sees.
 
-## What still costs latency
+**Result (2026-10-16):** each step was probed at the origin and through Cloudflare:
 
-`web` (and admin, space, live, mcp, ai) are still compose services, which restart stop-first when their image changes. Caddy holds the requests and retries for up to 60 s (`retry_upstream`), so they don't fail, but they wait. During the #28 deploy, `web` was down for ~11 s (05:33:48–05:33:59), and `/` requests in that window took up to 11.7 s while `/api/` stayed at 0.15 s. Making those services start-first too (as Swarm Applications, like the api) would remove the wait.
+| Step                                              | Requests | Non-200 | Slowest at origin |
+| ------------------------------------------------- | -------: | ------: | ----------------: |
+| #32: the proxy rolls out with `WEB_HOST` switched |     2078 |       0 |            0.76 s |
+| #33: the compose web is removed                   |     1822 |       0 |            0.83 s |
+| Start-first web deploy (06:14:51–06:15:10 UTC)    |     1818 |       0 |            1.36 s |
+
+During that web deploy, 157 requests landed inside the swap window (06:14:45–06:15:20), and all returned 200. The #28 deploy under compose had held `/` for up to 11.7 s.
+
+## What still restarts stop-first
+
+These compose services still restart stop-first, and Caddy's 60 s retry holds their requests while they do (no errors, but a wait):
+
+- `ai`, rebuilt from this repo on every change to it: `/ai/*` waits while it restarts.
+- `live` and `mcp`, which change only with their pinned images.
+- `admin` and `space`, which change only when `PLANE_RELEASE` images are pulled.
+
+Moving `ai` would follow the web pattern. Through Cloudflare, an occasional 1–4 s request also shows up outside deploys; the origin stays under 1 s, so that is the Cloudflare and tunnel path, not the app.
 
 ## Origin probe
 
