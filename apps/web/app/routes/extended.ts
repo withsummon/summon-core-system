@@ -36,8 +36,10 @@ export const extendedRoutes: RouteConfigEntry[] = [
           route(":workspaceSlug/summon/automation/:jobId", `${summonRoot}/automation/[jobId]/page.tsx`),
           route(":workspaceSlug/summon/assistant", `${summonRoot}/assistant/page.tsx`),
           route(":workspaceSlug/summon/credentials", `${summonRoot}/credentials/page.tsx`),
-          route(":workspaceSlug/summon/settings", `${summonRoot}/settings/page.tsx`),
-          route(":workspaceSlug/summon/settings/users", `${summonRoot}/settings/users/page.tsx`),
+          layout(`${summonRoot}/settings/layout.tsx`, [
+            route(":workspaceSlug/summon/settings", `${summonRoot}/settings/page.tsx`),
+            route(":workspaceSlug/summon/settings/users", `${summonRoot}/settings/users/page.tsx`),
+          ]),
         ]),
       ]),
     ]),

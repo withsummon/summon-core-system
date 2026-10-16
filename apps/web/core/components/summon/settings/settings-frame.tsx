@@ -9,24 +9,31 @@ import { GearSixIcon, UsersThreeIcon } from "@phosphor-icons/react";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonScreen } from "@/components/summon/screen";
 import { SectionTabs } from "@/components/summon/section-tabs";
+import { InvitePeopleAction } from "@/components/summon/settings/invite-people-action";
 import { useSummonAccess } from "@/components/summon/use-summon-access";
 
-type TSettingsTab = "general" | "users";
+export type TSettingsTab = "general" | "users";
 
-/** Summon Settings: one header, General | Users tabs, and the admin-only gate for both. */
-export function SummonSettingsFrame(props: {
-  workspaceSlug: string;
-  tab: TSettingsTab;
-  description: string;
-  actions?: ReactNode;
-  children: ReactNode;
-}) {
-  const { workspaceSlug, tab, description, actions, children } = props;
+const DESCRIPTIONS: Record<TSettingsTab, string> = {
+  general: "Workspace identity and business settings.",
+  users: "Who can sign in to this workspace, and what their role lets them do.",
+};
+
+/**
+ * Summon Settings: one header, General | Users tabs, and the admin-only gate for both. The Settings layout route
+ * renders it once around both tabs' routes, so switching tabs keeps it mounted and the underline slides.
+ */
+export function SummonSettingsFrame(props: { workspaceSlug: string; tab: TSettingsTab; children: ReactNode }) {
+  const { workspaceSlug, tab, children } = props;
   const { can, isLoading, error } = useSummonAccess(workspaceSlug);
   const allowed = can("settings.view");
 
   return (
-    <SummonScreen title="Settings" description={description} actions={allowed ? actions : undefined}>
+    <SummonScreen
+      title="Settings"
+      description={DESCRIPTIONS[tab]}
+      actions={allowed && tab === "users" ? <InvitePeopleAction workspaceSlug={workspaceSlug} /> : undefined}
+    >
       {/* Every settings route shows these tabs, so they stay still on a switch like the header. */}
       <div data-page-chrome>
         <SectionTabs

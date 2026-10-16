@@ -15,7 +15,6 @@ import { SummonField } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonSkeleton, SummonSkeletonBlock } from "@/components/summon/skeleton";
 import { SummonPanel, summonErrorMessage } from "@/components/summon/screen";
-import { SummonSettingsFrame } from "@/components/summon/settings/settings-frame";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
 
@@ -62,11 +61,7 @@ export default function SummonSettingsPage({ params }: Route.ComponentProps) {
   };
 
   return (
-    <SummonSettingsFrame
-      workspaceSlug={workspaceSlug}
-      tab="general"
-      description="Workspace identity and business settings."
-    >
+    <>
       {!data ? (
         <SummonRequestState
           loading={isLoading}
@@ -191,7 +186,7 @@ export default function SummonSettingsPage({ params }: Route.ComponentProps) {
           </div>
         </div>
       )}
-    </SummonSettingsFrame>
+    </>
   );
 }
 

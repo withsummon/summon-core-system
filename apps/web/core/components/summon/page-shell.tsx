@@ -4,23 +4,24 @@
  * See the LICENSE file for details.
  */
 
-import { Outlet, useLocation, useParams } from "react-router";
+import { Outlet, useParams } from "react-router";
 import { useSummonAccess } from "@/components/summon/use-summon-access";
 
 /**
  * Frame for every Summon page. Pages render their static parts immediately and skeletons where data goes; on a
- * page switch the content under the header rises in (`page-rise`) while the header stays still. Keying the outlet
- * by path replays that when one detail page opens another of the same route; hash tabs, search params and
- * refetches keep the page mounted.
+ * page switch the content under the header rises in (`page-rise`) while the header stays still.
+ *
+ * Opening another route mounts its own page anyway. Keying the outlet by the route params also gives a detail page
+ * fresh state when it opens another record of the same route, while routes that share a layout under the same
+ * params (the Settings tabs) keep that layout mounted, so its tabs animate between them.
  */
 export function SummonPageShell() {
-  const { pathname } = useLocation();
-  const { workspaceSlug = "" } = useParams();
+  const params = useParams();
   // Load the capability map once with the shell, so gated pages already know who may see them when they open.
-  useSummonAccess(workspaceSlug);
+  useSummonAccess(params.workspaceSlug ?? "");
   return (
     <div className="page-rise h-full min-h-0 overflow-x-hidden overflow-y-auto bg-surface-2">
-      <Outlet key={pathname} />
+      <Outlet key={JSON.stringify(params)} />
     </div>
   );
 }
