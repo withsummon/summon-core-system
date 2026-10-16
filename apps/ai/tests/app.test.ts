@@ -246,6 +246,7 @@ describe("MCP", () => {
     const response = await rpc(app, initialize, { "x-api-key": "", "x-workspace-slug": "" });
     expect(response.status).toBe(401);
     expect(await response.json()).toMatchObject({ error_code: "api_key_required" });
+    expect(response.headers.get("www-authenticate")).toMatch(/^Bearer realm="summon".*X-Api-Key/);
   });
 
   it("refuses a key Django doesn't accept for the workspace", async () => {
