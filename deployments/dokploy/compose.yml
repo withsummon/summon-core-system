@@ -373,6 +373,21 @@ services:
       ai:
         condition: service_started
 
+  # Carries Cloudflare's traffic for core.withsummon.com to the proxy over connections this host opens. Cloudflare
+  # dialing in to the host's public IP stalls: the provider's network drops many SYN-ACKs back to Cloudflare, so
+  # requests waited 15-50 s or failed with 522 while the host itself answered in milliseconds. The tunnel's routes
+  # live in Cloudflare (remotely managed) and point at http://proxy:80; this service is only on the project's
+  # default network, where `proxy` can only mean this project's Caddy.
+  cloudflared:
+    image: cloudflare/cloudflared:2025.8.1
+    restart: unless-stopped
+    command: ["tunnel", "--no-autoupdate", "--metrics", "0.0.0.0:2000", "run", "--token-file", "/run/secrets/cloudflare_tunnel_token"]
+    secrets:
+      - cloudflare_tunnel_token
+    depends_on:
+      proxy:
+        condition: service_started
+
 networks:
   # A private network that a Swarm service can also join (it is an attachable overlay; the Dokploy host is a Swarm
   # manager), so the api can move to a start-first Swarm service and still reach these services by name. Only the
@@ -409,3 +424,5 @@ secrets:
     file: /etc/dokploy-secrets/summon-core-plane/live_server_secret_key
   summon_ai_internal_token:
     file: /etc/dokploy-secrets/summon-core-plane/summon_ai_internal_token
+  cloudflare_tunnel_token:
+    file: /etc/dokploy-secrets/summon-core-plane/cloudflare_tunnel_token
