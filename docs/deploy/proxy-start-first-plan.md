@@ -51,6 +51,8 @@ Cloudflare's tunnel (`cloudflared`, #23) reached the same container as `http://p
 4. **Remove the compose `proxy` service** (PR). `cloudflared` then reaches only the Swarm proxy. Removing its `depends_on: proxy` does not recreate cloudflared (checked with Compose), so the tunnel stays up.
 5. **Prove it:** deploy the Application (the same rebuild and start-first update a push under `apps/proxy` triggers), run the origin probe through the deploy, and expect 0 non-200 responses.
 
+   **Result (2026-10-16 05:06 UTC):** 804 requests across the deploy, all 200: 470 origin `/`, 96 origin `/api/instances/`, and 238 through Cloudflare and the tunnel. The slowest took 1.1 s. Swarm's update ran 05:06:42–05:07:00, and the new task served before the old one stopped. Before the probe, connection counts showed Traefik and cloudflared already used only the Swarm proxy (the compose proxy had 0 connections), so the probe measured the Swarm path.
+
 **Rollback** before step 4: delete the Application's domain; the compose proxy still serves. After step 4: revert the step-4 PR and put the domain back on the compose app.
 
 ## The tunnel
