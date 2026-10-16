@@ -7,8 +7,9 @@ FROM makeplane/plane-proxy:${PLANE_RELEASE}
 
 COPY Caddyfile.ce /etc/caddy/Caddyfile
 
-# Every upstream is reached on summon-core-internal. The api (summon-core-api-next) and web (summon-core-web-swarm) are
-# start-first Swarm services; see docs/deploy/api-start-first-plan.md for why summon-core-api does not resolve.
+# Every upstream is reached on summon-core-internal. The api (summon-core-api-next), web (summon-core-web-swarm) and ai
+# (summon-core-ai-swarm) are start-first Swarm services; see docs/deploy/api-start-first-plan.md for why
+# summon-core-api does not resolve.
 ENV SITE_ADDRESS=:80 \
     FILE_SIZE_LIMIT=262144000 \
     BUCKET_NAME=uploads \
@@ -20,7 +21,7 @@ ENV SITE_ADDRESS=:80 \
     LIVE_HOST=summon-core-live \
     MINIO_HOST=summon-core-minio \
     MCP_HOST=summon-core-mcp \
-    AI_HOST=summon-core-ai
+    AI_HOST=summon-core-ai-swarm
 
 # Swarm adds a task to the service's virtual IP only once this passes. The admin API answers once the config is
 # loaded and :80 is listening.
