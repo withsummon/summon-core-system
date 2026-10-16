@@ -378,6 +378,8 @@ services:
   # requests waited 15-50 s or failed with 522 while the host itself answered in milliseconds. The tunnel's routes
   # live in Cloudflare (remotely managed) and point at http://proxy:80; this service is only on the project's
   # default network, where `proxy` can only mean this project's Caddy.
+  # cloudflared runs as uid 65532 and Compose bind-mounts secret files as they are on the host, so the token file
+  # must be owned by 65532 (mode 600): `chown 65532:65532 /etc/dokploy-secrets/summon-core-plane/cloudflare_tunnel_token`.
   cloudflared:
     image: cloudflare/cloudflared:2025.8.1
     restart: unless-stopped
