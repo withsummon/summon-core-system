@@ -324,32 +324,19 @@ services:
 
   # The proxy is not here either: it runs as the Dokploy Application "proxy (swarm)", built from
   # apps/proxy/Dockerfile.swarm, so a proxy change rolls out start-first instead of recreating a container. Traefik
-  # reaches it through the Application's domain and cloudflared as `proxy` on summon-core-internal.
+  # reaches it through the Application's domain, the tunnel's connectors as `proxy` on summon-core-internal.
   # Settings: docs/deploy/proxy-start-first-plan.md.
 
-  # Carries Cloudflare's traffic for core.withsummon.com to the proxy over connections this host opens. Cloudflare
-  # dialing in to the host's public IP stalls: the provider's network drops many SYN-ACKs back to Cloudflare, so
-  # requests waited 15-50 s or failed with 522 while the host itself answered in milliseconds. The tunnel's routes
-  # live in Cloudflare (remotely managed) and point at http://proxy:80, the Swarm proxy's alias on
-  # summon-core-internal, where no other project's services are. The default network stays only because changing a
-  # service's networks recreates it, and a cloudflared recreate drops the tunnel for ~8 s (measured: 502/530 at the
-  # edge while the origin answered 200).
-  # cloudflared runs as uid 65532 and Compose bind-mounts secret files as they are on the host, so the token file
-  # must be owned by 65532 (mode 600): `chown 65532:65532 /etc/dokploy-secrets/summon-core-plane/cloudflare_tunnel_token`.
-  cloudflared:
-    image: cloudflare/cloudflared:2025.8.1
-    restart: unless-stopped
-    command: ["tunnel", "--no-autoupdate", "--metrics", "0.0.0.0:2000", "run", "--token-file", "/run/secrets/cloudflare_tunnel_token"]
-    secrets:
-      - cloudflare_tunnel_token
-    networks:
-      default: {}
-      summon-core-internal: {}
+  # cloudflared is not here either: the Dokploy Application "cloudflared (swarm)" runs two tunnel connectors that
+  # update start-first, so a connector change never leaves the tunnel without one. Cloudflare dialing in to the
+  # host's public IP stalls (the provider's network drops many SYN-ACKs back to Cloudflare), so its traffic comes
+  # through the tunnel; the routes live in Cloudflare and point at http://proxy:80 on summon-core-internal.
+  # Settings: docs/deploy/proxy-start-first-plan.md.
 
 networks:
   # A private network that a Swarm service can also join (it is an attachable overlay; the Dokploy host is a Swarm
   # manager), so the api and the proxy can run as start-first Swarm services and still reach these services by name.
-  # Only the api's dependencies and callers, the proxy's upstreams and cloudflared join it. The shared dokploy-network
+  # Only the api's dependencies and callers and the proxy's upstreams join it. The shared dokploy-network
   # would expose names like plane-db to every other project on the host.
   summon-core-internal:
     name: summon-core-internal
@@ -381,5 +368,3 @@ secrets:
     file: /etc/dokploy-secrets/summon-core-plane/live_server_secret_key
   summon_ai_internal_token:
     file: /etc/dokploy-secrets/summon-core-plane/summon_ai_internal_token
-  cloudflare_tunnel_token:
-    file: /etc/dokploy-secrets/summon-core-plane/cloudflare_tunnel_token
