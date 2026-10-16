@@ -205,6 +205,8 @@ function ConsentSkeleton() {
 
 /** Where the client's redirect goes, as a person would recognise it: a host, or an app's own scheme. */
 function redirectTarget(request: ISummonOAuthRequest) {
+  // Django only registers parseable redirect URIs; show the raw one rather than crash if that ever changes.
+  if (!URL.canParse(request.redirect_uri)) return request.redirect_uri;
   const url = new URL(request.redirect_uri);
   return url.protocol === "http:" || url.protocol === "https:" ? url.host : url.protocol.replace(/:$/, "");
 }
