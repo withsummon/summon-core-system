@@ -42,9 +42,50 @@ Getting started with Plane is simple. Choose the setup that works best for you:
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Docker               | [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)](https://developers.plane.so/self-hosting/methods/docker-compose)         |
 | Kubernetes           | [![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=for-the-badge&logo=kubernetes&logoColor=white)](https://developers.plane.so/self-hosting/methods/kubernetes) |
-| Managed hosting      | [<img alt="Deploy with Zenith" src="https://cdn.zenith.hosting/buttons/deploy-with-zenith.svg" height="40">](https://zenith.hosting/host/plane) |
+| Managed hosting      | [<img alt="Deploy with Zenith" src="https://cdn.zenith.hosting/buttons/deploy-with-zenith.svg" height="40">](https://zenith.hosting/host/plane)                                         |
 
 `Instance admins` can configure instance settings with [God mode](https://developers.plane.so/self-hosting/govern/instance-admin).
+
+## 🤖 Connect AI tools (Summon MCP)
+
+Summon runs an MCP server at **`https://core.withsummon.com/ai/mcp`**. Claude, ChatGPT, Codex and other MCP clients use it to read and update your Summon and Plane work: clients, opportunities, meetings, reports, projects, work items and cycles.
+
+You sign in through your browser and pick a workspace. You don't need an API key. The tool then acts as you, with your permissions, in that workspace.
+
+**Claude Code**
+
+```bash
+claude mcp add --transport http -s user summon https://core.withsummon.com/ai/mcp
+claude mcp login summon
+```
+
+**Codex CLI**
+
+```bash
+codex mcp add summon --url https://core.withsummon.com/ai/mcp
+codex mcp login summon   # only if `add` didn't already sign you in
+```
+
+**Claude (claude.ai, Claude Desktop)**
+
+1. Open Settings → Connectors → **Add custom connector**.
+2. Name: `Summon`. URL: `https://core.withsummon.com/ai/mcp`. Leave the advanced client ID and secret empty.
+3. Click **Add**, then **Connect**. Sign in, choose a workspace and click **Allow access**.
+
+On Team and Enterprise plans, an owner may need to add the connector first under Organization settings → Connectors.
+
+**ChatGPT**
+
+1. Open [Plugins → Personal](https://chatgpt.com/plugins?directoryTab=personal) → **Add custom MCP server**.
+2. Name: `Summon`. Connection: **Server URL**, `https://core.withsummon.com/ai/mcp`. Authentication: **OAuth**. Leave Advanced OAuth settings as discovered.
+3. Tick **I understand and want to continue**, then **Create as a plugin** → **Connect**. Sign in, choose a workspace and click **Allow access**.
+
+**Good to know**
+
+- **One workspace per connection.** To use another workspace, add the server again under a second name.
+- **Each tool gets its own token**, listed under Profile settings → API tokens as `MCP · <tool>`. Delete that token to disconnect the tool. Tokens refresh on their own, so you shouldn't need to sign in again.
+- **Smaller tool sets.** `…/ai/mcp/readonly` offers only read tools. `…/ai/mcp/x/<toolset>` offers one group, such as `commercial` or `plane`, and can end in `/readonly` too.
+- **API keys still work.** For scripts, send a Plane API key in `X-Api-Key` and the workspace slug in `X-Workspace-Slug`.
 
 ## 🌟 Features
 
