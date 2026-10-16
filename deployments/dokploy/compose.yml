@@ -100,7 +100,7 @@ services:
         export LIVE_SERVER_SECRET_KEY="$$(cat /run/secrets/live_server_secret_key)"
         exec docker-entrypoint.sh node apps/live
     environment:
-      API_BASE_URL: http://summon-core-api:8000
+      API_BASE_URL: http://summon-core-api-next:8000
       REDIS_URL: redis://plane-redis:6379/
     secrets:
       - live_server_secret_key
@@ -114,7 +114,7 @@ services:
 
   # The api itself is not here: it runs as the Dokploy Application "api (swarm)", a Swarm service that deploys
   # start-first (the new task serves before the old one stops; compose can only stop first). It joins
-  # summon-core-internal and dokploy-network as summon-core-api. Settings: docs/deploy/api-start-first-plan.md.
+  # summon-core-internal and dokploy-network as summon-core-api-next (the plain summon-core-api alias does not resolve from compose containers). Settings: docs/deploy/api-start-first-plan.md.
 
   worker:
     <<: *api-service
@@ -220,7 +220,7 @@ services:
     image: makeplane/plane-mcp-server:v0.3.1
     restart: unless-stopped
     environment:
-      PLANE_INTERNAL_BASE_URL: http://summon-core-api:8000
+      PLANE_INTERNAL_BASE_URL: http://summon-core-api-next:8000
       PLANE_OAUTH_PROVIDER_CLIENT_ID: summon-core-mcp
       PLANE_OAUTH_PROVIDER_CLIENT_SECRET: ${PLANE_OAUTH_PROVIDER_CLIENT_SECRET:-pat-route-only}
       PLANE_OAUTH_PROVIDER_BASE_URL: ${WEB_URL:-https://core.withsummon.com}
@@ -254,7 +254,7 @@ services:
         export APP_VERSION="$$(cat VERSION)"
         exec bun dist/main.js
     environment:
-      DJANGO_URL: http://summon-core-api:8000
+      DJANGO_URL: http://summon-core-api-next:8000
       WEB_URL: ${WEB_URL:-https://core.withsummon.com}
       PLANE_MCP_URL: http://mcp:8211/mcp/http/api-key/mcp
     secrets:
@@ -324,7 +324,7 @@ services:
       BUCKET_NAME: ${AWS_S3_BUCKET_NAME:-uploads}
       TRUSTED_PROXIES: 0.0.0.0/0
       WEB_HOST: summon-core-web
-      API_HOST: summon-core-api
+      API_HOST: summon-core-api-next
       ADMIN_HOST: summon-core-admin
       SPACE_HOST: summon-core-space
       LIVE_HOST: summon-core-live
