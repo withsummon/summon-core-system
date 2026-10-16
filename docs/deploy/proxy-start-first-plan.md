@@ -72,6 +72,12 @@ The compose `cloudflared` was the last recreate-shaped gap: one connector, so an
 
 Cutover: the Swarm connectors joined the same tunnel next to the compose one, so the tunnel briefly had three; a probe across that returned 778 of 778 requests with 200. Removing the compose service then left the two Swarm connectors.
 
+**Result (2026-10-16, 05:27–05:34 UTC):** 1820 requests, all 200: 826 through Cloudflare and the tunnel (one every 0.5 s), 826 origin `/`, and 168 origin `/api/instances/`. The probe covered the compose connector's removal (#29, 61 edge requests, all 200) and a start-first update that replaced both Swarm connectors at 05:30:02–05:30:37 (90 edge requests, all 200).
+
+## What still costs latency
+
+`web` (and admin, space, live, mcp, ai) are still compose services, which restart stop-first when their image changes. Caddy holds the requests and retries for up to 60 s (`retry_upstream`), so they don't fail, but they wait. During the #28 deploy, `web` was down for ~11 s (05:33:48–05:33:59), and `/` requests in that window took up to 11.7 s while `/api/` stayed at 0.15 s. Making those services start-first too (as Swarm Applications, like the api) would remove the wait.
+
 ## Origin probe
 
 `/` every 0.5 s and `/api/instances/` every 2.5 s (the api throttles anonymous calls at 30/minute per IP, so run one probe at a time):
