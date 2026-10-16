@@ -72,9 +72,14 @@ Swarm only adds a task to the service's virtual IP once its health check passes.
 - **Migrations must be backward-compatible (expand, then contract).** The old api keeps serving while the migrator applies the new schema. The new api's `wait_for_migrations` holds it unhealthy until migrations finish, so it never serves early. The old code must tolerate the new schema for that window, which was already true in practice.
 - **Two deploy triggers fire per push** (the compose app and the Application). Each is safe on its own: the migrator lives in compose, and the api waits for migrations.
 
+## Checked on Dokploy (2026-10-16, read-only)
+
+- "Isolated Deployment" is off for summon-core (`summon-core-plane-vlhqli`).
+- Dokploy attaches `dokploy-network` only to the proxy, the service with the domain. Every other container is only on the compose default network, `summon-core-plane-vlhqli_default`. This PR doesn't touch the proxy's networks or the default network, so nothing it changes overlaps with what Dokploy injects.
+- An Application joins `dokploy-network` by default, so the proxy can reach it there with no change to the proxy.
+
 ## To verify before starting
 
-- Whether "Isolated Deployment" is on for summon-core, and how Dokploy attaches `dokploy-network`. It must leave the explicit `networks:` lists intact.
 - That this Dokploy version exposes the same Swarm Settings as Siera's instance (v0.29.8), and that a single-replica Application builds without a registry.
 - The api's memory under load, to size the overlap of two tasks.
 
