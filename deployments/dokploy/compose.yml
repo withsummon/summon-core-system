@@ -100,13 +100,14 @@ services:
         export LIVE_SERVER_SECRET_KEY="$$(cat /run/secrets/live_server_secret_key)"
         exec docker-entrypoint.sh node apps/live
     environment:
-      API_BASE_URL: http://api:8000
+      API_BASE_URL: http://${API_INTERNAL_HOST:-summon-core-api}:8000
       REDIS_URL: redis://plane-redis:6379/
     secrets:
       - live_server_secret_key
     networks:
       default:
         aliases: [summon-core-live]
+      summon-core-internal: {}
     depends_on:
       api:
         condition: service_started
@@ -171,6 +172,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    networks:
+      default: {}
+      summon-core-internal: {}
 
   plane-redis:
     image: valkey/valkey:7.2.11-alpine
@@ -182,6 +186,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    networks:
+      default: {}
+      summon-core-internal: {}
 
   plane-mq:
     image: rabbitmq:3.13.6-management-alpine
@@ -204,6 +211,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    networks:
+      default: {}
+      summon-core-internal: {}
 
   plane-minio:
     image: docker.io/pgsty/silo:RELEASE.2026-09-16T00-00-00Z
@@ -224,12 +234,13 @@ services:
     networks:
       default:
         aliases: [summon-core-minio]
+      summon-core-internal: {}
 
   mcp:
     image: makeplane/plane-mcp-server:v0.3.1
     restart: unless-stopped
     environment:
-      PLANE_INTERNAL_BASE_URL: http://api:8000
+      PLANE_INTERNAL_BASE_URL: http://${API_INTERNAL_HOST:-summon-core-api}:8000
       PLANE_OAUTH_PROVIDER_CLIENT_ID: summon-core-mcp
       PLANE_OAUTH_PROVIDER_CLIENT_SECRET: ${PLANE_OAUTH_PROVIDER_CLIENT_SECRET:-pat-route-only}
       PLANE_OAUTH_PROVIDER_BASE_URL: ${WEB_URL:-https://core.withsummon.com}
@@ -246,6 +257,7 @@ services:
     networks:
       default:
         aliases: [summon-core-mcp]
+      summon-core-internal: {}
 
   ai:
     build:
@@ -264,7 +276,7 @@ services:
         export APP_VERSION="$$(cat VERSION)"
         exec bun dist/main.js
     environment:
-      DJANGO_URL: http://api:8000
+      DJANGO_URL: http://${API_INTERNAL_HOST:-summon-core-api}:8000
       WEB_URL: ${WEB_URL:-https://core.withsummon.com}
       PLANE_MCP_URL: http://mcp:8211/mcp/http/api-key/mcp
     secrets:
@@ -282,6 +294,7 @@ services:
     networks:
       default:
         aliases: [summon-core-ai]
+      summon-core-internal: {}
 
   codex-bridge:
     build:
@@ -298,6 +311,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    networks:
+      default: {}
+      summon-core-internal: {}
 
   transcription:
     build:
@@ -314,6 +330,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    networks:
+      default: {}
+      summon-core-internal: {}
 
   proxy:
     image: makeplane/plane-proxy:${PLANE_RELEASE:-stable}
@@ -329,7 +348,7 @@ services:
       BUCKET_NAME: ${AWS_S3_BUCKET_NAME:-uploads}
       TRUSTED_PROXIES: 0.0.0.0/0
       WEB_HOST: summon-core-web
-      API_HOST: summon-core-api
+      API_HOST: ${API_INTERNAL_HOST:-summon-core-api}
       ADMIN_HOST: summon-core-admin
       SPACE_HOST: summon-core-space
       LIVE_HOST: summon-core-live
@@ -353,6 +372,16 @@ services:
         condition: service_started
       ai:
         condition: service_started
+
+networks:
+  # A private network that a Swarm service can also join (it is an attachable overlay; the Dokploy host is a Swarm
+  # manager), so the api can move to a start-first Swarm service and still reach these services by name. Only the
+  # api's dependencies and its callers join it. The shared dokploy-network would expose names like plane-db to every
+  # other project on the host.
+  summon-core-internal:
+    name: summon-core-internal
+    driver: overlay
+    attachable: true
 
 volumes:
   pgdata:
