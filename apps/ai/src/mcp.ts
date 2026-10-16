@@ -1,8 +1,11 @@
 /**
  * The Summon MCP server at `/ai/mcp` (Streamable HTTP), for MCP clients such as Claude or Cursor.
  *
- * Auth: a Plane API key (`X-Api-Key` or `Authorization: Bearer`) plus `X-Workspace-Slug`, the same
- * headers the Plane MCP server takes. Django checks the key belongs to that workspace.
+ * Auth: OAuth, or a Plane API key (`X-Api-Key` or `Authorization: Bearer`) plus `X-Workspace-Slug`, the same
+ * headers the Plane MCP server takes. Django checks the key belongs to that workspace. A client that sends no
+ * credentials gets a 401 pointing at this resource's OAuth metadata (RFC 9728), from which it finds Django's
+ * authorization server, registers itself and signs the person in through the browser. The access token it gets
+ * is a Plane API key for the workspace they picked, so it needs no `X-Workspace-Slug`.
  *
  * Tools:
  * - every Summon operation Django marks `x-summon-tool: read|write`, generated from the schema;
@@ -16,7 +19,7 @@ import { operations, type SummonOperation } from "@plane/summon-contract";
 import { Context, Effect, Layer, Option, Schema } from "effect";
 import { McpProtocol, McpSchema, McpServer } from "effect/ai";
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
-import { Auth, type ApiKeyCaller } from "./auth";
+import { Auth, type ApiKeyCaller, type Unauthenticated } from "./auth";
 import { AppConfig } from "./config";
 import { Django } from "./django";
 import { isReadAction, PlaneMcp, planeActions, planeTools, withoutActions } from "./plane-mcp";
@@ -49,7 +52,7 @@ export const SURFACES: ReadonlyArray<Surface> = [undefined, ...TOOLSETS].flatMap
 const INSTRUCTIONS =
   "Summon is a project delivery workspace on Plane. Summon tools (clients, opportunities, meetings, " +
   "automation, reports) and Plane tools (prefixed plane_: projects, work items, cycles, …) act as the " +
-  "API key's user in the X-Workspace-Slug workspace. Tools marked read-only never change data. List tools " +
+  "signed-in user in their chosen workspace. Tools marked read-only never change data. List tools " +
   "return one page: pass `offset: next_offset` for the next.";
 
 const jsonResult = (value: unknown, isError: boolean) =>
@@ -184,12 +187,48 @@ const PlaneTools = (surface: Surface) =>
     })
   );
 
-const MISSING_KEY = "Send a Plane API key (X-Api-Key) and the workspace slug (X-Workspace-Slug).";
+const METADATA_PREFIX = "/.well-known/oauth-protected-resource";
+
+/**
+ * Protected resource metadata (RFC 9728) for each MCP endpoint, at the path its 401 names. Clients learn
+ * from it that Django (the site itself) is the authorization server.
+ */
+const ResourceMetadataRoutes = Layer.unwrap(
+  Effect.gen(function* () {
+    const config = yield* AppConfig;
+    // No public origin, no OAuth discovery: clients use API keys.
+    if (Option.isNone(config.webOrigin)) return Layer.empty;
+    const origin = config.webOrigin.value;
+    const [first, ...rest] = SURFACES.map((surface) =>
+      HttpRouter.add(
+        "GET",
+        `${METADATA_PREFIX}${surface.path}`,
+        HttpServerResponse.jsonUnsafe({
+          resource: `${origin}${surface.path}`,
+          resource_name: "Summon",
+          authorization_servers: [origin],
+          scopes_supported: ["mcp"],
+          bearer_methods_supported: ["header"],
+        })
+      )
+    );
+    return Layer.mergeAll(first!, ...rest);
+  })
+);
 
 /** Refuses MCP requests without an accepted API key before they reach the MCP session machinery. */
 const RequireApiKey = HttpRouter.middleware<{ provides: McpCaller }>()(
   Effect.gen(function* () {
     const auth = yield* Auth;
+    const config = yield* AppConfig;
+    /** RFC 6750 §3: a bare challenge when nothing was sent, `invalid_token` when the token was refused. */
+    const challenge = (path: string, error: Unauthenticated) =>
+      Option.map(config.webOrigin, (origin) =>
+        [
+          `Bearer resource_metadata="${origin}${METADATA_PREFIX}${path}"`,
+          ...(error.reason === "rejected" ? ['error="invalid_token"'] : []),
+        ].join(", ")
+      );
     return (httpEffect) =>
       Effect.gen(function* () {
         const caller = yield* auth.apiKey(yield* HttpServerRequest.HttpServerRequest);
@@ -197,18 +236,19 @@ const RequireApiKey = HttpRouter.middleware<{ provides: McpCaller }>()(
       }).pipe(
         Effect.catchTags({
           Unauthenticated: (error) =>
-            Effect.succeed(
+            Effect.map(HttpServerRequest.HttpServerRequest, (request) =>
               HttpServerResponse.jsonUnsafe(
                 {
                   error_code: error.reason === "missing_credentials" ? "api_key_required" : "api_key_rejected",
-                  message: MISSING_KEY,
+                  message:
+                    "Sign in with OAuth, or send a Plane API key (X-Api-Key) and the workspace slug (X-Workspace-Slug).",
                 },
                 {
                   status: 401,
-                  // Says how to authenticate, so a client doesn't look for an OAuth server Summon doesn't run.
-                  headers: {
-                    "www-authenticate": `Bearer realm="summon", error="invalid_token", error_description="${MISSING_KEY}"`,
-                  },
+                  headers: Option.match(challenge(new URL(request.url, "http://x").pathname, error), {
+                    onNone: () => ({}),
+                    onSome: (value) => ({ "www-authenticate": value }),
+                  }),
                 }
               )
             ),
@@ -244,6 +284,6 @@ export const McpRoutes = Layer.unwrap(
         )
       )
     );
-    return Layer.mergeAll(first!, ...rest).pipe(Layer.provide(RequireApiKey));
+    return Layer.mergeAll(first!, ...rest).pipe(Layer.provide(RequireApiKey), Layer.merge(ResourceMetadataRoutes));
   })
 );

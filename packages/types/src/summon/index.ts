@@ -560,3 +560,10 @@ export interface ISummonCredentialAudit {
   user_agent: string;
   created_at: string;
 }
+
+/** An MCP client's OAuth sign-in waiting on the consent screen. */
+export interface ISummonOAuthRequest {
+  client_name: string;
+  redirect_uri: string;
+  workspaces: { slug: string; name: string }[];
+}

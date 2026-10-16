@@ -4,7 +4,7 @@
  */
 import { SummonClient, type SummonOperation } from "@plane/summon-contract";
 import { Context, Effect, flow, Layer, Redacted, Schema } from "effect";
-import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/http";
+import { HttpClient, type HttpClientError, HttpClientRequest, HttpClientResponse } from "effect/http";
 import { AppConfig } from "./config";
 
 /** Who a Django call is made for. Django applies its own permission classes to it. */
@@ -53,7 +53,16 @@ export interface DjangoShape {
   ) => Effect.Effect<OperationResult, DjangoUnavailable>;
   /** Resolves a session cookie to its user; `undefined` when Django doesn't accept the cookie. */
   readonly currentUser: (cookie: string) => Effect.Effect<CurrentUser | undefined, DjangoUnavailable>;
+  /**
+   * The workspace an API key belongs to (OAuth access tokens always have one). `undefined` when Django
+   * refuses the key or it has no workspace; Django's answer otherwise, including a 429.
+   */
+  readonly apiKeyWorkspace: (
+    apiKey: string
+  ) => Effect.Effect<string | undefined, DjangoUnavailable | HttpClientError.HttpClientError>;
 }
+
+const ApiKeyWorkspace = Schema.Struct({ workspace_slug: Schema.String });
 
 const AI_TOKEN_HEADER = "x-summon-ai-token";
 
@@ -146,11 +155,28 @@ export class Django extends Context.Service<Django, DjangoShape>()("@plane/ai/Dj
             Effect.withSpan("Django.currentUser")
           );
 
+      const apiKeyWorkspace: DjangoShape["apiKeyWorkspace"] = (apiKey) =>
+        withHeaders({ "x-api-key": apiKey })
+          .get("/api/summon/api-key/workspace/")
+          .pipe(
+            Effect.mapError((cause) => new DjangoUnavailable({ cause })),
+            Effect.flatMap((response) => {
+              if ([401, 403, 404].includes(response.status)) return Effect.succeed(undefined);
+              return HttpClientResponse.filterStatusOk(response).pipe(
+                Effect.flatMap(HttpClientResponse.schemaBodyJson(ApiKeyWorkspace)),
+                Effect.map((body) => body.workspace_slug),
+                Effect.catchTag("SchemaError", (cause) => Effect.fail(new DjangoUnavailable({ cause })))
+              );
+            }),
+            Effect.withSpan("Django.apiKeyWorkspace")
+          );
+
       return Django.of({
         client,
         internal: SummonClient.make(withHeaders({ [AI_TOKEN_HEADER]: Redacted.value(config.internalToken) })),
         call,
         currentUser,
+        apiKeyWorkspace,
       });
     })
   );

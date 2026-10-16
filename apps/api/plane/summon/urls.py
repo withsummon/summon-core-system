@@ -14,6 +14,13 @@ from plane.summon.views.drive import (
     GoogleDriveConnectView,
 )
 from plane.summon.views.internal import AIConfigView
+from plane.summon.views.oauth import (
+    APIKeyWorkspaceView,
+    OAuthAuthorizeView,
+    OAuthRegisterView,
+    OAuthRequestView,
+    OAuthTokenView,
+)
 from plane.summon.views import (
     AccessMeView,
     ProjectInviteDetailView,
@@ -155,6 +162,11 @@ urlpatterns = [
         name="summon-assistant-plane-tool-call",
     ),
     path("internal/ai-config/", AIConfigView.as_view(), name="summon-internal-ai-config"),
+    path("oauth/register/", OAuthRegisterView.as_view(), name="summon-oauth-register"),
+    path("oauth/token/", OAuthTokenView.as_view(), name="summon-oauth-token"),
+    path("oauth/authorize/", OAuthAuthorizeView.as_view(), name="summon-oauth-authorize"),
+    path("oauth/requests/<str:request_id>/", OAuthRequestView.as_view(), name="summon-oauth-request"),
+    path("api-key/workspace/", APIKeyWorkspaceView.as_view(), name="summon-api-key-workspace"),
     path("workspaces/<str:slug>/home/summary/", HomeSummaryView.as_view(), name="summon-home-summary"),
     path(
         "workspaces/<str:slug>/settings/ai-status/",
