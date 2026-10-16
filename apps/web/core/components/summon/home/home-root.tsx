@@ -72,8 +72,6 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
     [opportunities, normalizedQuery]
   );
 
-  if (!data) return <SummonRequestState loading={isLoading} error={error} onRetry={() => void mutate()} />;
-
   const firstName = (user?.display_name || user?.first_name || "there").split(" ")[0];
 
   return (
@@ -106,17 +104,24 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
             ))}
         </div>
 
-        <HomeFeed
-          workspaceSlug={workspaceSlug}
-          filter={filter}
-          showDeals={showDeals}
-          activeProjectId={activeProjectId}
-          visiblePriority={visiblePriority}
-          visibleProjects={visibleProjects}
-          visibleOpportunities={visibleOpportunities}
-          selectedProject={selectedProject}
-          onSelectProject={setSelectedProjectId}
-        />
+        {!data && error ? (
+          <div className="mt-6">
+            <SummonRequestState error={error} onRetry={() => void mutate()} />
+          </div>
+        ) : (
+          <HomeFeed
+            workspaceSlug={workspaceSlug}
+            loading={!data && isLoading}
+            filter={filter}
+            showDeals={showDeals}
+            activeProjectId={activeProjectId}
+            visiblePriority={visiblePriority}
+            visibleProjects={visibleProjects}
+            visibleOpportunities={visibleOpportunities}
+            selectedProject={selectedProject}
+            onSelectProject={setSelectedProjectId}
+          />
+        )}
 
         <Link
           href={`/${workspaceSlug}/summon/assistant/`}
@@ -133,7 +138,7 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
       <HomeProjectPreview
         workspaceSlug={workspaceSlug}
         activeProjectId={activeProjectId}
-        projectLoading={projectLoading}
+        projectLoading={projectLoading || (!data && isLoading)}
         selectedProject={selectedProject}
         selectedClient={selectedClient}
         money={money}

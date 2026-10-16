@@ -14,6 +14,7 @@ import { useWorkspaceNotifications } from "@/hooks/store/notifications";
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { getButtonStyling } from "@plane/propel/button";
 import { SummonRequestState } from "@/components/summon/request-state";
+import { SummonSkeletonBlock, SummonSkeletonRows, SummonSkeletonText } from "@/components/summon/skeleton";
 import { SectionTabs } from "@/components/summon/section-tabs";
 import { SummonMetric, SummonMetricStrip, SummonPageHeader, summonPageClassName } from "@/components/summon/screen";
 
@@ -45,6 +46,8 @@ export const NotificationsRoot = observer(function NotificationsRoot({ workspace
   }, [rawRecords, filterTab]);
 
   const unreadCount = rawRecords.filter((r) => !r.read_at).length;
+  // A background refresh keeps the records on screen; only a first load shows placeholders.
+  const loading = (isLoading || !!loader) && rawRecords.length === 0;
 
   return (
     <div className={summonPageClassName}>
@@ -60,8 +63,8 @@ export const NotificationsRoot = observer(function NotificationsRoot({ workspace
       />
 
       <SummonMetricStrip>
-        <SummonMetric label="Updates" value={rawRecords.length} />
-        <SummonMetric label="Unread" value={unreadCount} />
+        <SummonMetric label="Updates" value={rawRecords.length} loading={loading} />
+        <SummonMetric label="Unread" value={unreadCount} loading={loading} />
       </SummonMetricStrip>
 
       <SectionTabs
@@ -75,7 +78,8 @@ export const NotificationsRoot = observer(function NotificationsRoot({ workspace
       />
 
       <SummonRequestState
-        loading={isLoading || !!loader}
+        loading={loading}
+        skeleton={<NotificationCardsSkeleton />}
         error={error}
         empty={!isLoading && !loader && filteredRecords.length === 0}
         emptyAsset="inbox"
@@ -139,3 +143,27 @@ export const NotificationsRoot = observer(function NotificationsRoot({ workspace
     </div>
   );
 });
+
+/** Mirrors the notification cards: icon, title, two-line message, date, inbox link. */
+function NotificationCardsSkeleton() {
+  return (
+    <SummonSkeletonRows
+      count={4}
+      className="space-y-3"
+      label="Loading notifications"
+      row={() => (
+        <div className="flex items-start justify-between gap-4 rounded-xl border border-subtle bg-surface-1 p-4">
+          <div className="flex min-w-0 flex-1 items-start gap-3.5">
+            <SummonSkeletonBlock className="size-9 shrink-0 rounded-xl" />
+            <div className="min-w-0 flex-1">
+              <SummonSkeletonText className="text-xs font-semibold" width="w-40" />
+              <SummonSkeletonText className="mt-1 text-xs" width="w-72" />
+              <SummonSkeletonText className="mt-2 text-12" width="w-20" />
+            </div>
+          </div>
+          <span className="shrink-0 text-12 font-semibold text-tertiary">View in Inbox</span>
+        </div>
+      )}
+    />
+  );
+}

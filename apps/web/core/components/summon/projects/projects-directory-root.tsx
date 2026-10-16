@@ -15,6 +15,7 @@ import { capitalizeFirstLetter, replaceUnderscoreIfSnakeCase } from "@plane/util
 import { summonService } from "@/services/summon.service";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonPageHeader } from "@/components/summon/screen";
+import { SummonSkeletonBlock, SummonSkeletonRows, SummonSkeletonText } from "@/components/summon/skeleton";
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useProject } from "@/hooks/store/use-project";
 import { mergeProjectSummaries } from "./project-workspace";
@@ -27,7 +28,7 @@ export const ProjectsDirectoryRoot = observer(function ProjectsDirectoryRoot({
 }) {
   const { toggleCreateProjectModal } = useCommandPalette();
   const { joinedProjectIds, getProjectById } = useProject();
-  const { data, error, isLoading, mutate } = useSWR(["summon-home", workspaceSlug], () =>
+  const { data, error, mutate } = useSWR(["summon-home", workspaceSlug], () =>
     summonService.getHomeSummary(workspaceSlug)
   );
   const [searchQuery, setSearchQuery] = useState("");
@@ -55,15 +56,17 @@ export const ProjectsDirectoryRoot = observer(function ProjectsDirectoryRoot({
       (healthFilter === "all" || project.health === healthFilter)
   );
 
-  if (!data) return <SummonRequestState loading={isLoading} error={error} onRetry={() => void mutate()} />;
-
   return (
     <div className="min-h-full bg-surface-1">
       <div className="border-b border-subtle px-4 py-3 sm:px-6">
         <SummonPageHeader
           title="Projects"
           description={
-            <span className="tabular-nums">{`${allProjects.length} ${allProjects.length === 1 ? "project" : "projects"}`}</span>
+            data ? (
+              <span className="tabular-nums">{`${allProjects.length} ${allProjects.length === 1 ? "project" : "projects"}`}</span>
+            ) : (
+              <SummonSkeletonText width="w-16" />
+            )
           }
           actions={
             <Button size="lg" prependIcon={<Plus aria-hidden="true" />} onClick={() => toggleCreateProjectModal(true)}>
@@ -88,7 +91,7 @@ export const ProjectsDirectoryRoot = observer(function ProjectsDirectoryRoot({
           className="w-auto min-w-44"
         />
         <span role="status" className="ml-auto text-xs text-secondary tabular-nums">
-          {projects.length} {projects.length === 1 ? "project" : "projects"}
+          {data ? `${projects.length} ${projects.length === 1 ? "project" : "projects"}` : null}
         </span>
       </div>
       <div
@@ -141,7 +144,16 @@ export const ProjectsDirectoryRoot = observer(function ProjectsDirectoryRoot({
           );
         })}
       </ul>
-      {!projects.length && (
+      {!data ? (
+        error ? (
+          <div className="p-4 sm:px-6">
+            <SummonRequestState error={error} onRetry={() => void mutate()} />
+          </div>
+        ) : (
+          <ProjectRowsSkeleton />
+        )
+      ) : null}
+      {data && !projects.length && (
         <SummonRequestState
           empty
           emptyAsset={allProjects.length ? "search" : "project"}
@@ -168,3 +180,30 @@ export const ProjectsDirectoryRoot = observer(function ProjectsDirectoryRoot({
     </div>
   );
 });
+
+/** Mirrors a project row: folder tile, name and identifier, health, completion bar. */
+function ProjectRowsSkeleton() {
+  return (
+    <SummonSkeletonRows
+      count={6}
+      className="divide-y divide-subtle"
+      label="Loading projects"
+      row={(index) => (
+        <div className="grid grid-cols-1 gap-3 px-4 py-3 sm:px-6 md:grid-cols-[minmax(0,1fr)_11rem_10rem] md:items-center md:gap-6">
+          <span className="flex min-w-0 items-center gap-3">
+            <SummonSkeletonBlock className="size-8" />
+            <span className="min-w-0 flex-1">
+              <SummonSkeletonText className="text-sm font-medium" width={index % 2 ? "w-40" : "w-56"} />
+              <SummonSkeletonText className="text-xs" width="w-12" />
+            </span>
+          </span>
+          <SummonSkeletonText className="text-xs" width="w-20" />
+          <span className="flex items-center gap-3">
+            <SummonSkeletonBlock className="h-1.5 w-24 rounded-full" />
+            <SummonSkeletonText className="text-xs" width="w-8" />
+          </span>
+        </div>
+      )}
+    />
+  );
+}

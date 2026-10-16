@@ -15,7 +15,16 @@ import {
 import type { ISummonClient, ISummonReportFilters, ISummonReportSummary } from "@plane/types";
 import { PageHead } from "@/components/core/page-title";
 import { SummonRequestState } from "@/components/summon/request-state";
-import { SummonPageHeader, summonPageClassName, ViewPanel } from "@/components/summon/screen";
+import {
+  SummonMetric,
+  SummonMetricStrip,
+  SummonPageHeader,
+  summonPageClassName,
+  summonSurfaceClassName,
+  ViewPanel,
+} from "@/components/summon/screen";
+import { SummonSkeleton, SummonSkeletonBlock } from "@/components/summon/skeleton";
+import { skeletonKeys } from "@/components/summon/skeleton-keys";
 import { SectionTabs } from "@/components/summon/section-tabs";
 import type { TSectionTab } from "@/components/summon/section-tabs";
 import { ReportFilters } from "./report-visuals";
@@ -60,15 +69,6 @@ export function ReportView(props: TReportViewProps) {
     props;
   const [activeTab, setActiveTab] = useHashTab(REPORT_TABS.map((tab) => tab.value));
 
-  if (!data) {
-    return (
-      <div className="min-h-full p-4 lg:p-5">
-        <PageHead title="Management & Reporting · Summon Core" />
-        <SummonRequestState loading={isLoading} error={error} onRetry={onRetry} />
-      </div>
-    );
-  }
-
   const isOverview = activeTab === "overview";
 
   return (
@@ -90,14 +90,52 @@ export function ReportView(props: TReportViewProps) {
 
       <SectionTabs items={REPORT_TABS} value={activeTab} onValueChange={setActiveTab} label="Report sections" />
       <ViewPanel value={activeTab}>
-        {isOverview ? <ReportOverviewMetrics workspaceSlug={workspaceSlug} data={data} /> : null}
+        {!data ? (
+          <SummonRequestState
+            loading={isLoading}
+            skeleton={<ReportSkeleton overview={isOverview} />}
+            error={error}
+            onRetry={onRetry}
+          />
+        ) : (
+          <>
+            {isOverview ? <ReportOverviewMetrics workspaceSlug={workspaceSlug} data={data} /> : null}
 
-        <ReportDeliveryRow activeTab={activeTab} workspaceSlug={workspaceSlug} data={data} />
-        <ReportPortfolioRow activeTab={activeTab} workspaceSlug={workspaceSlug} clients={clients} filters={filters} />
+            <ReportDeliveryRow activeTab={activeTab} workspaceSlug={workspaceSlug} data={data} />
+            <ReportPortfolioRow
+              activeTab={activeTab}
+              workspaceSlug={workspaceSlug}
+              clients={clients}
+              filters={filters}
+            />
 
-        {isOverview ? <RecentReportsPanel exportUrl={exportUrl} /> : null}
+            {isOverview ? <RecentReportsPanel exportUrl={exportUrl} /> : null}
+          </>
+        )}
       </ViewPanel>
     </section>
+  );
+}
+
+/** The overview metric strip and report panels while the summary loads. */
+function ReportSkeleton(props: { overview: boolean }) {
+  return (
+    <SummonSkeleton label="Loading reports" className="flex flex-col gap-3">
+      {props.overview ? (
+        <SummonMetricStrip>
+          <SummonMetric label="Total revenue (YTD)" value="—" detail="No revenue data source" />
+          <SummonMetric label="Active projects" detail="Authorized portfolio" loading />
+          <SummonMetric label="Open opportunities" detail={"\u00a0"} loading />
+          <SummonMetric label="Project health (avg)" detail="Based on delivery completion" loading />
+          <SummonMetric label="Overdue tasks" detail="Open past due date" loading />
+        </SummonMetricStrip>
+      ) : null}
+      <div className={`grid gap-3 ${props.overview ? "xl:grid-cols-[1fr_1fr_1.08fr]" : "grid-cols-1"}`}>
+        {skeletonKeys(props.overview ? 3 : 1).map((key) => (
+          <SummonSkeletonBlock key={key} className={`h-80 ${summonSurfaceClassName}`} />
+        ))}
+      </div>
+    </SummonSkeleton>
   );
 }
 

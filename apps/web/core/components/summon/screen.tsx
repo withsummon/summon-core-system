@@ -11,6 +11,7 @@ import { IconButton } from "@plane/propel/icon-button";
 import type { ChatRefusalCode } from "@plane/summon-contract/chat";
 import type { TInstanceLLMErrorCode } from "@plane/types";
 import { PageHead } from "@/components/core/page-title";
+import { SummonSkeleton, SummonSkeletonText } from "@/components/summon/skeleton";
 
 /** The one card surface: every Summon card, panel and table draws this border, radius and shadow. */
 export const summonSurfaceClassName = "rounded-xl border border-subtle bg-surface-1 shadow-xs";
@@ -130,14 +131,27 @@ export function SummonMetricStrip(props: { children: ReactNode; className?: stri
 }
 
 /** A metric cell for `SummonMetricStrip`. With `href` the whole cell navigates. */
-export function SummonMetric(props: { label: string; value: ReactNode; detail?: string; href?: string }) {
+export function SummonMetric(props: {
+  label: string;
+  value?: ReactNode;
+  detail?: string;
+  href?: string;
+  /** The value is still loading: show a placeholder of the value's size instead of a misleading 0. */
+  loading?: boolean;
+}) {
   const body = (
     <>
       <p className="flex items-center justify-between gap-2 text-12 font-medium text-tertiary">
         <span className="truncate">{props.label}</span>
         {props.href ? <ChevronRight aria-hidden className="size-3.5 flex-none text-placeholder" /> : null}
       </p>
-      <p className="mt-1 text-20 font-semibold tracking-tight text-primary tabular-nums">{props.value}</p>
+      {props.loading ? (
+        <SummonSkeleton>
+          <SummonSkeletonText className="mt-1 text-20 font-semibold tracking-tight tabular-nums" width="w-10" />
+        </SummonSkeleton>
+      ) : (
+        <p className="mt-1 text-20 font-semibold tracking-tight text-primary tabular-nums">{props.value}</p>
+      )}
       {props.detail ? (
         <p className="mt-0.5 truncate text-12 text-tertiary tabular-nums" title={props.detail}>
           {props.detail}

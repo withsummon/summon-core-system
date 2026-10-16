@@ -30,8 +30,8 @@ import type { Route } from "./+types/page";
 import { filterAutomationJobs } from "./automation-form";
 import { orderedTemplates, templateLabel, templateTabIcon } from "./automation-display";
 import { AutomationGeneratorForm } from "./automation-generator-form";
-import { AutomationJobsTable } from "./automation-jobs-table";
-import { AutomationTemplateGrid } from "./automation-template-grid";
+import { AutomationJobsTable, AutomationJobsTableSkeleton } from "./automation-jobs-table";
+import { AutomationTemplateGrid, AutomationTemplateGridSkeleton } from "./automation-template-grid";
 import { useAutomationGenerator } from "./use-automation-generator";
 
 const PAGE_SIZE = 8;
@@ -120,9 +120,10 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
       />
 
       <section className="mt-8">
-        <SummonSectionHeader title="Templates" count={templates.length} className="mb-3" />
+        <SummonSectionHeader title="Templates" count={data ? templates.length : undefined} className="mb-3" />
         <SummonRequestState
           loading={isLoading}
+          skeleton={<AutomationTemplateGridSkeleton />}
           error={error}
           empty={!isLoading && templates.length === 0}
           emptyAsset="automation"
@@ -138,7 +139,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
       </section>
 
       <div className="mt-4">
-        <SummonPanel flush title="Generated documents" count={filteredJobs.length}>
+        <SummonPanel flush title="Generated documents" count={data ? filteredJobs.length : undefined}>
           <SectionTabs
             items={typeTabs}
             value={activeType}
@@ -152,6 +153,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
           <ViewPanel value={activeType}>
             <SummonRequestState
               loading={isLoading}
+              skeleton={<AutomationJobsTableSkeleton />}
               error={error}
               empty={!isLoading && filteredJobs.length === 0}
               emptyAsset="automation"

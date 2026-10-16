@@ -8,9 +8,12 @@ import type { ReactNode } from "react";
 import { Button } from "@plane/propel/button";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
 import type { DetailedAssetType } from "@plane/propel/empty-state";
+import { SummonSkeletonBlock, SummonSkeletonRows } from "@/components/summon/skeleton";
 
 export function SummonRequestState(props: {
   loading?: boolean;
+  /** Shown while `loading`: a skeleton shaped like the content it precedes, so nothing moves when it arrives. */
+  skeleton?: ReactNode;
   error?: unknown;
   empty?: boolean;
   emptyMessage?: string;
@@ -24,6 +27,7 @@ export function SummonRequestState(props: {
 }) {
   const {
     loading,
+    skeleton,
     error,
     empty,
     emptyMessage = "Nothing here yet.",
@@ -37,9 +41,13 @@ export function SummonRequestState(props: {
   } = props;
   if (loading)
     return (
-      <div className="grid place-items-center rounded-xl px-6 py-10 text-13 text-tertiary" role="status">
-        Loading…
-      </div>
+      skeleton ?? (
+        <SummonSkeletonRows
+          count={4}
+          className="flex flex-col gap-2"
+          row={() => <SummonSkeletonBlock className="h-10 w-full rounded-lg" />}
+        />
+      )
     );
   if (validationError)
     return (

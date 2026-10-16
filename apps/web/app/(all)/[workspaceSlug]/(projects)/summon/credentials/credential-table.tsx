@@ -51,7 +51,7 @@ export function CredentialTable(props: {
           ]}
         />
         <span className="text-12 text-secondary tabular-nums">
-          {filtered.length} {filtered.length === 1 ? "credential" : "credentials"}
+          {data ? `${filtered.length} ${filtered.length === 1 ? "credential" : "credentials"}` : "\u00a0"}
         </span>
       </div>
       {!data ? (

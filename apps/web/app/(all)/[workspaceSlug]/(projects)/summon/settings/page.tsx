@@ -13,6 +13,7 @@ import { TextArea } from "@plane/propel/input";
 import { Input } from "@plane/ui";
 import { SummonField } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
+import { SummonSkeleton, SummonSkeletonBlock } from "@/components/summon/skeleton";
 import { SummonPanel, summonErrorMessage } from "@/components/summon/screen";
 import { SummonSettingsFrame } from "@/components/summon/settings/settings-frame";
 import { summonService } from "@/services/summon.service";
@@ -67,7 +68,12 @@ export default function SummonSettingsPage({ params }: Route.ComponentProps) {
       description="Workspace identity and business settings."
     >
       {!data ? (
-        <SummonRequestState loading={isLoading} error={error} onRetry={() => void mutate()} />
+        <SummonRequestState
+          loading={isLoading}
+          skeleton={<CompanyProfileSkeleton />}
+          error={error}
+          onRetry={() => void mutate()}
+        />
       ) : (
         <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_24rem]">
           <SummonPanel title="Company profile">
@@ -186,5 +192,29 @@ export default function SummonSettingsPage({ params }: Route.ComponentProps) {
         </div>
       )}
     </SummonSettingsFrame>
+  );
+}
+
+/** The company profile form's labels and fields, while the workspace settings load. */
+function CompanyProfileSkeleton() {
+  return (
+    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_24rem]">
+      <SummonPanel title="Company profile">
+        <SummonSkeleton label="Loading settings" className="grid gap-4 sm:grid-cols-2">
+          {["Workspace name", "Workspace slug", "Industry", "Organization size", "Timezone", "Currency"].map(
+            (label) => (
+              <SummonField key={label} label={label}>
+                <SummonSkeletonBlock className="h-9 w-full rounded-md" />
+              </SummonField>
+            )
+          )}
+          <div className="sm:col-span-2">
+            <SummonField label="Description">
+              <SummonSkeletonBlock className="h-24 w-full rounded-md" />
+            </SummonField>
+          </div>
+        </SummonSkeleton>
+      </SummonPanel>
+    </div>
   );
 }

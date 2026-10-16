@@ -47,6 +47,7 @@ import {
   summonSurfaceClassName,
 } from "@/components/summon/screen";
 import { SummonSearchField } from "@/components/summon/search-field";
+import { SummonSkeletonBlock, SummonSkeletonRows, SummonSkeletonText } from "@/components/summon/skeleton";
 import { SectionTabs } from "@/components/summon/section-tabs";
 import type { TSectionTab } from "@/components/summon/section-tabs";
 import { useSummonAccess } from "@/components/summon/use-summon-access";
@@ -145,8 +146,14 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
     >
       <div className="flex flex-col gap-6">
         <DriveSyncWarning workspaceSlug={workspaceSlug} onReview={() => setDriveOpen(true)} />
-        <FindOrAsk workspaceSlug={workspaceSlug} query={query} onQueryChange={setQuery} entries={entries} />
-        {searching ? null : <KnowledgeOverview workspaceSlug={workspaceSlug} entries={entries} />}
+        <FindOrAsk
+          workspaceSlug={workspaceSlug}
+          query={query}
+          onQueryChange={setQuery}
+          entries={entries}
+          loading={isLoading}
+        />
+        {searching ? null : <KnowledgeOverview workspaceSlug={workspaceSlug} entries={entries} loading={isLoading} />}
         <KnowledgeLibrary
           workspaceSlug={workspaceSlug}
           entries={entries}
@@ -167,6 +174,7 @@ function FindOrAsk(props: {
   query: string;
   onQueryChange: (query: string) => void;
   entries: TKnowledgeEntry[];
+  loading: boolean;
 }) {
   const searching = Boolean(props.query.trim());
   return (
@@ -187,7 +195,14 @@ function FindOrAsk(props: {
           Ask<span className="max-sm:sr-only"> Summon</span>
         </Link>
       </div>
-      {searching ? null : (
+      {searching ? null : props.loading ? (
+        <SummonSkeletonRows
+          count={3}
+          className="flex flex-wrap gap-2"
+          label="Loading suggested questions"
+          row={(index) => <SummonSkeletonBlock className={cn("h-7 rounded-full", ["w-64", "w-52", "w-56"][index])} />}
+        />
+      ) : (
         <ul className="flex flex-wrap gap-2" aria-label="Suggested questions">
           {starterQuestions(props.entries).map((question) => (
             <li key={question} className="min-w-0">
@@ -207,7 +222,16 @@ function FindOrAsk(props: {
 }
 
 /** Real counts, then the pages touched last — the latter only when the library alone would bury them. */
-function KnowledgeOverview({ workspaceSlug, entries }: { workspaceSlug: string; entries: TKnowledgeEntry[] }) {
+function KnowledgeOverview({
+  workspaceSlug,
+  entries,
+  loading,
+}: {
+  workspaceSlug: string;
+  entries: TKnowledgeEntry[];
+  loading: boolean;
+}) {
+  if (loading) return <KnowledgeOverviewSkeleton />;
   if (!entries.length) return null;
   const stats = knowledgeStats(entries, Date.now());
   return (
@@ -250,6 +274,37 @@ function KnowledgeOverview({ workspaceSlug, entries }: { workspaceSlug: string; 
           </ul>
         </section>
       ) : null}
+    </>
+  );
+}
+
+/** Mirrors the overview a workspace with pages shows: the metric strip and the recent pages. */
+function KnowledgeOverviewSkeleton() {
+  return (
+    <>
+      <SummonMetricStrip>
+        <SummonMetric label="Pages" loading />
+        <SummonMetric label="Projects" loading />
+        <SummonMetric label="Updated this week" loading />
+        <SummonMetric label="Contributors" loading />
+      </SummonMetricStrip>
+      <section>
+        <SummonSectionHeader title="Jump back in" className="mb-3" />
+        <SummonSkeletonRows
+          count={RECENT_COUNT}
+          className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
+          label="Loading recent pages"
+          row={() => (
+            <div className={cn(summonSurfaceClassName, "flex flex-col gap-3 p-3.5")}>
+              <SummonSkeletonBlock className="size-8 rounded-lg" />
+              <div>
+                <SummonSkeletonText className="text-13 font-medium" width="w-36" />
+                <SummonSkeletonText className="mt-1 text-12" width="w-28" />
+              </div>
+            </div>
+          )}
+        />
+      </section>
     </>
   );
 }
@@ -324,6 +379,20 @@ function KnowledgeLibrary(props: {
         <div className="px-3.5">
           <SummonRequestState
             loading={props.loading}
+            skeleton={
+              <SummonSkeletonRows
+                count={PAGE_SIZE}
+                className="divide-y divide-subtle"
+                label="Loading pages"
+                row={(index) => (
+                  <div className="flex items-center gap-2 py-2.5 text-13">
+                    <SummonSkeletonBlock className="size-4 flex-none rounded-sm" />
+                    <SummonSkeletonText className="flex-1 font-medium" width={index % 3 ? "w-48" : "w-64"} />
+                    <SummonSkeletonText className="w-28" width="w-20" />
+                  </div>
+                )}
+              />
+            }
             error={props.error}
             empty={!props.loading && !filtered.length}
             emptyAsset="knowledge"

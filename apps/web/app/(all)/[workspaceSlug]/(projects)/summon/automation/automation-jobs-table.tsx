@@ -4,11 +4,14 @@
  * See the LICENSE file for details.
  */
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { Check, CircleAlert, Eye, MoreHorizontal } from "lucide-react";
 import type { ISummonAutomationJob } from "@plane/types";
 import { automationInputValue, automationJobPath } from "./automation-form";
 import { formatSummonDate } from "@/components/summon/date";
+import { SummonSkeletonBlock, SummonSkeletonText } from "@/components/summon/skeleton";
+import { skeletonKeys } from "@/components/summon/skeleton-keys";
 import { jobStatus, templateLabel, templateVisual } from "./automation-display";
 
 /** Column labels: the desktop header and the phone row label read from the same entry. */
@@ -98,6 +101,63 @@ export function AutomationJobsTable(props: {
   projectNames: Map<string, string>;
 }) {
   return (
+    <JobsTableFrame>
+      {props.jobs.map((job) => (
+        <AutomationJobRow
+          key={job.id}
+          job={job}
+          workspaceSlug={props.workspaceSlug}
+          projectName={job.project ? (props.projectNames.get(job.project) ?? job.project) : "No project"}
+        />
+      ))}
+    </JobsTableFrame>
+  );
+}
+
+/** The jobs table with placeholder rows, while jobs load. */
+export function AutomationJobsTableSkeleton() {
+  return (
+    <JobsTableFrame>
+      {skeletonKeys(5).map((key) => (
+        <tr key={key}>
+          <td className="px-4 py-3">
+            <div className="flex items-center gap-2.5">
+              <SummonSkeletonBlock className="size-8 shrink-0 rounded-lg" />
+              <div className="min-w-0">
+                <SummonSkeletonText className="text-xs font-medium" width="w-40" />
+                <SummonSkeletonText className="mt-0.5 text-12" width="w-52" />
+              </div>
+            </div>
+          </td>
+          <td className="px-3 py-3">
+            <SummonSkeletonText className="py-1 text-12" width="w-16" />
+          </td>
+          <td className="px-3 py-3">
+            <SummonSkeletonText className="text-12" width="w-20" />
+          </td>
+          <td className="px-3 py-3">
+            <SummonSkeletonText className="text-12" width="w-14" />
+          </td>
+          <td className="px-3 py-3">
+            <SummonSkeletonText className="text-12" width="w-20" />
+          </td>
+          <td className="px-3 py-3">
+            <SummonSkeletonText className="py-1 text-12" width="w-16" />
+          </td>
+          <td className="px-4 py-3">
+            <div className="flex justify-end gap-1.5">
+              <SummonSkeletonBlock className="size-8 rounded-lg" />
+              <SummonSkeletonBlock className="size-8 rounded-lg" />
+            </div>
+          </td>
+        </tr>
+      ))}
+    </JobsTableFrame>
+  );
+}
+
+function JobsTableFrame(props: { children: ReactNode }) {
+  return (
     <div className="overflow-x-auto">
       <table className="table-stack w-full text-left md:min-w-[820px]">
         <thead className="border-b border-subtle bg-layer-1/40 text-12 font-semibold text-tertiary">
@@ -111,16 +171,7 @@ export function AutomationJobsTable(props: {
             <th className="px-4 py-3 text-right">{JOB_COLUMNS.actions}</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-subtle">
-          {props.jobs.map((job) => (
-            <AutomationJobRow
-              key={job.id}
-              job={job}
-              workspaceSlug={props.workspaceSlug}
-              projectName={job.project ? (props.projectNames.get(job.project) ?? job.project) : "No project"}
-            />
-          ))}
-        </tbody>
+        <tbody className="divide-y divide-subtle">{props.children}</tbody>
       </table>
     </div>
   );
