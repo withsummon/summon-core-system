@@ -67,27 +67,33 @@ services:
       dockerfile: apps/web/Dockerfile.web
     restart: unless-stopped
     # Static files only: nothing here needs the api to boot, so a deploy restarts it in seconds instead of
-    # holding it behind the api's restart.
+    # holding it behind the api's restart. On summon-core-internal so the Swarm proxy reaches it.
     networks:
       default:
+        aliases: [summon-core-web]
+      summon-core-internal:
         aliases: [summon-core-web]
 
   admin:
     image: makeplane/plane-admin:${PLANE_RELEASE:-stable}
     restart: unless-stopped
     # Static files only: nothing here needs the api to boot, so a deploy restarts it in seconds instead of
-    # holding it behind the api's restart.
+    # holding it behind the api's restart. On summon-core-internal so the Swarm proxy reaches it.
     networks:
       default:
+        aliases: [summon-core-admin]
+      summon-core-internal:
         aliases: [summon-core-admin]
 
   space:
     image: makeplane/plane-space:${PLANE_RELEASE:-stable}
     restart: unless-stopped
     # Static files only: nothing here needs the api to boot, so a deploy restarts it in seconds instead of
-    # holding it behind the api's restart.
+    # holding it behind the api's restart. On summon-core-internal so the Swarm proxy reaches it.
     networks:
       default:
+        aliases: [summon-core-space]
+      summon-core-internal:
         aliases: [summon-core-space]
 
   live:
@@ -107,14 +113,17 @@ services:
     networks:
       default:
         aliases: [summon-core-live]
-      summon-core-internal: {}
+      summon-core-internal:
+        aliases: [summon-core-live]
     depends_on:
       plane-redis:
         condition: service_healthy
 
   # The api itself is not here: it runs as the Dokploy Application "api (swarm)", a Swarm service that deploys
-  # start-first (the new task serves before the old one stops; compose can only stop first). It joins
-  # summon-core-internal and dokploy-network as summon-core-api-next (the plain summon-core-api alias does not resolve from compose containers). Settings: docs/deploy/api-start-first-plan.md.
+  # start-first (the new task serves before the old one stops; compose can only stop first). Callers reach it as
+  # summon-core-api-next on summon-core-internal and dokploy-network. Its summon-core-api alias was added by a
+  # start-first update, and Swarm registers an alias's DNS name only when the service is created or after a
+  # stop-first update, so that name never resolves. Settings: docs/deploy/api-start-first-plan.md.
 
   worker:
     <<: *api-service
@@ -214,7 +223,8 @@ services:
     networks:
       default:
         aliases: [summon-core-minio]
-      summon-core-internal: {}
+      summon-core-internal:
+        aliases: [summon-core-minio]
 
   mcp:
     image: makeplane/plane-mcp-server:v0.3.1
@@ -235,7 +245,8 @@ services:
     networks:
       default:
         aliases: [summon-core-mcp]
-      summon-core-internal: {}
+      summon-core-internal:
+        aliases: [summon-core-mcp]
 
   ai:
     build:
@@ -270,7 +281,8 @@ services:
     networks:
       default:
         aliases: [summon-core-ai]
-      summon-core-internal: {}
+      summon-core-internal:
+        aliases: [summon-core-ai]
 
   codex-bridge:
     build:
@@ -350,8 +362,9 @@ services:
   # Carries Cloudflare's traffic for core.withsummon.com to the proxy over connections this host opens. Cloudflare
   # dialing in to the host's public IP stalls: the provider's network drops many SYN-ACKs back to Cloudflare, so
   # requests waited 15-50 s or failed with 522 while the host itself answered in milliseconds. The tunnel's routes
-  # live in Cloudflare (remotely managed) and point at http://proxy:80; this service is only on the project's
-  # default network, where `proxy` can only mean this project's Caddy.
+  # live in Cloudflare (remotely managed) and point at http://proxy:80. `proxy` is this project's Caddy on the
+  # default network today, and the Swarm proxy's alias on summon-core-internal once it replaces the compose one
+  # (docs/deploy/proxy-start-first-plan.md). Neither network has another project's services.
   # cloudflared runs as uid 65532 and Compose bind-mounts secret files as they are on the host, so the token file
   # must be owned by 65532 (mode 600): `chown 65532:65532 /etc/dokploy-secrets/summon-core-plane/cloudflare_tunnel_token`.
   cloudflared:
@@ -360,15 +373,18 @@ services:
     command: ["tunnel", "--no-autoupdate", "--metrics", "0.0.0.0:2000", "run", "--token-file", "/run/secrets/cloudflare_tunnel_token"]
     secrets:
       - cloudflare_tunnel_token
+    networks:
+      default: {}
+      summon-core-internal: {}
     depends_on:
       proxy:
         condition: service_started
 
 networks:
   # A private network that a Swarm service can also join (it is an attachable overlay; the Dokploy host is a Swarm
-  # manager), so the api can move to a start-first Swarm service and still reach these services by name. Only the
-  # api's dependencies and its callers join it. The shared dokploy-network would expose names like plane-db to every
-  # other project on the host.
+  # manager), so the api and the proxy can run as start-first Swarm services and still reach these services by name.
+  # Only the api's dependencies and callers, the proxy's upstreams and cloudflared join it. The shared dokploy-network
+  # would expose names like plane-db to every other project on the host.
   summon-core-internal:
     name: summon-core-internal
     driver: overlay
