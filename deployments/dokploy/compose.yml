@@ -242,18 +242,8 @@ services:
     build:
       context: ../..
       dockerfile: apps/ai/Dockerfile
-      # The build stamps the deployed commit from the clone's .git (outside the main context's .dockerignore).
-      additional_contexts:
-        git: ../../.git
     image: withsummon-summon-core-system-ai:latest
     restart: unless-stopped
-    entrypoint:
-      - /bin/sh
-      - -ec
-      - |
-        export SUMMON_AI_INTERNAL_TOKEN="$$(cat /run/secrets/summon_ai_internal_token)"
-        export APP_VERSION="$$(cat VERSION)"
-        exec bun dist/main.js
     environment:
       DJANGO_URL: http://summon-core-api-next:8000
       WEB_URL: ${WEB_URL:-https://core.withsummon.com}
