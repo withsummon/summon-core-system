@@ -184,6 +184,8 @@ const PlaneTools = (surface: Surface) =>
     })
   );
 
+const MISSING_KEY = "Send a Plane API key (X-Api-Key) and the workspace slug (X-Workspace-Slug).";
+
 /** Refuses MCP requests without an accepted API key before they reach the MCP session machinery. */
 const RequireApiKey = HttpRouter.middleware<{ provides: McpCaller }>()(
   Effect.gen(function* () {
@@ -199,9 +201,15 @@ const RequireApiKey = HttpRouter.middleware<{ provides: McpCaller }>()(
               HttpServerResponse.jsonUnsafe(
                 {
                   error_code: error.reason === "missing_credentials" ? "api_key_required" : "api_key_rejected",
-                  message: "Send a Plane API key (X-Api-Key) and the workspace slug (X-Workspace-Slug).",
+                  message: MISSING_KEY,
                 },
-                { status: 401 }
+                {
+                  status: 401,
+                  // Says how to authenticate, so a client doesn't look for an OAuth server Summon doesn't run.
+                  headers: {
+                    "www-authenticate": `Bearer realm="summon", error="invalid_token", error_description="${MISSING_KEY}"`,
+                  },
+                }
               )
             ),
           RateLimited: () =>

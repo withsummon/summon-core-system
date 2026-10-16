@@ -38,6 +38,15 @@
 	# Only the AI service calls these, over the internal network.
 	respond /api/summon/internal/* 404
 
+	# An MCP client refused by /ai/mcp finds no OAuth metadata under /.well-known/ (web answers 404) and falls back
+	# to registering at the default /register. Summon has no OAuth server: say how to authenticate instead.
+	@oauth_register {
+		method POST
+		path /register
+	}
+	header @oauth_register Content-Type application/json
+	respond @oauth_register `{"error":"invalid_client_metadata","error_description":"Summon MCP has no OAuth. Send a Plane API key (X-Api-Key) and the workspace slug (X-Workspace-Slug)."}` 404
+
 	reverse_proxy /api/* {$API_HOST:api}:8000 {
 		import retry_upstream
 	}
