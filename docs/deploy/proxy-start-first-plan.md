@@ -41,7 +41,7 @@ Cloudflare's tunnel (`cloudflared`, #23) reached the same container as `http://p
 
 **Aliases must exist at creation.** Swarm registers an alias's DNS name only when the service is created or after a stop-first update ([The api's name](api-start-first-plan.md#the-apis-name)). The alias `proxy` is what the tunnel's remotely managed route (`http://proxy:80`) dials, so it must be in `networkSwarm` before the Application's first deploy.
 
-**The upstreams.** The Swarm proxy can only use overlay networks, so every upstream joins `summon-core-internal` under the alias the Caddyfile already uses: `summon-core-web`, `-admin`, `-space`, `-live`, `-minio`, `-mcp`, `-ai`. The api is `summon-core-api-next`. `cloudflared` joins it too, to reach `proxy`.
+**The upstreams.** The Swarm proxy can only use overlay networks, so every upstream joins `summon-core-internal` under the alias the Caddyfile already uses: `summon-core-web`, `-admin`, `-space`, `-live`, `-minio`, `-mcp`, `-ai`. The api is `summon-core-api-next`. The tunnel's connectors join it too, to reach `proxy`.
 
 ## Cutover
 
@@ -57,7 +57,20 @@ Cloudflare's tunnel (`cloudflared`, #23) reached the same container as `http://p
 
 ## The tunnel
 
-`cloudflared` is now the only remaining recreate-shaped gap on the request path. It is still a compose service with one connector, so any change to it (image, command, networks) drops the tunnel for ~8 s and Cloudflare answers 502/530. It changes rarely, and nothing in this plan touches it after step 1. The fix, when it is worth doing, is the same pattern again: run cloudflared as a Swarm Application with start-first updates (or two replicas), so a new connector registers before the old one leaves.
+The compose `cloudflared` was the last recreate-shaped gap: one connector, so any change to it dropped the tunnel for ~8 s and Cloudflare answered 502/530 (seen on the #26 deploy). It now runs as the Dokploy Application `cloudflared (swarm)` (`summon-core-cloudflared-qqxea3`, applicationId `m4ygR2p8VsQyzs6KcxCqS`).
+
+| Setting           | Value                                                                                                                                     |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Source            | Docker image `cloudflare/cloudflared:2025.8.1` (no autodeploy; bump the tag in Dokploy and deploy)                                        |
+| Args              | `tunnel --metrics 0.0.0.0:2000 run --token-file /run/secrets/cloudflare_tunnel_token` (the image entrypoint adds `--no-autoupdate`)       |
+| Mount             | bind `/etc/dokploy-secrets/summon-core-plane/cloudflare_tunnel_token` → `/run/secrets/cloudflare_tunnel_token` (owned by 65532, mode 600) |
+| Networks          | `summon-core-internal` only, where `proxy` is the Swarm proxy                                                                             |
+| Replicas          | 2 (two connectors, 4 Cloudflare connections each)                                                                                         |
+| Health check      | `cloudflared tunnel --metrics 127.0.0.1:2000 ready`, every 2 s, start period 20 s: healthy once a connection is registered                |
+| Update config     | parallelism 1, delay 5 s, order **start-first**, failure action **rollback**, monitor 10 s                                                |
+| Stop grace period | 40 s (cloudflared stops taking new requests on SIGTERM and drains for up to 30 s)                                                         |
+
+Cutover: the Swarm connectors joined the same tunnel next to the compose one, so the tunnel briefly had three; a probe across that returned 778 of 778 requests with 200. Removing the compose service then left the two Swarm connectors.
 
 ## Origin probe
 
