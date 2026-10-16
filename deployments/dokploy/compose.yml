@@ -238,31 +238,10 @@ services:
       summon-core-internal:
         aliases: [summon-core-mcp]
 
-  ai:
-    build:
-      context: ../..
-      dockerfile: apps/ai/Dockerfile
-    image: withsummon-summon-core-system-ai:latest
-    restart: unless-stopped
-    environment:
-      DJANGO_URL: http://summon-core-api-next:8000
-      WEB_URL: ${WEB_URL:-https://core.withsummon.com}
-      PLANE_MCP_URL: http://mcp:8211/mcp/http/api-key/mcp
-    secrets:
-      - summon_ai_internal_token
-    healthcheck:
-      test: ["CMD", "bun", "-e", "fetch('http://127.0.0.1:3300/ai/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    depends_on:
-      mcp:
-        condition: service_started
-    networks:
-      default:
-        aliases: [summon-core-ai]
-      summon-core-internal:
-        aliases: [summon-core-ai]
+  # ai (the assistant and the Summon MCP at /ai/mcp) is not here: it runs as the Dokploy Application "ai (swarm)",
+  # built from apps/ai/Dockerfile. A deploy starts the new task before the old one drains in-flight turns and MCP
+  # calls. The proxy reaches it as summon-core-ai-swarm on summon-core-internal.
+  # Settings: docs/deploy/proxy-start-first-plan.md.
 
   codex-bridge:
     build:

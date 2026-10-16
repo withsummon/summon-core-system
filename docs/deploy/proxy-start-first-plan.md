@@ -100,15 +100,34 @@ Cutover: the Swarm connectors joined the same tunnel next to the compose one, so
 
 During that web deploy, 157 requests landed inside the swap window (06:14:45–06:15:20), and all returned 200. The #28 deploy under compose had held `/` for up to 11.7 s.
 
+## ai and the Summon MCP
+
+`ai` serves the assistant (`/ai/chat…`) and the Summon MCP (`/ai/mcp`). As a compose service it restarted stop-first on **every** push, even docs-only ones, because its image stamps the commit. Each restart paused `/ai/*` and cut in-flight replies and MCP calls. It now runs as the Dokploy Application `ai (swarm)` (`summon-core-ai-swarm-irlqgk`, applicationId `uNdAS_DE56cQl6P843E9r`).
+
+| Setting           | Value                                                                                                                                               |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Source            | this repo, branch `main`, autodeploy on                                                                                                             |
+| Watch paths       | `apps/ai/**`, `packages/summon-contract/**`, `packages/typescript-config/**`, `package.json`, `bun.lock`, `bunfig.toml`                             |
+| Build             | Dockerfile `apps/ai/Dockerfile`, build path `/`, docker context path `.`                                                                            |
+| Environment       | `DJANGO_URL=http://summon-core-api-next:8000`, `WEB_URL`, `PLANE_MCP_URL=http://mcp:8211/mcp/http/api-key/mcp`, `SUMMON_AI_INTERNAL_TOKEN_FILE`     |
+| Mount             | bind `/etc/dokploy-secrets/summon-core-plane/summon_ai_internal_token` → `/run/secrets/summon_ai_internal_token` (uid 1000, the image's `bun` user) |
+| Networks          | `summon-core-internal` only, alias `summon-core-ai-swarm` (the proxy's `AI_HOST`)                                                                   |
+| Health check      | `fetch('http://127.0.0.1:3300/ai/health')`, every 2 s, start period 20 s                                                                            |
+| Update config     | parallelism 1, delay 0, order **start-first**, failure action **rollback**, monitor 10 s                                                            |
+| Stop grace period | 330 s, longer than the app's 5-minute drain                                                                                                         |
+
+- **Version stamp.** `/ai/health` reports the commit the image was built from. The Dockerfile reads it from the clone's `.git`, which `apps/ai/Dockerfile.dockerignore` lets into the build context, because an Application cannot pass a separate `git` build context.
+- **Drain.** On SIGTERM the server stops accepting and gives in-flight turns and MCP calls up to 5 minutes to finish (`gracefulShutdownTimeout` in `apps/ai/src/main.ts`). Swarm has already sent new requests to the new task by then.
+- **MCP sessions.** Clients on MCP protocol 2026-07-28 are stateless. Older protocols get an in-memory `Mcp-Session-Id`, which the new task does not know, so after a swap such a client gets 404 and must re-initialize, as the MCP spec requires.
+
 ## What still restarts stop-first
 
 These compose services still restart stop-first, and Caddy's 60 s retry holds their requests while they do (no errors, but a wait):
 
-- `ai`, rebuilt from this repo on every change to it: `/ai/*` waits while it restarts.
 - `live` and `mcp`, which change only with their pinned images.
 - `admin` and `space`, which change only when `PLANE_RELEASE` images are pulled.
 
-Moving `ai` would follow the web pattern. Through Cloudflare, an occasional 1–4 s request also shows up outside deploys; the origin stays under 1 s, so that is the Cloudflare and tunnel path, not the app.
+Through Cloudflare, an occasional 1–4 s request also shows up outside deploys; the origin stays under 1 s, so that is the Cloudflare and tunnel path, not the app.
 
 ## Origin probe
 
