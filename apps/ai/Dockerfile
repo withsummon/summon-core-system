@@ -21,15 +21,16 @@ RUN cd apps/ai && bun run build
 FROM base AS runner
 WORKDIR /app
 COPY --from=builder /app/apps/ai/dist ./dist
-# The commit this image was built from, read from the `git` build context (the repository's .git directory).
-RUN --mount=type=bind,from=git,target=/git \
+# The commit this image was built from, read from the clone's .git (Dockerfile.dockerignore lets in HEAD and refs).
+RUN --mount=type=bind,source=.git,target=/git \
   head=$(cat /git/HEAD) \
   && case "$head" in \
     "ref: "*) ref=${head#ref: }; { cat "/git/$ref" 2>/dev/null || grep " $ref\$" /git/packed-refs | cut -d" " -f1; } ;; \
     *) echo "$head" ;; \
   esac > VERSION \
   && grep -Eq '^[0-9a-f]{40}$' VERSION
+COPY --chmod=755 apps/ai/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 ENV NODE_ENV=production PORT=3300
 USER bun
 EXPOSE 3300
-CMD ["bun", "dist/main.js"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

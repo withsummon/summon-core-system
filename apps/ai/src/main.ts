@@ -8,7 +8,10 @@ const ServerLayer = Layer.unwrap(
   Effect.gen(function* () {
     const config = yield* AppConfig;
     // Bun's idle timeout caps silent gaps in a stream; the UI stream also sends a keep-alive every 15 s.
-    return BunHttpServer.layer({ port: config.port, idleTimeout: 120 });
+    // On SIGTERM the server stops accepting and gives in-flight turns and MCP calls up to 5 minutes to finish, so a
+    // start-first deploy (the new task already serves) does not cut a reply mid-stream. Swarm's stop grace period
+    // must be longer.
+    return BunHttpServer.layer({ port: config.port, idleTimeout: 120, gracefulShutdownTimeout: "5 minutes" });
   })
 );
 
