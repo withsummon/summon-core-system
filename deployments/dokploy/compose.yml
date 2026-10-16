@@ -60,19 +60,9 @@ x-api-service: &api-service
       condition: service_healthy
 
 services:
-  web:
-    image: withsummon-summon-core-system-web:latest
-    build:
-      context: ../..
-      dockerfile: apps/web/Dockerfile.web
-    restart: unless-stopped
-    # Static files only: nothing here needs the api to boot, so a deploy restarts it in seconds instead of
-    # holding it behind the api's restart. On summon-core-internal so the Swarm proxy reaches it.
-    networks:
-      default:
-        aliases: [summon-core-web]
-      summon-core-internal:
-        aliases: [summon-core-web]
+  # web is not here: it runs as the Dokploy Application "web (swarm)", built from apps/web/Dockerfile.web, so a web
+  # deploy starts the new nginx before the old one stops. The proxy reaches it as summon-core-web-swarm on
+  # summon-core-internal. Settings: docs/deploy/proxy-start-first-plan.md.
 
   admin:
     image: makeplane/plane-admin:${PLANE_RELEASE:-stable}
