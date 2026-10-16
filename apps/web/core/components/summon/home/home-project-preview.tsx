@@ -17,6 +17,7 @@ import { ArrowRight, Circle, FileText, FolderKanban, Sparkles } from "lucide-rea
 import type { ISummonClientDetail, ISummonProjectOverview } from "@plane/types";
 import { formatSummonDate } from "@/components/summon/date";
 import { SectionTabs } from "@/components/summon/section-tabs";
+import { SummonSkeleton, SummonSkeletonBlock, SummonSkeletonText } from "@/components/summon/skeleton";
 import { StatusBadge } from "@/components/summon/status-badge";
 import { EmptyLine, IconTile, Info, InfoRow, PreviewCard, ProjectMark } from "./home-parts";
 
@@ -235,9 +236,11 @@ export function HomeProjectPreview(props: THomeProjectPreviewProps) {
 
   return (
     <section className="hidden min-w-0 bg-canvas xl:block">
-      {projectLoading || !selectedProject ? (
+      {projectLoading ? (
+        <PreviewSkeleton />
+      ) : !selectedProject ? (
         <div className="grid min-h-[32rem] place-items-center bg-dot-grid p-8 text-13 text-tertiary">
-          {activeProjectId ? "Loading project workspace…" : "Select an active project to preview it here."}
+          Select an active project to preview it here.
         </div>
       ) : (
         <div className="flex min-h-full flex-col">
@@ -272,5 +275,62 @@ export function HomeProjectPreview(props: THomeProjectPreviewProps) {
         </div>
       )}
     </section>
+  );
+}
+
+/** The preview's frame with its static labels, and skeletons where the project's values go. */
+function PreviewSkeleton() {
+  return (
+    <SummonSkeleton className="flex min-h-full flex-col" label="Loading project">
+      <header className="border-b border-subtle bg-surface-1 px-4 pt-4 lg:px-6 lg:pt-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <SummonSkeletonBlock className="size-10 rounded-full" />
+            <div className="min-w-0">
+              <SummonSkeletonText className="text-xl font-semibold" width="w-48" />
+              <SummonSkeletonText className="mt-0.5 text-13" width="w-36" />
+            </div>
+          </div>
+          <SummonSkeletonBlock className="h-9 w-36 rounded-lg" />
+        </div>
+        <SummonSkeletonBlock className="mt-3 mb-2 h-7 w-96 max-w-full" />
+      </header>
+      <div className="grid flex-1 content-start gap-3 p-4 lg:p-6 2xl:grid-cols-2">
+        <PreviewCard title="Progress">
+          <SummonSkeletonText className="text-3xl font-semibold" width="w-20" />
+          <SummonSkeletonBlock className="mt-3 h-1.5 w-full rounded-full" />
+          <div className="mt-4 grid grid-cols-2 gap-3 border-t border-dashed border-subtle pt-4">
+            {["Current phase", "Next milestone"].map((label) => (
+              <div key={label}>
+                <p className="text-12 text-tertiary">{label}</p>
+                <SummonSkeletonText className="mt-0.5 text-13 font-medium" width="w-24" />
+              </div>
+            ))}
+          </div>
+        </PreviewCard>
+        <PreviewCard title="Details">
+          <dl className="divide-y divide-dashed divide-subtle">
+            {["Project manager", "Client", "Start date", "Target date", "Budget"].map((label) => (
+              <div key={label} className="flex items-center justify-between gap-4 py-2 first:pt-0 last:pb-0">
+                <dt className="text-13 text-tertiary">{label}</dt>
+                <SummonSkeletonText className="text-13 font-medium" width="w-24" />
+              </div>
+            ))}
+          </dl>
+        </PreviewCard>
+        {["Open tasks", "Latest documents"].map((title) => (
+          <PreviewCard key={title} title={title}>
+            <div className="divide-y divide-dashed divide-subtle">
+              {[0, 1, 2].map((index) => (
+                <div key={index} className="flex items-center gap-2.5 py-2.5">
+                  <SummonSkeletonBlock className="size-4 rounded-full" />
+                  <SummonSkeletonText className="min-w-0 flex-1 text-13" width={index % 2 ? "w-40" : "w-56"} />
+                </div>
+              ))}
+            </div>
+          </PreviewCard>
+        ))}
+      </div>
+    </SummonSkeleton>
   );
 }

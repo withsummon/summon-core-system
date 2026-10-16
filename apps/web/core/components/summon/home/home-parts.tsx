@@ -14,6 +14,8 @@ export function HomeListSection(props: {
   action: string;
   empty: string;
   emptyAsset: CompactAssetType;
+  /** Rows shaped like `children`, shown instead of them while the feed loads. */
+  skeleton?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const hasChildren = Array.isArray(props.children) ? props.children.length > 0 : !!props.children;
@@ -29,8 +31,12 @@ export function HomeListSection(props: {
         </Link>
       </div>
       <div className="flex flex-col">
-        {props.children}
-        {!hasChildren && <EmptyLine asset={props.emptyAsset} text={props.empty} />}
+        {props.skeleton ?? (
+          <>
+            {props.children}
+            {!hasChildren && <EmptyLine asset={props.emptyAsset} text={props.empty} />}
+          </>
+        )}
       </div>
     </section>
   );

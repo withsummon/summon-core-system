@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { BriefcaseBusiness, Circle, FileText } from "lucide-react";
 import type { ISummonHomeSummary, ISummonOpportunity, ISummonProjectOverview } from "@plane/types";
 import { ViewPanel } from "@/components/summon/screen";
+import { SummonSkeletonBlock, SummonSkeletonRows, SummonSkeletonText } from "@/components/summon/skeleton";
 import { StatusBadge } from "@/components/summon/status-badge";
 import { HomeListSection, IconTile, ProjectMark } from "./home-parts";
 
@@ -18,6 +19,8 @@ const PREVIEW_QUERY = "(min-width: 1280px)";
 
 type THomeFeedProps = {
   workspaceSlug: string;
+  /** The home summary is still loading: sections keep their headers and show skeleton rows. */
+  loading: boolean;
   filter: THomeFilter;
   showDeals: boolean;
   activeProjectId: string;
@@ -31,6 +34,7 @@ type THomeFeedProps = {
 export function HomeFeed(props: THomeFeedProps) {
   const {
     workspaceSlug,
+    loading,
     filter,
     showDeals,
     activeProjectId,
@@ -52,6 +56,7 @@ export function HomeFeed(props: THomeFeedProps) {
           action="All tasks"
           empty="Nothing urgent right now."
           emptyAsset="work-item"
+          skeleton={loading ? <PriorityRowsSkeleton /> : undefined}
         >
           {visiblePriority.slice(0, 3).map((issue) => (
             <Link
@@ -81,6 +86,7 @@ export function HomeFeed(props: THomeFeedProps) {
           action="All projects"
           empty="No active projects."
           emptyAsset="project"
+          skeleton={loading ? <NamedRowsSkeleton count={5} markClassName="size-7 rounded-full" /> : undefined}
         >
           {visibleProjects.slice(0, 5).map((project) => {
             const selected = activeProjectId === project.id;
@@ -117,6 +123,7 @@ export function HomeFeed(props: THomeFeedProps) {
           action="All opportunities"
           empty="No active opportunities."
           emptyAsset="customer"
+          skeleton={loading ? <NamedRowsSkeleton count={3} markClassName="size-6" /> : undefined}
         >
           {visibleOpportunities.slice(0, 3).map((opportunity) => (
             <Link
@@ -161,5 +168,42 @@ export function HomeFeed(props: THomeFeedProps) {
         </HomeListSection>
       )}
     </ViewPanel>
+  );
+}
+
+/** Mirrors a priority row: icon, task and project lines, status badge. */
+function PriorityRowsSkeleton() {
+  return (
+    <SummonSkeletonRows
+      count={3}
+      className="flex flex-col"
+      row={(index) => (
+        <div key={index} className="flex items-center gap-3 px-2 py-2.5">
+          <SummonSkeletonBlock className="size-4 rounded-full" />
+          <span className="min-w-0 flex-1">
+            <SummonSkeletonText className="text-13 font-medium" width={index % 2 ? "w-40" : "w-56"} />
+            <SummonSkeletonText className="text-12" width="w-24" />
+          </span>
+          <SummonSkeletonBlock className="h-5 w-16 rounded-full" />
+        </div>
+      )}
+    />
+  );
+}
+
+/** Mirrors a project or opportunity row: a mark, one name line, a badge. */
+function NamedRowsSkeleton(props: { count: number; markClassName: string }) {
+  return (
+    <SummonSkeletonRows
+      count={props.count}
+      className="flex flex-col"
+      row={(index) => (
+        <div key={index} className="flex items-center gap-3 px-2 py-2">
+          <SummonSkeletonBlock className={props.markClassName} />
+          <SummonSkeletonText className="min-w-0 flex-1 text-13 font-medium" width={index % 2 ? "w-32" : "w-44"} />
+          <SummonSkeletonBlock className="h-5 w-14 rounded-full" />
+        </div>
+      )}
+    />
   );
 }
